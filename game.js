@@ -35,9 +35,9 @@
   // ===========================================================
   const TIERS = [
     { name: 'Starter',  cost: 0,     level: 1,  blurb: 'Your first brokerage account. Steady, well-known companies.' },
-    { name: 'Silver',   cost: 2500,  level: 3,  blurb: 'Adds a fast-growing automaker and a major bank.' },
-    { name: 'Gold',     cost: 15000, level: 6,  blurb: 'Adds higher-risk sectors: biotech and energy.' },
-    { name: 'Platinum', cost: 75000, level: 10, blurb: 'Adds large, premium-priced companies.' },
+    { name: 'Silver',   cost: 2500,  level: 3,  blurb: 'Adds a bank, a software firm, a builders merchant and an electric carmaker.' },
+    { name: 'Gold',     cost: 15000, level: 6,  blurb: 'Adds the rough end of the market: biotech, energy, mining and an airline.' },
+    { name: 'Platinum', cost: 75000, level: 10, blurb: 'Adds large, premium-priced companies with high share prices.' },
   ];
 
   const STOCKS = [
@@ -47,18 +47,34 @@
       about: 'Builds trading software and cloud tools for banks. It is growing quickly and reinvests its profits instead of paying a dividend.' },
     { id: 'BRWL', name: 'Brightwell Foods', sector: 'Consumer staples', tier: 0, start: 48, vol: 0.17, beta: 0.6, growth: 0.05, pe: 18, divYield: 0.032, sharesOut: 1.4e9, color: '#c9a45c',
       about: 'Makes cereal, snacks and frozen meals. People buy groceries in good times and bad, so the stock is steady and pays a regular dividend.' },
+    { id: 'CIVC', name: 'Civic Power & Water', sector: 'Utilities', tier: 0, start: 62, vol: 0.14, beta: 0.45, growth: 0.03, pe: 16, divYield: 0.042, sharesOut: 900e6, color: '#6f9aa8',
+      about: 'Keeps the lights on and the taps running for millions of homes. Growth is slow and dull, but the bills get paid and so do its dividends.' },
+    { id: 'PARC', name: 'Parcelworks', sector: 'Logistics', tier: 0, start: 84, vol: 0.22, beta: 0.9, growth: 0.07, pe: 19, divYield: 0.012, sharesOut: 700e6, color: '#b08a6a',
+      about: 'Runs delivery vans and sorting depots. When shops and factories are busy it thrives, and when they slow down so does it.' },
     { id: 'VOLT', name: 'Voltaic Motors', sector: 'Automotive', fragile: true, tier: 1, start: 64, vol: 0.55, beta: 1.6, growth: 0.15, pe: 45, divYield: 0, sharesOut: 1.1e9, color: '#4fb3a9',
       about: 'An electric vehicle maker betting big on new factories. Investors expect a lot of growth, so the stock swings hard on any news.' },
     { id: 'NRTH', name: 'Northgate Bank', sector: 'Financials', tier: 1, start: 72, vol: 0.25, beta: 1.15, growth: 0.06, pe: 11, divYield: 0.036, sharesOut: 2.6e9, color: '#8a93d6',
       about: 'A large bank that earns money lending to families and businesses. It tends to rise and fall with the overall economy.' },
+    { id: 'NIMB', name: 'Nimbus Software', sector: 'Technology', tier: 1, start: 118, vol: 0.38, beta: 1.25, growth: 0.14, pe: 38, divYield: 0, sharesOut: 620e6, color: '#6f8fe0',
+      about: 'Sells office software that companies pay for by the month. Those payments are reliable, but investors expect fast growth and punish any slip.' },
+    { id: 'HRVS', name: 'Harvest Materials', sector: 'Materials', tier: 1, start: 57, vol: 0.28, beta: 1.05, growth: 0.05, pe: 13, divYield: 0.028, sharesOut: 1.1e9, color: '#a8925c',
+      about: 'Makes cement, glass and steel for building work. Its fortunes follow construction, which booms and stalls with the economy.' },
     { id: 'HELX', name: 'Helix Therapeutics', sector: 'Biotech', fragile: true, tier: 2, start: 38, vol: 0.62, beta: 0.8, growth: 0.14, pe: 40, divYield: 0, sharesOut: 520e6, color: '#b98ac6',
       about: 'Develops new medicines. A single drug trial result can send the stock sharply up or down, no matter what the market is doing.' },
     { id: 'CRST', name: 'Crestline Energy', sector: 'Energy', tier: 2, start: 91, vol: 0.30, beta: 0.9, growth: 0.04, pe: 12, divYield: 0.045, sharesOut: 1.9e9, color: '#d08a57',
       about: 'Produces oil and natural gas. Its price follows energy prices, and it returns much of its cash to investors as dividends.' },
+    { id: 'AURA', name: 'Aurora Mining', sector: 'Mining', tier: 2, start: 41, vol: 0.45, beta: 1.1, growth: 0.04, pe: 14, divYield: 0.02, sharesOut: 800e6, color: '#c98f4a',
+      about: 'Digs copper and gold out of the ground. Metal prices swing hard, and a single flooded mine can wipe out a year of profit.' },
+    { id: 'VELO', name: 'Velocity Airways', sector: 'Airlines', fragile: true, tier: 2, start: 33, vol: 0.50, beta: 1.5, growth: 0.06, pe: 10, divYield: 0, sharesOut: 540e6, color: '#7fa9c9',
+      about: 'Flies short-haul routes on thin margins. Cheap fuel and full planes make it soar; a downturn or a fuel spike can sink it entirely.' },
     { id: 'ORBT', name: 'Orbital Systems', sector: 'Aerospace', tier: 3, start: 220, vol: 0.40, beta: 1.3, growth: 0.13, pe: 35, divYield: 0, sharesOut: 640e6, color: '#6aa6d6',
       about: 'Launches satellites and builds spacecraft for governments. Big contracts can lift the stock, and launch failures can sink it.' },
     { id: 'SUMT', name: 'Summit Global Holdings', sector: 'Conglomerate', tier: 3, start: 410, vol: 0.18, beta: 0.9, growth: 0.08, pe: 22, divYield: 0.022, sharesOut: 1.3e9, color: '#9aa7b8',
       about: 'Owns dozens of businesses, from insurance to railroads. Pricey per share, but steady, diversified and a reliable dividend payer.' },
+    { id: 'MERD', name: 'Meridian Pharma', sector: 'Pharmaceuticals', tier: 3, start: 330, vol: 0.24, beta: 0.7, growth: 0.07, pe: 19, divYield: 0.031, sharesOut: 1.6e9, color: '#9ab8a0',
+      about: 'Sells medicines people take for years at a time. Far calmer than a young biotech, because it already has drugs earning money.' },
+    { id: 'QNTA', name: 'Quanta Robotics', sector: 'Robotics', tier: 3, start: 265, vol: 0.42, beta: 1.35, growth: 0.16, pe: 48, divYield: 0, sharesOut: 700e6, color: '#a58fd6',
+      about: 'Builds factory robots and the software that runs them. The fastest grower on the board, priced as though that will never stop.' },
   ];
   const STOCK_BY_ID = Object.fromEntries(STOCKS.map(s => [s.id, s]));
 
@@ -111,6 +127,34 @@
     'Conglomerate': {
       good: ['{n} insurance arm reports record profits', '{n} buys a profitable railroad operator'],
       bad: ['{n} takes a loss on a failed acquisition', 'Storm claims weigh on the {n} insurance unit'],
+    },
+    'Utilities': {
+      good: ['Regulators let {n} raise household rates', '{n} finishes a power plant under budget'],
+      bad: ['A storm leaves {n} customers without power for days', 'Regulators reject a rate rise sought by {n}'],
+    },
+    'Logistics': {
+      good: ['Holiday parcel volumes set a record at {n}', '{n} opens an automated sorting depot'],
+      bad: ['Fuel costs bite into {n} margins', 'A driver strike slows deliveries at {n}'],
+    },
+    'Materials': {
+      good: ['A building boom lifts orders at {n}', '{n} wins a contract to supply a motorway project'],
+      bad: ['Housebuilders cancel orders at {n}', 'Energy costs squeeze the {n} cement business'],
+    },
+    'Mining': {
+      good: ['Copper prices jump, lifting {n}', '{n} strikes a rich new seam'],
+      bad: ['Flooding shuts a {n} mine', 'Metal prices slide, leaving {n} exposed'],
+    },
+    'Airlines': {
+      good: ['{n} fills its planes over the holidays', 'Cheaper fuel widens margins at {n}'],
+      bad: ['{n} grounds planes over a safety check', 'A fuel price spike hits {n} hard'],
+    },
+    'Pharmaceuticals': {
+      good: ['{n} wins approval for a long-awaited treatment', '{n} reports strong sales of its main drug'],
+      bad: ['A patent on a {n} blockbuster expires', 'Regulators question {n} pricing'],
+    },
+    'Robotics': {
+      good: ['{n} lands a huge factory automation order', '{n} unveils a faster assembly robot'],
+      bad: ['{n} recalls robots after a software fault', 'A key customer delays its {n} rollout'],
     },
   };
   const MARKET_NEWS = {
@@ -321,6 +365,35 @@
   // ===========================================================
   // STATE + SAVING
   // ===========================================================
+  function blankStock(s, index) {
+    return {
+      price: s.start,
+      eps: s.start / s.pe,
+      history: [],
+      shares: 0,
+      costBasis: 0,
+      realized: 0,
+      dividends: 0,
+      distress: false,
+      delisted: false,
+      earningsDay: (index * 7 + 20) % DAYS_PER_QUARTER,
+    };
+  }
+
+  // A company added to the game after a save was made needs a year of
+  // history of its own, so its chart isn't empty when it appears.
+  function inventHistory(rt, s) {
+    const walk = [];
+    let price = s.start;
+    for (let i = 0; i < DAYS_PER_YEAR; i++) {
+      price *= Math.exp(s.growth / DAYS_PER_YEAR + (s.vol / Math.sqrt(DAYS_PER_YEAR)) * gauss());
+      walk.push(price);
+    }
+    const scale = s.start / price; // finish at today's listed price
+    rt.history = walk.map(v => Math.round(v * scale * 10000) / 10000);
+    rt.price = s.start;
+  }
+
   function freshState() {
     const st = {
       version: 2,
@@ -337,20 +410,7 @@
       news: [],
       lastSeen: Date.now(),
     };
-    STOCKS.forEach((s, i) => {
-      st.stocks[s.id] = {
-        price: s.start,
-        eps: s.start / s.pe,
-        history: [],
-        shares: 0,
-        costBasis: 0,
-        realized: 0,
-        dividends: 0,
-        distress: false,
-        delisted: false,
-        earningsDay: (i * 7 + 20) % DAYS_PER_QUARTER,
-      };
-    });
+    STOCKS.forEach((s, i) => { st.stocks[s.id] = blankStock(s, i); });
     // Play one quiet year so every chart has real history on day one.
     for (let i = 0; i < DAYS_PER_YEAR; i++) simulateDay(st);
     st.news = [{ day: st.day, ticker: 'MKT', mood: 'neutral', kind: 'market', text: 'Markets are open. Welcome to your trading desk.' }];
@@ -360,7 +420,16 @@
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || localStorage.getItem(OLD_SAVE_KEY));
-      if (saved && saved.version === 2) return saved;
+      if (saved && saved.version === 2) {
+        // companies added since this save was written join the board today
+        STOCKS.forEach((s, i) => {
+          if (saved.stocks[s.id]) return;
+          const rt = blankStock(s, i);
+          inventHistory(rt, s);
+          saved.stocks[s.id] = rt;
+        });
+        return saved;
+      }
     } catch (e) { /* storage blocked or save unreadable: start fresh */ }
     return freshState();
   }
