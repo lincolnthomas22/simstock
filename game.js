@@ -196,8 +196,9 @@
     return t.content.firstElementChild;
   }
 
-  const logoHtml = (s, size = '') => `<span class="logo ${size}" style="color:${s.color};background:${s.color}24">${s.id[0]}</span>`;
-  const chipHtml = s => `<span class="stock-chip">${logoHtml(s, 'xs')}${s.id}</span>`;
+  const tkr = s => `<span class="tkr">${s.id}</span>`;
+  const chg = pct => `<span class="chg ${tone(pct)}">${fmtPct(pct)}</span>`;
+  const tkrList = stocks => stocks.map(tkr).join(stocks.length === 2 ? ' and ' : ', ');
 
   function pushHistory(list, value) {
     list.push(Math.round(value * 10000) / 10000);
@@ -398,7 +399,7 @@
       modal = modalRoot.querySelector('.modal');
     }
     modal.innerHTML = html;
-    const focusTarget = modal.querySelector('.btn-accent, .btn');
+    const focusTarget = modal.querySelector('.btn-ink, .btn');
     if (focusTarget) focusTarget.focus();
     return modal;
   }
@@ -420,8 +421,7 @@
     const last = step === LESSONS.length - 1;
     const opening = !state.accountOpen;
     const modal = openModal(`
-      <div class="modal-icon">${icon(lesson.icon, 24)}</div>
-      <div class="modal-kicker">Investing basics · ${step + 1} of ${LESSONS.length}</div>
+      <div class="modal-kicker">The basics, part ${step + 1} of ${LESSONS.length}</div>
       <h3>${lesson.title}</h3>
       <p>${lesson.text}</p>
       ${last && opening ? '<p class="fine-print">All companies and prices in SimStock are fictional. No real money is involved.</p>' : ''}
@@ -429,7 +429,7 @@
         <div class="steps">${LESSONS.map((_, i) => `<span class="step${i <= step ? ' active' : ''}"></span>`).join('')}</div>
         <span class="spacer"></span>
         <button class="btn btn-ghost" data-act="back">${step > 0 ? 'Back' : opening ? 'Not now' : 'Close'}</button>
-        <button class="btn btn-accent" data-act="next">${!last ? 'Next' : opening ? 'Open account' : 'Done'}</button>
+        <button class="btn btn-ink" data-act="next">${!last ? 'Next' : opening ? 'Open my account' : 'Done'}</button>
       </div>`);
 
     modal.querySelector('[data-act="next"]').onclick = () => {
@@ -446,13 +446,12 @@
       ? `<p>You now meet the level requirement for a <b>${next.name}</b> account.</p>`
       : '';
     const modal = openModal(`
-      <div class="modal-icon">${icon('star', 24)}</div>
       <div class="modal-kicker">Milestone</div>
-      <h3>Level ${level} reached</h3>
-      <p>Your desk is growing. You've earned a milestone bonus.</p>
+      <h3>You've reached level ${level}</h3>
+      <p>A bonus has been paid into your account.</p>
       <div class="reward">+${fmt(bonus)}</div>
       ${tierNote}
-      <div class="modal-actions"><button class="btn btn-accent" data-act="ok">Continue</button></div>`);
+      <div class="modal-actions"><button class="btn btn-ink" data-act="ok">Continue</button></div>`);
     modal.querySelector('[data-act="ok"]').onclick = closeModal;
   }
 
@@ -470,12 +469,11 @@
     saveState();
     queueModal(() => {
       const modal = openModal(`
-        <div class="modal-icon">${icon('clock', 24)}</div>
         <div class="modal-kicker">Welcome back</div>
         <h3>Your staff kept working</h3>
-        <p>You were away for ${formatDuration(away)}. Markets were paused, but your staff kept earning${away >= OFFLINE_CAP_SEC ? ' (up to the 2-hour limit)' : ''}.</p>
+        <p>You were away for ${formatDuration(away)}. The market stayed closed, but your staff kept earning${away >= OFFLINE_CAP_SEC ? ' (they stop after two hours)' : ''}.</p>
         <div class="reward">+${fmt(earned)}</div>
-        <div class="modal-actions"><button class="btn btn-accent" data-act="ok">Collect</button></div>`);
+        <div class="modal-actions"><button class="btn btn-ink" data-act="ok">Collect</button></div>`);
       modal.querySelector('[data-act="ok"]').onclick = () => {
         closeModal();
         render();
@@ -488,17 +486,16 @@
     const stocks = STOCKS.filter(s => s.tier === i);
     const staff = STAFF.filter(s => s.tier === i);
     const modal = openModal(`
-      <div class="modal-icon">${icon('star', 24)}</div>
       <div class="modal-kicker">Account upgraded</div>
       <h3>Welcome to ${tier.name}</h3>
       <p>You can now trade ${stocks.length} more companies:</p>
-      <div class="new-stocks">
-        ${stocks.map(s => `<div class="stock-cell">${logoHtml(s)}<div><div class="t">${s.name}</div><div class="n">${s.id} · ${s.sector}</div></div></div>`).join('')}
-      </div>
-      ${staff.length ? `<p>New staff available to hire: ${staff.map(s => s.name).join(', ')}.</p>` : ''}
+      <ul class="new-stocks">
+        ${stocks.map(s => `<li>${tkr(s)}<span>${s.name}</span><span class="muted">${s.sector}</span></li>`).join('')}
+      </ul>
+      ${staff.length ? `<p>You can also hire a new role: ${staff.map(s => s.name).join(', ')}.</p>` : ''}
       <div class="modal-actions">
         <button class="btn btn-ghost" data-act="close">Close</button>
-        <button class="btn btn-accent" data-act="trade">Start trading</button>
+        <button class="btn btn-ink" data-act="trade">Start trading</button>
       </div>`);
     modal.querySelector('[data-act="close"]').onclick = closeModal;
     modal.querySelector('[data-act="trade"]').onclick = () => {
@@ -510,8 +507,8 @@
 
   function showSettings() {
     const modal = openModal(`
-      <div class="modal-icon">${icon('gear', 24)}</div>
-      <h3>Settings</h3>
+      <div class="modal-kicker">Settings</div>
+      <h3>Your game</h3>
       <p>Level ${state.level} · ${TIERS[state.tier].name} account · Net worth ${fmt(netWorth())}</p>
       <div class="settings-list">
         <button class="btn btn-ghost btn-block" data-act="basics">Replay investing basics</button>
@@ -570,7 +567,7 @@
     gainXp(XP.openAccount);
     showScreen('trade');
     afterAction();
-    toast('Account opened', `+${XP.openAccount} XP. Pick a stock from the list to get started.`, 'accent');
+    toast('Account opened', `+${XP.openAccount} XP. Pick a stock from the list on the left.`, 'accent');
   }
 
   function orderQty() {
@@ -673,7 +670,7 @@
   // ===========================================================
   // SCREENS
   // ===========================================================
-  const SCREEN_TITLES = { home: 'Overview', trade: 'Trading', upgrades: 'Upgrades' };
+  const SCREEN_TITLES = { home: 'Front page', trade: 'Trading floor', upgrades: 'Upgrades' };
 
   function showScreen(name) {
     if (name !== 'home' && !state.accountOpen) {
@@ -704,6 +701,7 @@
   // ===========================================================
   function render() {
     renderChrome();
+    renderTape();
     if (ui.screen === 'home') renderHome();
     if (ui.screen === 'trade') renderTrade();
     if (ui.screen === 'upgrades') renderUpgrades();
@@ -720,6 +718,16 @@
     $('tierChip').textContent = `${TIERS[state.tier].name} account`;
     $('xpFill').style.width = Math.min(100, (state.xp / need) * 100) + '%';
     $('xpText').textContent = `${Math.floor(state.xp)} / ${need} XP to level ${state.level + 1}`;
+  }
+
+  // The scrolling price strip under the masthead. Its contents are listed twice
+  // so the CSS scroll can loop without a gap.
+  function renderTape() {
+    const items = [
+      `<span class="tape-item"><b>INDEX</b>${state.market.level.toFixed(2)} ${chg(dayChangePct(state.market.history))}</span>`,
+      ...STOCKS.map(s => `<span class="tape-item"><b>${s.id}</b>${fmt(rtOf(s.id).price)} ${chg(dayChangePct(rtOf(s.id).history))}</span>`),
+    ].join('');
+    $('tape').innerHTML = items + items;
   }
 
   // ---------- Overview ----------
@@ -745,6 +753,7 @@
       renderHoldings();
     }
     renderMovers();
+    renderNews();
   }
 
   let tierChipsFor = -1;
@@ -757,7 +766,7 @@
 
     $('tierNextTitle').textContent = `${next.name} account`;
     if (tierChipsFor !== nextIndex) {
-      $('tierNextStocks').innerHTML = STOCKS.filter(s => s.tier === nextIndex).map(chipHtml).join('');
+      $('tierNextStocks').innerHTML = tkrList(STOCKS.filter(s => s.tier === nextIndex));
       tierChipsFor = nextIndex;
     }
     const levelDone = state.level >= next.level;
@@ -771,7 +780,7 @@
 
     const btn = $('tierUpgradeBtn');
     btn.disabled = !tierReady(nextIndex);
-    btn.textContent = btn.disabled ? 'Keep growing to upgrade' : `Upgrade for ${fmt(next.cost)}`;
+    btn.textContent = btn.disabled ? 'Not yet' : `Upgrade for ${fmt(next.cost)}`;
   }
 
   function renderHoldings() {
@@ -787,16 +796,15 @@
       const ret = value - rt.costBasis;
       const day = dayChangePct(rt.history);
       return `<tr data-stock="${s.id}">
-        <td><div class="stock-cell">${logoHtml(s, 'sm')}<div><div class="t">${s.id}</div><div class="n">${s.name}</div></div></div></td>
+        <td>${tkr(s)}</td>
         <td class="num">${rt.shares.toLocaleString('en-US')}</td>
-        <td class="num">${fmt(avgCost(rt))}</td>
-        <td class="num">${fmt(rt.price)}<span class="sub ${tone(day)}">${fmtPct(day)} today</span></td>
+        <td class="num">${fmt(rt.price)}<span class="sub">${chg(day)}</span></td>
         <td class="num">${fmt(value)}</td>
         <td class="num ${tone(ret)}">${fmtSigned(ret)}<span class="sub">${fmtPct((ret / rt.costBasis) * 100)}</span></td>
       </tr>`;
     }).join('');
     $('holdingsTable').innerHTML = `<table class="table">
-      <thead><tr><th>Stock</th><th class="num">Shares</th><th class="num">Avg cost</th><th class="num">Price</th><th class="num">Value</th><th class="num">Return</th></tr></thead>
+      <thead><tr><th>Stock</th><th class="num">Shares</th><th class="num">Price</th><th class="num">Value</th><th class="num">Return</th></tr></thead>
       <tbody>${rows}</tbody></table>`;
   }
 
@@ -804,16 +812,18 @@
     const marketDay = dayChangePct(state.market.history);
     const marketEl = $('moversMarket');
     marketEl.textContent = `Index ${fmtPct(marketDay)}`;
-    marketEl.className = 'muted ' + tone(marketDay);
+    marketEl.className = tone(marketDay);
 
-    $('moversList').innerHTML = STOCKS.filter(isUnlocked)
+    const rows = STOCKS.filter(isUnlocked)
       .map(s => ({ s, rt: rtOf(s.id), change: dayChangePct(rtOf(s.id).history) }))
       .sort((a, b) => b.change - a.change)
-      .map(({ s, rt, change }) => `<div class="mover" data-stock="${s.id}">
-          <div class="stock-cell">${logoHtml(s, 'sm')}<div><div class="t">${s.id}</div><div class="n">${s.name}</div></div></div>
-          <div class="mover-quote"><div class="p">${fmt(rt.price)}</div><div class="c ${tone(change)}">${fmtPct(change)}</div></div>
-        </div>`)
+      .map(({ s, rt, change }) => `<tr data-stock="${s.id}">
+          <td>${tkr(s)}<span class="n">${s.name}</span></td>
+          <td class="num">${fmt(rt.price)}</td>
+          <td class="num">${chg(change)}</td>
+        </tr>`)
       .join('');
+    $('moversList').innerHTML = `<table class="table quotes"><tbody>${rows}</tbody></table>`;
   }
 
   // ---------- Trading ----------
@@ -825,10 +835,9 @@
     for (const s of STOCKS) {
       if (s.tier !== group) {
         group = s.tier;
-        list.appendChild(el(`<div class="watch-group">${TIERS[group].name}</div>`));
+        list.appendChild(el(`<div class="watch-group tier-${group}">${TIERS[group].name} account</div>`));
       }
       const row = el(`<button class="watch-row">
-          ${logoHtml(s, 'sm')}
           <span class="watch-id"><span class="watch-ticker">${s.id}</span><span class="watch-name">${s.name}</span></span>
           <svg class="spark" viewBox="0 0 44 20" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke-width="1.5" stroke-linejoin="round"/></svg>
           <span class="watch-quote"><span class="watch-price"></span><span class="watch-change"></span></span>
@@ -873,16 +882,16 @@
       r.row.classList.toggle('locked', locked);
       r.price.textContent = fmt(rt.price);
       if (locked) {
-        r.change.innerHTML = `${icon('lock', 11)}${TIERS[s.tier].name}`;
+        r.change.textContent = TIERS[s.tier].name;
         r.change.className = 'watch-change locked-label';
       } else {
         const change = dayChangePct(rt.history);
-        r.change.textContent = fmtPct(change);
-        r.change.className = 'watch-change ' + tone(change);
+        r.change.innerHTML = chg(change);
+        r.change.className = 'watch-change';
       }
       const h = rt.history;
       r.spark.setAttribute('points', sparkPoints(h));
-      r.spark.setAttribute('stroke', h[h.length - 1] >= h[Math.max(0, h.length - 30)] ? '#3fb68b' : '#e5616b');
+      r.spark.setAttribute('stroke', h[h.length - 1] >= h[Math.max(0, h.length - 30)] ? CHART.pos : CHART.neg);
     }
 
     const s = STOCK_BY_ID[ui.selected];
@@ -890,20 +899,16 @@
     const locked = !isUnlocked(s);
 
     // header + price
-    const logo = $('dLogo');
-    logo.textContent = s.id[0];
-    logo.style.color = s.color;
-    logo.style.background = s.color + '24';
     $('dName').textContent = s.name;
     $('dMeta').textContent = `${s.id} · ${s.sector}`;
     $('dLock').hidden = !locked;
-    $('dLockText').textContent = `${TIERS[s.tier].name} account`;
+    $('dLockText').textContent = TIERS[s.tier].name;
     $('dPrice').textContent = fmt(rt.price);
 
     const dayPct = dayChangePct(rt.history);
     const dayAbs = rt.price - prevClose(rt.history);
     $('dChange').textContent = `${fmtSigned(dayAbs)} (${fmtPct(dayPct)}) today`;
-    $('dChange').className = 'change ' + tone(dayPct);
+    $('dChange').className = 'change chg ' + tone(dayPct);
     const range = rt.history.slice(-ui.range);
     const rangePct = (range[range.length - 1] / range[0] - 1) * 100;
     $('dRange').textContent = `${fmtPct(rangePct)} past ${RANGE_LABELS[ui.range]}`;
@@ -939,8 +944,8 @@
     $('orderForm').hidden = locked;
     $('orderLocked').hidden = !locked;
     if (locked) {
-      $('lockedTitle').textContent = `Requires a ${TIERS[s.tier].name} account`;
-      $('lockedText').textContent = `You can follow ${s.id}'s price and news now. Upgrade your account to start trading it.`;
+      $('lockedTitle').textContent = `${s.id} needs a ${TIERS[s.tier].name} account`;
+      $('lockedText').textContent = `You can watch the price and read the news in the meantime. Trading opens once you upgrade.`;
       return;
     }
 
@@ -970,7 +975,7 @@
   }
 
   function renderPosition(s, rt) {
-    $('positionTitle').textContent = `Your ${s.id} position`;
+    $('positionTitle').textContent = `Your ${s.id} shares`;
     const value = rt.shares * rt.price;
     const unrealized = value - rt.costBasis;
     setV($('pShares'), rt.shares.toLocaleString('en-US'));
@@ -994,19 +999,18 @@
     const visible = state.news
       .filter(n => n.ticker === 'MKT' || isUnlocked(STOCK_BY_ID[n.ticker]))
       .slice(0, 20);
-    $('newsList').innerHTML = visible.map(n => `<li class="news-item">
-        <span class="news-dot ${n.mood}"></span>
-        <div>
-          <div class="news-text">${n.text}</div>
-          <div class="news-meta">${n.ticker === 'MKT' ? 'Market' : n.ticker} · ${NEWS_KINDS[n.kind]} · Day ${Math.max(0, n.day) + 1}</div>
-        </div>
-      </li>`).join('') || '<li class="empty">No news yet.</li>';
+    const html = visible.map(n => `<li class="news-item ${n.mood}">
+        <div class="news-meta">${n.ticker === 'MKT' ? 'Economy' : `${n.ticker} · ${NEWS_KINDS[n.kind]}`} · Day ${Math.max(0, n.day) + 1}</div>
+        <div class="news-text">${n.text}</div>
+      </li>`).join('') || '<li class="empty">Quiet so far.</li>';
+    // the same headlines appear on the front page and the trading floor
+    ['newsList', 'homeNews'].forEach(id => { if ($(id)) $(id).innerHTML = html; });
   }
 
   // ---------- Chart ----------
   const chart = $('chart');
   const chartCtx = chart.getContext('2d');
-  const CHART = { pos: '#3fb68b', neg: '#e5616b', accent: '#d9ad52', text: '#707d90', grid: 'rgba(255,255,255,0.05)' };
+  const CHART = { pos: '#178052', neg: '#b8322a', accent: '#22577a', ink: '#1c1a17', text: '#6f685c', grid: 'rgba(28,26,23,0.09)' };
 
   function sizeChart() {
     const dpr = window.devicePixelRatio || 1;
@@ -1050,7 +1054,7 @@
     const y = v => box.bottom - ((v - min) / (max - min)) * (box.bottom - box.top);
 
     // price gridlines + labels
-    ctx.font = '11px Inter, sans-serif';
+    ctx.font = '11px "IBM Plex Mono", monospace';
     ctx.lineWidth = 1;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -1081,8 +1085,8 @@
 
     // area
     const grad = ctx.createLinearGradient(0, box.top, 0, box.bottom);
-    grad.addColorStop(0, up ? 'rgba(63,182,139,0.22)' : 'rgba(229,97,107,0.22)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    grad.addColorStop(0, up ? 'rgba(23,128,82,0.24)' : 'rgba(184,50,42,0.2)');
+    grad.addColorStop(1, 'rgba(246,240,228,0)');
     ctx.beginPath();
     trace();
     ctx.lineTo(x(n - 1), box.bottom);
@@ -1095,27 +1099,27 @@
     ctx.beginPath();
     trace();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.25;
     ctx.lineJoin = 'round';
     ctx.stroke();
 
     // your average cost
     if (rt.shares) {
       const yy = y(avgCost(rt));
-      ctx.setLineDash([5, 5]);
+      ctx.setLineDash([4, 4]);
       ctx.strokeStyle = CHART.accent;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(box.left, yy);
       ctx.lineTo(box.right, yy);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.font = '600 11px Inter, sans-serif';
+      ctx.font = 'italic 13px Newsreader, Georgia, serif';
       ctx.fillStyle = CHART.accent;
       ctx.textAlign = 'left';
       const above = yy > box.top + 16;
       ctx.textBaseline = above ? 'bottom' : 'top';
-      ctx.fillText('Your average cost', box.left + 6, above ? yy - 4 : yy + 4);
+      ctx.fillText(`you paid ${fmt(avgCost(rt))} a share`, box.left + 6, above ? yy - 4 : yy + 4);
     }
 
     // latest price marker
@@ -1133,15 +1137,15 @@
     const i = Math.max(0, Math.min(n - 1, chartHover));
     const hx = x(i);
     const hy = y(data[i]);
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.strokeStyle = 'rgba(28,26,23,0.35)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(Math.round(hx) + 0.5, box.top);
     ctx.lineTo(Math.round(hx) + 0.5, box.bottom);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(hx, hy, 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#e7ecf3';
+    ctx.arc(hx, hy, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = CHART.ink;
     ctx.fill();
 
     tip.hidden = false;
@@ -1170,16 +1174,16 @@
   function buildUpgrades() {
     const grid = $('tierGrid');
     TIERS.forEach((t, i) => {
-      const card = el(`<div class="tier-card">
+      const card = el(`<div class="tier-card tier-${i}">
           <div class="tier-top"><span class="tier-name">${t.name}</span><span class="tier-status"></span></div>
           <div class="tier-blurb">${t.blurb}</div>
-          <div class="stock-chips">${STOCKS.filter(s => s.tier === i).map(chipHtml).join('')}</div>
+          <div class="tier-stocks">${tkrList(STOCKS.filter(s => s.tier === i))}</div>
           <div class="reqs">
             <div class="req" data-req="level"><span class="req-icon"></span>Level ${t.level}</div>
             <div class="req" data-req="cash"><span class="req-icon"></span>${fmt(t.cost)} upgrade fee</div>
           </div>
           <div class="tier-spacer"></div>
-          <button class="btn btn-accent btn-block"></button>
+          <button class="btn btn-tier btn-block"></button>
         </div>`);
       const btn = card.querySelector('button');
       btn.onclick = () => upgradeTier(i);
@@ -1196,15 +1200,15 @@
 
     const list = $('staffList');
     for (const st of STAFF) {
-      const row = el(`<div class="staff-row">
-          <div class="staff-icon">${icon('users', 20)}</div>
+      const row = el(`<div class="staff-row tier-${st.tier}">
           <div class="staff-info">
-            <div class="staff-name">${st.name}<span class="staff-count"></span></div>
+            <div class="staff-name">${st.name}</div>
             <div class="staff-about">${st.about}</div>
           </div>
-          <div class="kv"><span class="label">Each earns</span><span class="v">${fmt(st.income)}/day</span></div>
-          <div class="kv"><span class="label">Your team earns</span><span class="v staff-total"></span></div>
-          <button class="btn btn-accent btn-block"></button>
+          <div class="kv"><span class="label">Pay per day</span><span class="v">${fmt(st.income)}</span></div>
+          <div class="kv"><span class="label">On staff</span><span class="v staff-count"></span></div>
+          <div class="kv"><span class="label">Team earns</span><span class="v staff-total"></span></div>
+          <button class="btn btn-ghost btn-block"></button>
         </div>`);
       const btn = row.querySelector('button');
       btn.onclick = () => hire(st);
@@ -1217,7 +1221,7 @@
     if (node.classList.contains('met') === met && node.dataset.drawn) return;
     node.dataset.drawn = '1';
     node.classList.toggle('met', met);
-    node.querySelector('.req-icon').innerHTML = icon(met ? 'check' : 'circle', 15);
+    node.querySelector('.req-icon').textContent = met ? '✓' : '·';
   }
 
   function renderUpgrades() {
@@ -1235,7 +1239,7 @@
       setReq(r.cashReq, state.cash >= t.cost);
       if (owned) return;
       r.btn.disabled = !tierReady(i);
-      r.btn.textContent = next ? `Upgrade · ${fmt(t.cost)}` : `Requires ${TIERS[i - 1].name} first`;
+      r.btn.textContent = next ? `Upgrade for ${fmt(t.cost)}` : `After ${TIERS[i - 1].name}`;
     });
 
     for (const st of STAFF) {
@@ -1244,10 +1248,10 @@
       const count = state.staff[st.id];
       const cost = staffCost(st);
       r.row.classList.toggle('locked', locked);
-      r.count.textContent = `×${count}`;
-      r.total.textContent = `${fmt(count * st.income)}/day`;
+      r.count.textContent = count;
+      r.total.textContent = fmt(count * st.income);
       r.btn.disabled = locked || state.cash < cost;
-      r.btn.textContent = locked ? `Requires ${TIERS[st.tier].name}` : `Hire · ${fmt(cost)}`;
+      r.btn.textContent = locked ? `Needs ${TIERS[st.tier].name}` : `Hire for ${fmt(cost)}`;
     }
   }
 
@@ -1304,7 +1308,7 @@
     node.addEventListener('click', () => showScreen(node.dataset.screen));
   });
   document.querySelectorAll('[data-soon]').forEach(node => {
-    node.addEventListener('click', () => toast(`${node.dataset.soon} is coming soon`, 'This part of your empire is still under construction.'));
+    node.addEventListener('click', () => toast(`${node.dataset.soon} isn't open yet`, "It's being built. Check back later."));
   });
 
   // Rows on the overview are redrawn every tick, so open them on press.
