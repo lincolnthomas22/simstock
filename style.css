@@ -160,7 +160,18 @@ body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
 .landing-fine { margin-top: 18px; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--text-3); }
 
 .mascot-wrap { margin: 0; text-align: center; }
-.mascot { width: clamp(220px, 26vw, 330px); height: auto; display: block; animation: mrSimIn 0.6s ease-out; }
+.mascot {
+  display: block;
+  width: clamp(220px, 26vw, 330px);
+  height: auto;
+  transform-origin: 52% 90%;
+  animation: mrSimIn 0.6s ease-out, mrSimIdle 5.5s ease-in-out 0.6s infinite;
+}
+/* a slow shift of weight, as if he is waiting for you */
+@keyframes mrSimIdle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(-1.2deg); }
+}
 .mascot-name {
   margin-top: 6px;
   font-family: var(--serif);
