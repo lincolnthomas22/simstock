@@ -122,6 +122,8 @@ body:has(#landingScreen:not([hidden])) .masthead,
 body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
 
 .landing { display: grid; place-items: center; min-height: 100vh; padding: 40px 0; }
+/* the title screen is the only thing on screen, so let it use the whole window */
+body:has(#landingScreen:not([hidden])) .sheet { max-width: none; padding-inline: 3vw; }
 /* Mr. Sim on the left, the way in down the middle, a big dollar sign on the right */
 /* equal side columns keep the middle column centred on the page */
 .landing-inner {
@@ -131,14 +133,14 @@ body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
   gap: 40px;
   width: 100%;
 }
-.landing-copy { justify-self: center; max-width: 34rem; text-align: center; }
+.landing-copy { justify-self: center; max-width: 30rem; text-align: center; }
 .mascot-wrap { justify-self: center; }
 .landing-mark { justify-self: center; }
 .landing-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
 
 .landing-mark {
   font-family: var(--serif);
-  font-size: clamp(120px, 18vw, 240px);
+  font-size: clamp(200px, 24vw, 430px);
   font-weight: 700;
   transform: rotate(-6deg);
   user-select: none;
@@ -147,8 +149,8 @@ body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
    be roomier than the glyph or the symbol looks clipped */
 .landing-mark span {
   display: block;
-  padding: 0.12em 0.18em;
-  line-height: 1.15;
+  padding: 0.14em 0.12em;
+  line-height: 1.25;
   background: linear-gradient(170deg, #ffe7ad 5%, #f0b73d 45%, #a86f12 95%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -188,7 +190,7 @@ body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
 .mascot-wrap { margin: 0; text-align: center; }
 .mascot {
   display: block;
-  width: clamp(220px, 26vw, 330px);
+  width: clamp(200px, 20vw, 330px);
   height: auto;
   transform-origin: 52% 90%;
   animation: mrSimIn 0.6s ease-out, mrSimIdle 5.5s ease-in-out 0.6s infinite;
@@ -482,6 +484,8 @@ button:focus-visible, input:focus-visible {
   text-transform: uppercase;
   color: #a9cbbb;
 }
+.nameplate-group { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.mast-mascot { width: 54px; height: 54px; flex-shrink: 0; }
 .nameplate {
   padding: 0;
   border: 0;
@@ -1189,7 +1193,8 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
 @media (max-width: 760px) {
   .sheet { padding: 0 16px 40px; }
   .masthead-top { grid-template-columns: 1fr 1fr; row-gap: 8px; padding: 14px 16px 12px; }
-  .nameplate { grid-column: 1 / -1; grid-row: 1; }
+  .nameplate-group { grid-column: 1 / -1; grid-row: 1; }
+  .mast-mascot { width: 42px; height: 42px; }
   .dateline, .masthead-top #settingsBtn { grid-row: 2; }
   .figure { padding: 0 14px; }
   .worth-big { font-size: 56px; }
