@@ -567,7 +567,7 @@
     gainXp(XP.openAccount);
     showScreen('trade');
     afterAction();
-    toast('Account opened', `+${XP.openAccount} XP. Pick a stock from the list on the left.`, 'accent');
+    toast('Account opened', `+${XP.openAccount} XP. Pick a stock from the list to get started.`, 'accent');
   }
 
   function orderQty() {
@@ -1010,7 +1010,7 @@
   // ---------- Chart ----------
   const chart = $('chart');
   const chartCtx = chart.getContext('2d');
-  const CHART = { pos: '#178052', neg: '#b8322a', accent: '#22577a', ink: '#1c1a17', text: '#6f685c', grid: 'rgba(28,26,23,0.09)' };
+  const CHART = { pos: '#4cc38a', neg: '#ff6f5e', accent: '#f0b73d', ink: '#efe8d8', text: '#857c6c', grid: 'rgba(239,232,216,0.07)' };
 
   function sizeChart() {
     const dpr = window.devicePixelRatio || 1;
@@ -1085,8 +1085,8 @@
 
     // area
     const grad = ctx.createLinearGradient(0, box.top, 0, box.bottom);
-    grad.addColorStop(0, up ? 'rgba(23,128,82,0.24)' : 'rgba(184,50,42,0.2)');
-    grad.addColorStop(1, 'rgba(246,240,228,0)');
+    grad.addColorStop(0, up ? 'rgba(76,195,138,0.30)' : 'rgba(255,111,94,0.24)');
+    grad.addColorStop(1, 'rgba(13,12,10,0)');
     ctx.beginPath();
     trace();
     ctx.lineTo(x(n - 1), box.bottom);
@@ -1137,7 +1137,7 @@
     const i = Math.max(0, Math.min(n - 1, chartHover));
     const hx = x(i);
     const hy = y(data[i]);
-    ctx.strokeStyle = 'rgba(28,26,23,0.35)';
+    ctx.strokeStyle = 'rgba(239,232,216,0.3)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(Math.round(hx) + 0.5, box.top);
