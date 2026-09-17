@@ -122,12 +122,32 @@ body:has(#landingScreen:not([hidden])) .masthead,
 body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
 
 .landing { display: grid; place-items: center; min-height: 100vh; padding: 40px 0; }
+/* Mr. Sim on the left, the way in down the middle, a big dollar sign on the right */
 .landing-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 56px;
+  gap: 40px;
   width: 100%;
+}
+.landing-copy { text-align: center; }
+.landing-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+
+.landing-mark {
+  font-family: var(--serif);
+  font-size: clamp(120px, 20vw, 260px);
+  font-weight: 700;
+  line-height: 0.8;
+  transform: rotate(-6deg);
+  user-select: none;
+}
+.landing-mark span {
+  display: block;
+  background: linear-gradient(170deg, #ffe7ad 5%, #f0b73d 45%, #a86f12 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 10px 26px rgba(240, 183, 61, 0.28));
 }
 .landing-kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--green-bright); }
 .landing-name {
@@ -191,10 +211,56 @@ body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
 }
 @keyframes mrSimIn { from { opacity: 0; transform: translateY(14px); } }
 
+@media (max-width: 1080px) {
+  .landing-inner { grid-template-columns: auto minmax(0, 1fr); }
+  .landing-mark { display: none; }
+}
 @media (max-width: 860px) {
-  .landing-inner { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 28px; text-align: center; }
+  .landing-inner { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 28px; }
   .landing-tagline { margin-inline: auto; }
-  .mascot-wrap { order: -1; }
+}
+
+/* ---------------- PORTFOLIO ---------------- */
+.pf-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 36px;
+  padding: 28px 0 30px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.pf-head .figures-row { margin-top: 0; border-top: 0; }
+.pf-section { padding-top: 26px; }
+.pf-section + .pf-section { margin-top: 10px; }
+
+.mix-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) 110px 62px;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mix-row:last-child { border-bottom: 0; }
+.mix-name { font-size: 13px; color: var(--text-2); }
+.mix-name.cash { font-family: var(--sans); }
+.mix-bar { height: 12px; border-radius: 3px; background: rgba(239, 232, 216, 0.07); overflow: hidden; }
+.mix-bar > span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #1b8262, #4cbf8c);
+  transition: width 0.3s;
+}
+.mix-bar > span.cash { background: linear-gradient(90deg, #c2861a, #f0b73d); }
+.mix-value { font-family: var(--mono); font-size: 13px; text-align: right; }
+.mix-pct { font-family: var(--mono); font-size: 13px; text-align: right; color: var(--text-3); }
+
+@media (max-width: 960px) {
+  .pf-head { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .mix-row { grid-template-columns: 70px minmax(0, 1fr) 90px; }
+  .mix-pct { display: none; }
 }
 
 /* ---------------- BUTTONS ---------------- */
@@ -375,7 +441,6 @@ button:focus-visible, input:focus-visible {
   padding: 16px 0 12px;
   border-bottom: 1px solid var(--line-strong);
 }
-body:has(#homeScreen:not([hidden])) .crumbs,
 body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .page-title { font-size: 30px; font-weight: 700; }
 .task-switch { display: flex; gap: 6px; margin-left: auto; }
@@ -390,7 +455,9 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
   cursor: pointer;
 }
 .task-switch button:hover { border-color: var(--text-3); color: var(--text); }
+body:has(#homeScreen:not([hidden])) .task-switch [data-screen="home"],
 body:has(#tradeScreen:not([hidden])) .task-switch [data-screen="trade"],
+body:has(#portfolioScreen:not([hidden])) .task-switch [data-screen="portfolio"],
 body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   border-color: #0c4a37;
   background: linear-gradient(180deg, #1d8a68, #0f5a43);

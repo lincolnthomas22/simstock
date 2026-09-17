@@ -23,7 +23,7 @@
 <header class="masthead">
   <div class="masthead-top">
     <span class="dateline" id="clockText">Year 1 · Q1 · Day 1</span>
-    <button class="nameplate" data-screen="home" title="Back to the front page">Sim<span>Stock</span></button>
+    <button class="nameplate" data-screen="landing" title="Back to the home screen">Sim<span>Stock</span></button>
     <button class="text-btn" id="settingsBtn">Settings</button>
   </div>
   <div class="tape" aria-label="Latest prices"><div class="tape-track" id="tape"></div></div>
@@ -42,12 +42,14 @@
     </div>
   </div>
 
-  <!-- inside the trading floor or upgrades: the way back, and the other task -->
+  <!-- once you are inside: the way home, and a jump to any other room -->
   <nav class="crumbs">
-    <button class="text-btn" data-screen="home">← Front page</button>
+    <button class="text-btn" data-screen="landing">← Home</button>
     <h1 class="page-title" id="pageTitle">Front page</h1>
     <div class="task-switch">
+      <button data-screen="home">Front page</button>
       <button data-screen="trade">Trading floor</button>
+      <button data-screen="portfolio">Portfolio</button>
       <button data-screen="upgrades">Upgrades</button>
     </div>
   </nav>
@@ -55,14 +57,6 @@
   <!-- ============================ TITLE SCREEN ============================ -->
   <main class="screen landing" id="landingScreen">
     <div class="landing-inner">
-      <div class="landing-copy">
-        <p class="landing-kicker">The market game</p>
-        <h1 class="landing-name">Sim<span>Stock</span></h1>
-        <p class="landing-tagline">Build a firm from $1,000. One second is one trading day, every company is made up, and nothing here costs real money.</p>
-        <button class="btn btn-mustard btn-xl" data-screen="home">Step onto the floor</button>
-        <p class="landing-fine">More rooms are being built. For now, Mr. Sim will show you to the market.</p>
-      </div>
-
       <figure class="mascot-wrap">
         <!-- Mr. Sim, the host: green and gold suit, grey beard, golden cane -->
         <svg class="mascot" viewBox="0 0 220 320" role="img" aria-labelledby="mascotTitle">
@@ -132,7 +126,51 @@
         </svg>
         <figcaption class="mascot-name">Mr. Sim<span>your host</span></figcaption>
       </figure>
+
+      <div class="landing-copy">
+        <p class="landing-kicker">The market game</p>
+        <h1 class="landing-name">Sim<span>Stock</span></h1>
+        <p class="landing-tagline">Build a firm from $1,000. One second is one trading day, every company is made up, and nothing here costs real money.</p>
+        <div class="landing-buttons">
+          <button class="btn btn-mustard btn-xl" data-screen="home">Step onto the floor</button>
+          <button class="btn btn-green btn-xl" data-screen="portfolio">Your portfolio</button>
+        </div>
+        <p class="landing-fine">More rooms are being built. For now, Mr. Sim will show you to the market.</p>
+      </div>
+
+      <div class="landing-mark" aria-hidden="true"><span>$</span></div>
     </div>
+  </main>
+
+  <!-- ============================ PORTFOLIO ============================ -->
+  <main class="screen" id="portfolioScreen" hidden>
+    <section class="pf-head">
+      <div>
+        <p class="section-label">Everything you own</p>
+        <div class="worth-big" id="pfWorth">$1,000.00</div>
+        <p class="worth-change" id="pfChange"></p>
+      </div>
+      <dl class="figures-row">
+        <div><dt>Cash</dt><dd id="pfCash"></dd></div>
+        <div><dt>In shares</dt><dd id="pfInvested"></dd></div>
+        <div><dt>Profit from sales</dt><dd id="pfRealized"></dd></div>
+        <div><dt>Dividends earned</dt><dd id="pfDividends"></dd></div>
+      </dl>
+    </section>
+
+    <section class="pf-section">
+      <h2 class="column-head h-green">Your investments</h2>
+      <div id="pfTable"></div>
+      <div class="empty-state" id="pfEmpty">
+        <p>You don't own any shares yet. Everything you buy will be listed here.</p>
+        <button class="more" data-screen="trade">Go to the trading floor</button>
+      </div>
+    </section>
+
+    <section class="pf-section">
+      <h2 class="column-head h-blue">Where your money sits</h2>
+      <div id="pfMix"></div>
+    </section>
   </main>
 
   <!-- ============================ FRONT PAGE ============================ -->

@@ -670,10 +670,11 @@
   // ===========================================================
   // SCREENS
   // ===========================================================
-  const SCREEN_TITLES = { landing: 'SimStock', home: 'Front page', trade: 'Trading floor', upgrades: 'Upgrades' };
+  const SCREEN_TITLES = { landing: 'SimStock', home: 'Front page', trade: 'Trading floor', portfolio: 'Your portfolio', upgrades: 'Upgrades' };
+  const OPEN_SCREENS = ['landing', 'home', 'portfolio']; // viewable before a brokerage account exists
 
   function showScreen(name) {
-    if (name !== 'home' && name !== 'landing' && !state.accountOpen) {
+    if (!OPEN_SCREENS.includes(name) && !state.accountOpen) {
       showLessons(0);
       return;
     }
@@ -681,6 +682,7 @@
     $('landingScreen').hidden = name !== 'landing';
     $('homeScreen').hidden = name !== 'home';
     $('tradeScreen').hidden = name !== 'trade';
+    $('portfolioScreen').hidden = name !== 'portfolio';
     $('upgradesScreen').hidden = name !== 'upgrades';
     window.scrollTo(0, 0);
     render();
@@ -705,6 +707,7 @@
     renderTape();
     if (ui.screen === 'home') renderHome();
     if (ui.screen === 'trade') renderTrade();
+    if (ui.screen === 'portfolio') renderPortfolio();
     if (ui.screen === 'upgrades') renderUpgrades();
   }
 
@@ -825,6 +828,61 @@
         </tr>`)
       .join('');
     $('moversList').innerHTML = `<table class="table quotes"><tbody>${rows}</tbody></table>`;
+  }
+
+  // ---------- Portfolio ----------
+  function renderPortfolio() {
+    const worth = netWorth();
+    const invested = holdingsValue();
+    const change = worth - STARTING_CASH;
+    const realized = STOCKS.reduce((sum, s) => sum + rtOf(s.id).realized, 0);
+
+    $('pfWorth').textContent = fmt(worth);
+    const changeEl = $('pfChange');
+    changeEl.textContent = `${fmtSigned(change)} (${fmtPct((change / STARTING_CASH) * 100)}) since you started with ${fmt(STARTING_CASH)}`;
+    changeEl.className = 'worth-change ' + tone(change);
+    $('pfCash').textContent = fmt(state.cash);
+    $('pfInvested').textContent = fmt(invested);
+    $('pfRealized').textContent = fmtSigned(Math.abs(realized) < 0.005 ? 0 : realized);
+    $('pfDividends').textContent = fmt(state.totalDividends);
+
+    const held = STOCKS.filter(s => rtOf(s.id).shares > 0)
+      .sort((a, b) => rtOf(b.id).shares * rtOf(b.id).price - rtOf(a.id).shares * rtOf(a.id).price);
+    $('pfEmpty').hidden = held.length > 0;
+    $('pfTable').hidden = held.length === 0;
+
+    if (held.length) {
+      const rows = held.map(s => {
+        const rt = rtOf(s.id);
+        const value = rt.shares * rt.price;
+        const gain = value - rt.costBasis;
+        return `<tr data-stock="${s.id}">
+          <td>${tkr(s)}<span class="n">${s.name}</span></td>
+          <td class="num">${rt.shares.toLocaleString('en-US')}</td>
+          <td class="num">${fmt(avgCost(rt))}</td>
+          <td class="num">${fmt(rt.price)}<span class="sub">${chg(dayChangePct(rt.history))}</span></td>
+          <td class="num">${fmt(value)}</td>
+          <td class="num ${tone(gain)}">${fmtSigned(gain)}<span class="sub">${fmtPct((gain / rt.costBasis) * 100)}</span></td>
+          <td class="num">${fmt(rt.dividends)}</td>
+        </tr>`;
+      }).join('');
+      $('pfTable').innerHTML = `<table class="table">
+        <thead><tr><th>Stock</th><th class="num">Shares</th><th class="num">Avg cost</th><th class="num">Price</th><th class="num">Value</th><th class="num">Gain or loss</th><th class="num">Dividends</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
+    }
+
+    // how the money is split between cash and each holding
+    const slices = [{ name: 'Cash', value: state.cash, cash: true }]
+      .concat(held.map(s => ({ name: s.id, value: rtOf(s.id).shares * rtOf(s.id).price })));
+    $('pfMix').innerHTML = slices.map(slice => {
+      const pct = worth > 0 ? (slice.value / worth) * 100 : 0;
+      return `<div class="mix-row">
+          <span class="mix-name${slice.cash ? ' cash' : ''}">${slice.cash ? slice.name : `<span class="tkr">${slice.name}</span>`}</span>
+          <span class="mix-bar"><span class="${slice.cash ? 'cash' : ''}" style="width:${pct.toFixed(1)}%"></span></span>
+          <span class="mix-value">${fmt(slice.value)}</span>
+          <span class="mix-pct">${pct.toFixed(1)}%</span>
+        </div>`;
+    }).join('');
   }
 
   // ---------- Trading ----------
@@ -1323,6 +1381,7 @@
   }
   $('moversList').addEventListener('pointerdown', openStockRow);
   $('holdingsTable').addEventListener('pointerdown', openStockRow);
+  $('pfTable').addEventListener('pointerdown', openStockRow);
 
   $('openAccountBtn').onclick = () => showLessons(0);
   $('settingsBtn').onclick = showSettings;
