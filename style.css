@@ -831,6 +831,19 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   color: var(--text-2);
 }
 
+.warn-note {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--loss);
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, rgba(255, 111, 94, 0.16), rgba(255, 111, 94, 0.03));
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--text);
+}
+.warn-text { color: var(--loss) !important; }
+
 .price-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px; margin-top: 14px; }
 .price-big { font-family: var(--mono); font-size: 34px; font-weight: 500; }
 .price-row .change { font-size: 13px; padding: 2px 8px; }
@@ -1089,6 +1102,7 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   font-weight: 600;
   color: var(--gain);
 }
+.reward-loss { background: linear-gradient(90deg, rgba(255, 111, 94, 0.22), rgba(255, 111, 94, 0.05)); color: var(--loss); }
 .settings-list { display: grid; gap: 10px; margin-top: 4px; }
 .new-stocks { margin: 0 0 14px; padding: 0; list-style: none; border-top: 2px solid var(--line-strong); }
 .new-stocks li { display: flex; align-items: baseline; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-family: var(--serif); font-size: 17px; }

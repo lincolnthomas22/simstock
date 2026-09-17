@@ -47,11 +47,11 @@
       about: 'Builds trading software and cloud tools for banks. It is growing quickly and reinvests its profits instead of paying a dividend.' },
     { id: 'BRWL', name: 'Brightwell Foods', sector: 'Consumer staples', tier: 0, start: 48, vol: 0.17, beta: 0.6, growth: 0.05, pe: 18, divYield: 0.032, sharesOut: 1.4e9, color: '#c9a45c',
       about: 'Makes cereal, snacks and frozen meals. People buy groceries in good times and bad, so the stock is steady and pays a regular dividend.' },
-    { id: 'VOLT', name: 'Voltaic Motors', sector: 'Automotive', tier: 1, start: 64, vol: 0.55, beta: 1.6, growth: 0.15, pe: 45, divYield: 0, sharesOut: 1.1e9, color: '#4fb3a9',
+    { id: 'VOLT', name: 'Voltaic Motors', sector: 'Automotive', fragile: true, tier: 1, start: 64, vol: 0.55, beta: 1.6, growth: 0.15, pe: 45, divYield: 0, sharesOut: 1.1e9, color: '#4fb3a9',
       about: 'An electric vehicle maker betting big on new factories. Investors expect a lot of growth, so the stock swings hard on any news.' },
     { id: 'NRTH', name: 'Northgate Bank', sector: 'Financials', tier: 1, start: 72, vol: 0.25, beta: 1.15, growth: 0.06, pe: 11, divYield: 0.036, sharesOut: 2.6e9, color: '#8a93d6',
       about: 'A large bank that earns money lending to families and businesses. It tends to rise and fall with the overall economy.' },
-    { id: 'HELX', name: 'Helix Therapeutics', sector: 'Biotech', tier: 2, start: 38, vol: 0.62, beta: 0.8, growth: 0.14, pe: 40, divYield: 0, sharesOut: 520e6, color: '#b98ac6',
+    { id: 'HELX', name: 'Helix Therapeutics', sector: 'Biotech', fragile: true, tier: 2, start: 38, vol: 0.62, beta: 0.8, growth: 0.14, pe: 40, divYield: 0, sharesOut: 520e6, color: '#b98ac6',
       about: 'Develops new medicines. A single drug trial result can send the stock sharply up or down, no matter what the market is doing.' },
     { id: 'CRST', name: 'Crestline Energy', sector: 'Energy', tier: 2, start: 91, vol: 0.30, beta: 0.9, growth: 0.04, pe: 12, divYield: 0.045, sharesOut: 1.9e9, color: '#d08a57',
       about: 'Produces oil and natural gas. Its price follows energy prices, and it returns much of its cash to investors as dividends.' },
@@ -62,12 +62,22 @@
   ];
   const STOCK_BY_ID = Object.fromEntries(STOCKS.map(s => [s.id, s]));
 
+  // income is the fee clients pay per trading day; salary is paid out every day
+  // whether the fees arrive or not.
+  const SALARY_SHARE = 0.45;
   const STAFF = [
     { id: 'analyst',  name: 'Research Analyst',  tier: 0, baseCost: 50,     growth: 1.15, income: 1,    about: 'Writes research notes that clients pay for.' },
     { id: 'advisor',  name: 'Financial Advisor', tier: 1, baseCost: 1200,   growth: 1.16, income: 15,   about: 'Helps clients plan their savings for a fee.' },
     { id: 'manager',  name: 'Portfolio Manager', tier: 2, baseCost: 12000,  growth: 1.18, income: 140,  about: 'Runs client portfolios for a management fee.' },
     { id: 'director', name: 'Fund Director',     tier: 3, baseCost: 150000, growth: 1.2,  income: 1600, about: 'Oversees whole funds for large institutions.' },
   ];
+  STAFF.forEach(s => { s.salary = Math.round(s.income * SALARY_SHARE * 100) / 100; });
+
+  // A company that has lost most of its value can fail outright. Only the
+  // wildest companies can, and only after a real collapse.
+  const DISTRESS_LEVEL = 0.35;   // below this share of its year's high, it is in trouble
+  const RECOVERY_LEVEL = 0.55;   // above this, the trouble is over
+  const DELIST_CHANCE = 1 / 260; // per day, while in trouble
 
   const HEADLINES = {
     'Technology': {
@@ -231,6 +241,7 @@
 
     for (const s of STOCKS) {
       const rt = st.stocks[s.id];
+      if (rt.delisted) continue;
       const dailyVol = s.vol / Math.sqrt(DAYS_PER_YEAR);
       const ownVol = Math.sqrt(Math.max(0, dailyVol ** 2 - (s.beta * DAILY_MARKET_VOL) ** 2));
       const quarterDay = mod(day, DAYS_PER_QUARTER);
@@ -265,6 +276,31 @@
 
       rt.price = Math.max(0.5, rt.price * Math.exp(move));
       pushHistory(rt.history, rt.price);
+
+      // a collapse can turn into outright failure, and the shares become worthless
+      if (s.fragile) {
+        const high = Math.max(...rt.history);
+        if (!rt.distress && rt.price < high * DISTRESS_LEVEL) {
+          rt.distress = true;
+          add(s.id, 'down', 'news', `${s.name} warns it may not be able to pay its debts`);
+        } else if (rt.distress && rt.price > high * RECOVERY_LEVEL) {
+          rt.distress = false;
+          add(s.id, 'up', 'news', `${s.name} steadies itself and calls off the alarm`);
+        }
+        if (rt.distress && Math.random() < DELIST_CHANCE) {
+          rt.delisted = true;
+          rt.distress = false;
+          const lost = rt.shares;
+          if (lost > 0) {
+            rt.realized -= rt.costBasis;
+            rt.shares = 0;
+            rt.costBasis = 0;
+          }
+          const event = { day, ticker: s.id, mood: 'down', kind: 'news', text: `${s.name} collapses. Trading is halted and the shares are worthless.` };
+          if (lost > 0) event.wiped = lost;
+          events.push(event);
+        }
+      }
 
       if (s.divYield && quarterDay === mod(rt.earningsDay + 21, DAYS_PER_QUARTER)) {
         const perShare = (rt.price * s.divYield) / 4;
@@ -310,6 +346,8 @@
         costBasis: 0,
         realized: 0,
         dividends: 0,
+        distress: false,
+        delisted: false,
         earningsDay: (i * 7 + 20) % DAYS_PER_QUARTER,
       };
     });
@@ -351,7 +389,21 @@
   const isUnlocked = s => state.tier >= s.tier;
   const avgCost = rt => (rt.shares ? rt.costBasis / rt.shares : 0);
   const staffCost = s => s.baseCost * Math.pow(s.growth, state.staff[s.id]);
-  const staffIncome = () => STAFF.reduce((sum, s) => sum + state.staff[s.id] * s.income, 0);
+  const staffSalaries = () => STAFF.reduce((sum, s) => sum + state.staff[s.id] * s.salary, 0);
+
+  // Clients pay more when markets have been kind and pull back when they have not.
+  // Salaries do not care either way, which is what makes a bad quarter hurt.
+  function clientMood() {
+    const h = state.market.history;
+    if (h.length < 2) return 1;
+    const past = h[Math.max(0, h.length - DAYS_PER_QUARTER)];
+    const quarterReturn = h[h.length - 1] / past - 1;
+    return Math.max(0.3, Math.min(1.5, 1 + quarterReturn * 2.5));
+  }
+
+  const staffFees = () => STAFF.reduce((sum, s) => sum + state.staff[s.id] * s.income, 0) * clientMood();
+  const staffIncome = () => staffFees() - staffSalaries();
+  const staffCount = () => STAFF.reduce((sum, s) => sum + state.staff[s.id], 0);
   const holdingsValue = () => STOCKS.reduce((sum, s) => sum + rtOf(s.id).shares * rtOf(s.id).price, 0);
   const netWorth = () => state.cash + holdingsValue();
 
@@ -463,16 +515,18 @@
 
   function checkOfflineEarnings() {
     const away = Math.min(OFFLINE_CAP_SEC, (Date.now() - state.lastSeen) / 1000);
-    const earned = Math.floor(away) * staffIncome();
-    if (away < 30 || earned <= 0) return;
-    state.cash += earned;
+    const days = Math.floor(away);
+    const change = days * staffIncome();
+    if (away < 30 || staffCount() === 0 || Math.abs(change) < 0.005) return;
+    runPayroll(days);
     saveState();
+    const gained = change > 0;
     queueModal(() => {
       const modal = openModal(`
         <div class="modal-kicker">Welcome back</div>
-        <h3>Your staff kept working</h3>
-        <p>You were away for ${formatDuration(away)}. The market stayed closed, but your staff kept earning${away >= OFFLINE_CAP_SEC ? ' (they stop after two hours)' : ''}.</p>
-        <div class="reward">+${fmt(earned)}</div>
+        <h3>${gained ? 'Your staff kept working' : 'The wages kept coming out'}</h3>
+        <p>You were away for ${formatDuration(away)}. The market stayed closed${away >= OFFLINE_CAP_SEC ? ', and your desk runs for at most two hours unattended' : ''}. ${gained ? 'Fees came in faster than wages went out.' : 'Client fees did not cover the wages while the market was down.'}</p>
+        <div class="reward${gained ? '' : ' reward-loss'}">${fmtSigned(change)}</div>
         <div class="modal-actions"><button class="btn btn-ink" data-act="ok">Collect</button></div>`);
       modal.querySelector('[data-act="ok"]').onclick = () => {
         closeModal();
@@ -585,7 +639,7 @@
     const rt = rtOf(s.id);
     const qty = orderQty();
     const total = qty * rt.price;
-    if (!isUnlocked(s) || qty < 1) return;
+    if (!isUnlocked(s) || rt.delisted || qty < 1) return;
 
     if (ui.side === 'buy') {
       if (total > state.cash + 1e-9) return;
@@ -609,12 +663,27 @@
     afterAction();
   }
 
+  // Fees in, salaries out. If the cash runs out, someone has to go.
+  function runPayroll(days) {
+    state.cash += staffIncome() * days;
+    if (state.cash >= 0) return;
+    for (let i = STAFF.length - 1; i >= 0 && state.cash < 0; i--) {
+      const role = STAFF[i];
+      while (state.cash < 0 && state.staff[role.id] > 0) {
+        state.staff[role.id] -= 1;
+        state.cash += role.salary * 30; // a month of that salary back in the till
+        toast('Payroll missed', `You couldn't cover the wages, so a ${role.name} was let go.`, 'neg');
+      }
+    }
+    if (state.cash < 0) state.cash = 0;
+  }
+
   function hire(staff) {
     const cost = staffCost(staff);
     if (state.tier < staff.tier || state.cash < cost) return;
     state.cash -= cost;
     state.staff[staff.id] += 1;
-    toast('Staff hired', `${staff.name} adds ${fmt(staff.income)} per trading day.`, 'accent');
+    toast('Staff hired', `${staff.name}: ${fmt(staff.income)} a day in fees, ${fmt(staff.salary)} a day in wages.`, 'accent');
     gainXp(XP.hire);
     afterAction();
   }
@@ -718,7 +787,10 @@
     $('clockText').textContent = clockLabel();
     $('topCash').textContent = fmtBig(state.cash);
     $('topWorth').textContent = fmtBig(netWorth());
-    $('topIncome').textContent = `${fmtBig(staffIncome())}/day`;
+    const income = staffIncome();
+    const incomeEl = $('topIncome');
+    incomeEl.textContent = `${staffCount() ? fmtSigned(income) : fmt(0)}/day`;
+    incomeEl.className = 'figure-value ' + (staffCount() && income < 0 ? 'neg' : '');
     $('levelNum').textContent = state.level;
     $('tierChip').textContent = `${TIERS[state.tier].name} account`;
     $('xpFill').style.width = Math.min(100, (state.xp / need) * 100) + '%';
@@ -730,7 +802,8 @@
   function renderTape() {
     const items = [
       `<span class="tape-item"><b>INDEX</b>${state.market.level.toFixed(2)} ${chg(dayChangePct(state.market.history))}</span>`,
-      ...STOCKS.map(s => `<span class="tape-item"><b>${s.id}</b>${fmt(rtOf(s.id).price)} ${chg(dayChangePct(rtOf(s.id).history))}</span>`),
+      ...STOCKS.filter(s => !rtOf(s.id).delisted)
+        .map(s => `<span class="tape-item"><b>${s.id}</b>${fmt(rtOf(s.id).price)} ${chg(dayChangePct(rtOf(s.id).history))}</span>`),
     ].join('');
     $('tape').innerHTML = items + items;
   }
@@ -745,7 +818,7 @@
     changeEl.className = 'worth-change ' + tone(change);
     $('homeCash').textContent = fmt(state.cash);
     $('homeInvested').textContent = fmt(holdingsValue());
-    $('homeIncome').textContent = `${fmt(staffIncome())}/day`;
+    $('homeIncome').textContent = `${staffCount() ? fmtSigned(staffIncome()) : fmt(0)}/day`;
     $('homeDividends').textContent = fmt(state.totalDividends);
 
     $('onboardPanel').hidden = state.accountOpen;
@@ -819,7 +892,7 @@
     marketEl.textContent = `Index ${fmtPct(marketDay)}`;
     marketEl.className = tone(marketDay);
 
-    const rows = STOCKS.filter(isUnlocked)
+    const rows = STOCKS.filter(s => isUnlocked(s) && !rtOf(s.id).delisted)
       .map(s => ({ s, rt: rtOf(s.id), change: dayChangePct(rtOf(s.id).history) }))
       .sort((a, b) => b.change - a.change)
       .map(({ s, rt, change }) => `<tr data-stock="${s.id}">
@@ -939,9 +1012,12 @@
       const rt = rtOf(s.id);
       const locked = !isUnlocked(s);
       r.row.classList.toggle('selected', s.id === ui.selected);
-      r.row.classList.toggle('locked', locked);
-      r.price.textContent = fmt(rt.price);
-      if (locked) {
+      r.row.classList.toggle('locked', locked || rt.delisted);
+      r.price.textContent = rt.delisted ? '—' : fmt(rt.price);
+      if (rt.delisted) {
+        r.change.textContent = 'Delisted';
+        r.change.className = 'watch-change locked-label';
+      } else if (locked) {
         r.change.textContent = TIERS[s.tier].name;
         r.change.className = 'watch-change locked-label';
       } else {
@@ -961,8 +1037,13 @@
     // header + price
     $('dName').textContent = s.name;
     $('dMeta').textContent = `${s.id} · ${s.sector}`;
-    $('dLock').hidden = !locked;
+    $('dLock').hidden = !locked || rt.delisted;
     $('dLockText').textContent = TIERS[s.tier].name;
+    const warn = $('dWarn');
+    warn.hidden = !(rt.distress || rt.delisted);
+    warn.textContent = rt.delisted
+      ? `${s.name} has failed. These shares are worthless and trading is closed.`
+      : `${s.name} has warned it may not be able to pay its debts. If it fails, shares in it become worthless.`;
     $('dPrice').textContent = fmt(rt.price);
 
     const dayPct = dayChangePct(rt.history);
@@ -1001,8 +1082,14 @@
   }
 
   function renderOrder(s, rt, locked) {
-    $('orderForm').hidden = locked;
-    $('orderLocked').hidden = !locked;
+    const closed = locked || rt.delisted;
+    $('orderForm').hidden = closed;
+    $('orderLocked').hidden = !closed;
+    if (rt.delisted) {
+      $('lockedTitle').textContent = `${s.id} has been delisted`;
+      $('lockedText').textContent = `${s.name} failed, and its shares are worth nothing. Trading in it is closed for good.`;
+      return;
+    }
     if (locked) {
       $('lockedTitle').textContent = `${s.id} needs a ${TIERS[s.tier].name} account`;
       $('lockedText').textContent = `You can watch the price and read the news in the meantime. Trading opens once you upgrade.`;
@@ -1265,9 +1352,9 @@
             <div class="staff-name">${st.name}</div>
             <div class="staff-about">${st.about}</div>
           </div>
-          <div class="kv"><span class="label">Pay per day</span><span class="v">${fmt(st.income)}</span></div>
+          <div class="kv"><span class="label">Fees, less wages</span><span class="v">${fmt(st.income)} − ${fmt(st.salary)}</span></div>
           <div class="kv"><span class="label">On staff</span><span class="v staff-count"></span></div>
-          <div class="kv"><span class="label">Team earns</span><span class="v staff-total"></span></div>
+          <div class="kv"><span class="label">Team nets</span><span class="v staff-total"></span></div>
           <button class="btn btn-ghost btn-block"></button>
         </div>`);
       const btn = row.querySelector('button');
@@ -1284,7 +1371,19 @@
     node.querySelector('.req-icon').textContent = met ? '✓' : '·';
   }
 
+  const MOODS = [
+    { at: 1.15, text: 'Clients are keen. Fees are running above normal.' },
+    { at: 0.9, text: 'Clients are steady. Fees are about normal.' },
+    { at: 0.6, text: 'Clients are nervous. Fees have dropped below normal.' },
+    { at: 0, text: 'Clients are pulling their money out. Fees are barely coming in.' },
+  ];
+
   function renderUpgrades() {
+    const mood = clientMood();
+    const moodEl = $('staffMood');
+    moodEl.textContent = `${MOODS.find(m => mood >= m.at).text} Wages are paid every day either way.`;
+    moodEl.className = 'section-note ' + (mood >= 0.9 ? '' : 'warn-text');
+
     TIERS.forEach((t, i) => {
       const r = tierRefs[i];
       const owned = i <= state.tier;
@@ -1309,7 +1408,9 @@
       const cost = staffCost(st);
       r.row.classList.toggle('locked', locked);
       r.count.textContent = count;
-      r.total.textContent = fmt(count * st.income);
+      const net = count * (st.income * clientMood() - st.salary);
+      r.total.textContent = `${fmtSigned(net)}/day`;
+      r.total.className = 'v staff-total ' + (count ? tone(net) : '');
       r.btn.disabled = locked || state.cash < cost;
       r.btn.textContent = locked ? `Needs ${TIERS[st.tier].name}` : `Hire for ${fmt(cost)}`;
     }
@@ -1326,7 +1427,7 @@
     const now = Date.now();
     const seconds = Math.min(OFFLINE_CAP_SEC, Math.max(1, Math.round((now - lastTickAt) / 1000)));
     lastTickAt = now;
-    state.cash += staffIncome() * seconds;
+    runPayroll(seconds);
 
     const events = simulateDay(state);
     if (events.length) {
@@ -1339,6 +1440,10 @@
         if (e.paid) {
           if (ui.screen !== 'landing') toast('Dividend received', `+${fmt(e.paid)} from your ${e.shares} ${e.ticker} shares.`, 'pos');
           gainXp(XP.dividend);
+          continue;
+        }
+        if (e.wiped) {
+          toast('A company has failed', `${e.ticker} collapsed and your ${e.wiped} shares are now worthless.`, 'neg');
           continue;
         }
         if (e.kind === 'dividend') continue;

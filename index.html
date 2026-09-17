@@ -34,7 +34,7 @@
   <div class="ledger-bar">
     <div class="figure"><span class="figure-label">Cash</span><span class="figure-value" id="topCash">$1,000.00</span></div>
     <div class="figure figure-worth"><span class="figure-label">Net worth</span><span class="figure-value" id="topWorth">$1,000.00</span></div>
-    <div class="figure"><span class="figure-label">Staff income</span><span class="figure-value" id="topIncome">$0.00/day</span></div>
+    <div class="figure"><span class="figure-label">Staff, net</span><span class="figure-value" id="topIncome">$0.00/day</span></div>
     <div class="figure figure-level">
       <span class="figure-label">Level <span id="levelNum">1</span>, <span id="tierChip">Starter account</span></span>
       <span class="xp-bar"><span class="xp-fill" id="xpFill"></span></span>
@@ -364,8 +364,9 @@
           <ul class="tut-list">
             <li><b>Selling for more than you paid.</b> Your gain is only "on paper" until you sell. Sell, and it becomes cash you keep. That is the difference between the <b>Gain or loss</b> and <b>Profit from sales</b> lines.</li>
             <li><b>Dividends.</b> Some companies pay their shareholders cash every quarter, roughly once a minute. Hold the shares and it lands in your account by itself. The dividend yield stat tells you who pays.</li>
-            <li><b>Staff.</b> Hired staff earn a fee every trading day whether you are trading or not, and they keep earning for up to two hours after you close the game.</li>
+            <li><b>Staff, minus their wages.</b> Staff bring in client fees every trading day, and draw wages every day. Fees rise and fall with the market. Wages don't. In a good stretch they make you money, and in a bad one they cost you, so keep cash aside. If you can't cover the wages, someone gets let go.</li>
           </ul>
+          <p class="tut-note">Watch the <b>Staff, net</b> figure at the top of the screen. Green means your desk pays for itself. Red means it's eating your cash.</p>
         </div>
       </li>
 
@@ -400,7 +401,7 @@
           <p>The <b>Upgrades</b> room has the two things that make your desk bigger.</p>
           <ul class="tut-list">
             <li><b>Account tiers.</b> Starter, Silver, Gold and Platinum. Each one needs a level and a one-off fee, and each unlocks more companies to trade, from a steady food maker up to biotech and aerospace.</li>
-            <li><b>Staff.</b> A Research Analyst costs $50 and earns $1 a day, so it pays for itself in about 50 days, which is under a minute. Each hire costs a little more than the last, and better roles unlock with better accounts.</li>
+            <li><b>Staff.</b> A Research Analyst costs $50 to hire, brings in $1 a day in fees and draws $0.45 a day in wages. Each hire costs a little more than the last, and better roles unlock with better accounts. The page tells you how clients are feeling, which is what decides the fees.</li>
           </ul>
           <p class="tut-note">Your <b>level</b> is the bar at the top of the screen. You earn XP by trading, hiring and collecting dividends, and every level pays a cash bonus.</p>
         </div>
@@ -415,6 +416,7 @@
             <li><b>Prices move on their own</b> every second, and every company reports earnings each quarter. Good news usually lifts a price and bad news drops it, but not always.</li>
             <li><b>Spread your money out.</b> Owning several companies means one bad earnings report cannot wipe you out. The index fund, IDXF, holds a slice of the whole market and is the calmest place to start.</li>
             <li><b>High volatility cuts both ways.</b> Voltaic Motors and Helix Therapeutics can jump or fall by a tenth in a day. Keep those positions small until you are comfortable.</li>
+            <li><b>Those two can also fail completely.</b> If one of them loses most of its value, it posts a warning that it may not be able to pay its debts. From then on it might collapse on any day, and if it does, the shares are worthless and trading in it closes for good. The money does not come back. That is the price of the bigger swings, and it is why nobody sensible puts everything into one wild company.</li>
           </ul>
         </div>
       </li>
@@ -537,6 +539,7 @@
           </div>
         </div>
         <p class="lock-note" id="dLock" hidden>Watching only. Trading this one needs a <span id="dLockText"></span> account.</p>
+        <p class="warn-note" id="dWarn" hidden></p>
 
         <div class="price-row">
           <span class="price-big" id="dPrice"></span>
@@ -636,7 +639,8 @@
 
     <section class="upgrade-section">
       <h2 class="column-head h-blue">Staff</h2>
-      <p class="section-note">Clients pay your staff every trading day. They keep earning while you're away, for up to two hours.</p>
+      <p class="section-note">Clients pay fees every trading day, and staff draw wages every day whether the fees arrive or not. They keep working while you're away, for up to two hours.</p>
+      <p class="section-note" id="staffMood"></p>
       <div class="staff-list" id="staffList"></div>
     </section>
   </main>
