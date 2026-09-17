@@ -670,8 +670,8 @@
   // ===========================================================
   // SCREENS
   // ===========================================================
-  const SCREEN_TITLES = { landing: 'SimStock', home: 'Front page', trade: 'Trading floor', portfolio: 'Your portfolio', upgrades: 'Upgrades' };
-  const OPEN_SCREENS = ['landing', 'home', 'portfolio']; // viewable before a brokerage account exists
+  const SCREEN_TITLES = { landing: 'SimStock', home: 'Front page', trade: 'Trading floor', portfolio: 'Your portfolio', upgrades: 'Upgrades', tutorial: 'How to play' };
+  const OPEN_SCREENS = ['landing', 'home', 'portfolio', 'tutorial']; // viewable before a brokerage account exists
 
   function showScreen(name) {
     if (!OPEN_SCREENS.includes(name) && !state.accountOpen) {
@@ -684,6 +684,7 @@
     $('tradeScreen').hidden = name !== 'trade';
     $('portfolioScreen').hidden = name !== 'portfolio';
     $('upgradesScreen').hidden = name !== 'upgrades';
+    $('tutorialScreen').hidden = name !== 'tutorial';
     window.scrollTo(0, 0);
     render();
     if (name === 'trade') {

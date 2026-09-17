@@ -51,6 +51,7 @@
       <button data-screen="trade">Trading floor</button>
       <button data-screen="portfolio">Portfolio</button>
       <button data-screen="upgrades">Upgrades</button>
+      <button data-screen="tutorial">How to play</button>
     </div>
   </nav>
 
@@ -137,7 +138,7 @@
           <button class="btn btn-mustard btn-xl" data-screen="home">Step onto the floor</button>
           <button class="btn btn-green btn-xl" data-screen="portfolio">Your portfolio</button>
         </div>
-        <p class="landing-fine">More rooms are being built. For now, Mr. Sim will show you to the market.</p>
+        <p class="landing-fine">New here? <button class="link-inline" data-screen="tutorial">Mr. Sim will walk you through it</button>.</p>
       </div>
 
       <div class="landing-mark" aria-hidden="true"><span>$</span></div>
@@ -173,6 +174,256 @@
       <h2 class="column-head h-blue">Where your money sits</h2>
       <div id="pfMix"></div>
     </section>
+  </main>
+
+  <!-- ============================ HOW TO PLAY ============================ -->
+  <main class="screen" id="tutorialScreen" hidden>
+
+    <section class="tut-intro">
+      <h2 class="column-head h-mustard">How to play</h2>
+      <p class="section-note">Everything in SimStock is made up: the companies, the prices and the money. Nothing here can cost you anything, so the worst that can happen is you learn something.</p>
+      <div class="tut-facts">
+        <div><dt>One second</dt><dd>is one trading day</dd></div>
+        <div><dt>One minute</dt><dd>is about three months</dd></div>
+        <div><dt>You start with</dt><dd>$1,000 in cash</dd></div>
+      </div>
+    </section>
+
+    <ol class="tut-steps">
+
+      <li class="tut-step">
+        <div class="tut-num">1</div>
+        <div class="tut-body">
+          <h3>Find your way around</h3>
+          <p>The bar across the top of every room is how you move about. <b>Home</b> takes you back to Mr. Sim, and the buttons on the right jump straight to any room. The room you're in is the green one.</p>
+          <figure class="tut-figure">
+            <svg viewBox="0 0 600 84" role="img" aria-label="The navigation bar, with Home on the left and room buttons on the right">
+              <rect x="0" y="0" width="600" height="84" fill="#15130f"/>
+              <text class="d-sm" x="16" y="38">← Home</text>
+              <text class="d-title" x="90" y="42">Front page</text>
+              <rect x="236" y="22" width="78" height="26" rx="13" fill="none" stroke="#4a4339"/><text class="d-sm" x="248" y="39">Front page</text>
+              <rect x="320" y="22" width="86" height="26" rx="13" fill="#0f5a43"/><text class="d-sm" x="332" y="39" fill="#efe8d8">Trading floor</text>
+              <rect x="412" y="22" width="70" height="26" rx="13" fill="none" stroke="#4a4339"/><text class="d-sm" x="424" y="39">Portfolio</text>
+              <rect x="488" y="22" width="74" height="26" rx="13" fill="none" stroke="#4a4339"/><text class="d-sm" x="500" y="39">Upgrades</text>
+              <circle class="pin-dot" cx="20" cy="62" r="12"/><text class="pin-num" x="20" y="67">1</text>
+              <circle class="pin-dot" cx="363" cy="62" r="12"/><text class="pin-num" x="363" y="67">2</text>
+            </svg>
+          </figure>
+          <ul class="tut-legend">
+            <li><span class="pin">1</span> Back to the home screen, where the portfolio and this guide live.</li>
+            <li><span class="pin">2</span> The room you are in now.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="tut-step">
+        <div class="tut-num">2</div>
+        <div class="tut-body">
+          <h3>Open a brokerage account</h3>
+          <p>A brokerage account is what lets you buy shares. On the front page, press the gold <b>Open an account</b> button. You'll get three short cards explaining what a share is, then the account opens and you land on the trading floor.</p>
+          <figure class="tut-figure">
+            <svg viewBox="0 0 600 260" role="img" aria-label="The front page, with the open an account button on the right">
+              <rect x="0" y="0" width="600" height="260" fill="#15130f"/>
+              <rect x="0" y="0" width="600" height="34" fill="#0f5a43"/>
+              <text class="d-title" x="252" y="23" fill="#efe8d8">Sim<tspan fill="#f0b73d">Stock</tspan></text>
+              <rect x="0" y="34" width="600" height="18" fill="#070605"/>
+              <text class="d-xs" x="14" y="47" fill="#f0b73d">INDEX<tspan fill="#bdb4a3" dx="8">1,004.21</tspan><tspan fill="#4cc38a" dx="8">+0.31%</tspan><tspan fill="#f0b73d" dx="26">TICK</tspan><tspan fill="#bdb4a3" dx="8">$104.60</tspan><tspan fill="#ff6f5e" dx="8">−0.42%</tspan></text>
+              <text class="d-xs" x="16" y="78">YOUR FIRM</text>
+              <text class="d-big" x="16" y="122">$1,000.00</text>
+              <line x1="16" y1="146" x2="330" y2="146" stroke="#2b2721"/>
+              <text class="d-xs" x="16" y="168">CASH</text><text class="d-sm" x="16" y="186">$1,000.00</text>
+              <text class="d-xs" x="150" y="168">INVESTED</text><text class="d-sm" x="150" y="186">$0.00</text>
+              <rect x="360" y="66" width="224" height="160" rx="4" fill="#0f5a43"/>
+              <text class="d-xs" x="380" y="94" fill="#f0b73d">BEFORE YOU TRADE</text>
+              <text class="d-title" x="380" y="120" fill="#efe8d8">You'll need a</text>
+              <text class="d-title" x="380" y="142" fill="#efe8d8">brokerage account</text>
+              <text class="d-sm" x="380" y="166" fill="#cfe2d7">It takes a minute to open.</text>
+              <rect x="380" y="182" width="132" height="30" rx="3" fill="#f0b73d"/>
+              <text class="d-sm" x="396" y="201" fill="#1a1305">Open an account</text>
+              <circle class="pin-dot" cx="380" cy="182" r="13"/><text class="pin-num" x="380" y="187">1</text>
+            </svg>
+          </figure>
+          <ul class="tut-legend">
+            <li><span class="pin">1</span> Press here. You only do this once.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="tut-step">
+        <div class="tut-num">3</div>
+        <div class="tut-body">
+          <h3>Read the trading floor</h3>
+          <p>This is where you'll spend most of your time. Pick a company on the left, study it in the middle, and buy or sell on the right.</p>
+          <figure class="tut-figure">
+            <svg viewBox="0 0 600 330" role="img" aria-label="The trading floor, with the watchlist on the left, the company in the middle and the order ticket on the right">
+              <rect x="0" y="0" width="600" height="330" fill="#15130f"/>
+              <rect x="10" y="12" width="128" height="40" rx="4" fill="#1d1a16" stroke="#4a4339"/>
+              <text class="d-xs" x="22" y="30" fill="#f0b73d">MARKET INDEX</text>
+              <text class="d-sm" x="22" y="45">1,004.21</text>
+              <text class="d-xs" x="10" y="72" fill="#4cbf8c">STARTER ACCOUNT</text>
+              <line x1="10" y1="78" x2="138" y2="78" stroke="#4cbf8c" stroke-width="2"/>
+              <text class="d-sm" x="10" y="98">IDXF</text><text class="d-sm" x="92" y="98" fill="#4cc38a">+0.3%</text>
+              <text class="d-sm" x="10" y="124">TICK</text><text class="d-sm" x="92" y="124" fill="#ff6f5e">−0.4%</text>
+              <text class="d-sm" x="10" y="150">BRWL</text><text class="d-sm" x="92" y="150" fill="#4cc38a">+0.9%</text>
+              <text class="d-xs" x="10" y="182" fill="#9fb4c8">SILVER ACCOUNT</text>
+              <line x1="10" y1="188" x2="138" y2="188" stroke="#9fb4c8" stroke-width="2"/>
+              <text class="d-sm" x="10" y="208" opacity="0.5">VOLT</text><text class="d-xs" x="92" y="208" opacity="0.6">Silver</text>
+              <text class="d-xs" x="160" y="26" fill="#4cbf8c">TICK · TECHNOLOGY</text>
+              <text class="d-title" x="160" y="52">Tickr Inc.</text>
+              <rect x="352" y="30" width="72" height="22" rx="3" fill="none" stroke="#4a4339"/>
+              <text class="d-xs" x="364" y="45">1M 3M 1Y</text>
+              <text class="d-big" x="160" y="86">$104.60</text>
+              <rect x="248" y="68" width="66" height="20" rx="3" fill="rgba(255,111,94,0.14)"/>
+              <text class="d-xs" x="258" y="82" fill="#ff6f5e">−0.42% today</text>
+              <rect x="160" y="100" width="264" height="100" fill="#12100e" stroke="#2b2721"/>
+              <polyline points="170,180 200,166 228,172 256,140 286,150 316,120 348,128 414,108" fill="none" stroke="#4cc38a" stroke-width="2.5"/>
+              <line x1="160" y1="150" x2="424" y2="150" stroke="#f0b73d" stroke-width="1.2" stroke-dasharray="5 5"/>
+              <text class="d-xs" x="168" y="145" fill="#f0b73d">you paid $101.20 a share</text>
+              <rect x="160" y="212" width="86" height="46" fill="none" stroke="#2b2721"/>
+              <text class="d-xs" x="168" y="230">P/E RATIO</text><text class="d-sm" x="168" y="248">29.2</text>
+              <rect x="248" y="212" width="88" height="46" fill="none" stroke="#2b2721"/>
+              <text class="d-xs" x="256" y="230">DIVIDEND</text><text class="d-sm" x="256" y="248">None</text>
+              <rect x="338" y="212" width="86" height="46" fill="none" stroke="#2b2721"/>
+              <text class="d-xs" x="346" y="230">VOLATILITY</text><text class="d-sm" x="346" y="248">Medium</text>
+              <rect x="444" y="12" width="146" height="150" rx="4" fill="#1b1814" stroke="#4a4339"/>
+              <rect x="444" y="12" width="146" height="26" fill="#0f5a43"/>
+              <text class="d-sm" x="456" y="30" fill="#efe8d8">Order ticket</text>
+              <rect x="456" y="50" width="60" height="22" rx="3" fill="#2e9866"/><text class="d-xs" x="474" y="65" fill="#04170d">Buy</text>
+              <rect x="520" y="50" width="58" height="22" rx="3" fill="none" stroke="#4a4339"/><text class="d-xs" x="538" y="65">Sell</text>
+              <rect x="456" y="84" width="122" height="24" rx="3" fill="#0a0908" stroke="#4a4339"/>
+              <text class="d-sm" x="510" y="101">3</text>
+              <rect x="456" y="120" width="122" height="28" rx="3" fill="#2e9866"/>
+              <text class="d-sm" x="482" y="139" fill="#04170d">Buy 3 TICK</text>
+              <rect x="444" y="176" width="146" height="90" rx="4" fill="none" stroke="#2b2721"/>
+              <text class="d-xs" x="456" y="196" fill="#4cbf8c">YOUR TICK SHARES</text>
+              <text class="d-xs" x="456" y="218">Shares owned</text><text class="d-sm" x="560" y="218">3</text>
+              <text class="d-xs" x="456" y="240">Gain or loss</text><text class="d-sm" x="540" y="240" fill="#4cc38a">+$10</text>
+              <circle class="pin-dot" cx="14" cy="100" r="13"/><text class="pin-num" x="14" y="105">1</text>
+              <circle class="pin-dot" cx="164" cy="86" r="13"/><text class="pin-num" x="164" y="91">2</text>
+              <circle class="pin-dot" cx="388" cy="41" r="13"/><text class="pin-num" x="388" y="46">3</text>
+              <circle class="pin-dot" cx="166" cy="235" r="13"/><text class="pin-num" x="166" y="240">4</text>
+              <circle class="pin-dot" cx="448" cy="134" r="13"/><text class="pin-num" x="448" y="139">5</text>
+              <circle class="pin-dot" cx="448" cy="192" r="13"/><text class="pin-num" x="448" y="197">6</text>
+            </svg>
+          </figure>
+          <ul class="tut-legend">
+            <li><span class="pin">1</span> <b>The watchlist.</b> Every company, grouped by the account tier that unlocks it. Click one to look at it. Greyed-out names are ones you can watch but not yet trade.</li>
+            <li><span class="pin">2</span> <b>Today's price</b> and how much it moved since yesterday. Green is up, red is down.</li>
+            <li><span class="pin">3</span> <b>The chart.</b> Switch between one month, three months and a year. Hover it to see the price on any day. The gold dashed line is what you paid, so anything above it is profit.</li>
+            <li><span class="pin">4</span> <b>The facts about the company,</b> each with a plain-English note under it.</li>
+            <li><span class="pin">5</span> <b>The order ticket,</b> where you buy and sell.</li>
+            <li><span class="pin">6</span> <b>Your shares</b> in this company, and whether you are up or down on them.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="tut-step">
+        <div class="tut-num">4</div>
+        <div class="tut-body">
+          <h3>Place your first order</h3>
+          <p>Orders fill instantly at the price on screen. There are no fees in SimStock, so a trade costs exactly the price times the number of shares.</p>
+          <figure class="tut-figure">
+            <svg viewBox="0 0 420 280" role="img" aria-label="The order ticket close up">
+              <rect x="10" y="10" width="400" height="260" rx="4" fill="#1b1814" stroke="#4a4339"/>
+              <rect x="10" y="10" width="400" height="34" fill="#0f5a43"/>
+              <text class="d-title" x="26" y="34" fill="#efe8d8">Order ticket</text>
+              <rect x="26" y="58" width="180" height="30" rx="3" fill="#2e9866"/><text class="d-sm" x="100" y="78" fill="#04170d">Buy</text>
+              <rect x="212" y="58" width="180" height="30" rx="3" fill="none" stroke="#4a4339"/><text class="d-sm" x="288" y="78">Sell</text>
+              <text class="d-xs" x="26" y="112">NUMBER OF SHARES</text>
+              <rect x="26" y="120" width="34" height="30" rx="3" fill="none" stroke="#4a4339"/><text class="d-sm" x="38" y="140">−</text>
+              <rect x="66" y="120" width="210" height="30" rx="3" fill="#0a0908" stroke="#4a4339"/><text class="d-sm" x="164" y="140">3</text>
+              <rect x="282" y="120" width="34" height="30" rx="3" fill="none" stroke="#4a4339"/><text class="d-sm" x="294" y="140">+</text>
+              <rect x="322" y="120" width="70" height="30" rx="3" fill="none" stroke="#4a4339"/><text class="d-sm" x="342" y="140">Max</text>
+              <text class="d-sm" x="26" y="176">Price per share</text><text class="d-sm" x="392" y="176" text-anchor="end">$104.60</text>
+              <text class="d-sm" x="26" y="198">Estimated cost</text><text class="d-sm" x="392" y="198" text-anchor="end">$313.80</text>
+              <line x1="26" y1="208" x2="392" y2="208" stroke="#4a4339"/>
+              <text class="d-sm" x="26" y="226">Cash afterwards</text><text class="d-sm" x="392" y="226" text-anchor="end">$686.20</text>
+              <rect x="26" y="238" width="366" height="20" rx="3" fill="#2e9866"/>
+              <text class="d-sm" x="176" y="253" fill="#04170d">Buy 3 TICK</text>
+              <circle class="pin-dot" cx="30" cy="62" r="13"/><text class="pin-num" x="30" y="67">1</text>
+              <circle class="pin-dot" cx="70" cy="124" r="13"/><text class="pin-num" x="70" y="129">2</text>
+              <circle class="pin-dot" cx="326" cy="124" r="13"/><text class="pin-num" x="326" y="129">3</text>
+              <circle class="pin-dot" cx="30" cy="242" r="13"/><text class="pin-num" x="30" y="247">4</text>
+            </svg>
+          </figure>
+          <ul class="tut-legend">
+            <li><span class="pin">1</span> Choose <b>Buy</b> or <b>Sell</b>.</li>
+            <li><span class="pin">2</span> Type how many shares, or use the minus and plus buttons.</li>
+            <li><span class="pin">3</span> <b>Max</b> fills in as many as your cash allows, or when selling, everything you own.</li>
+            <li><span class="pin">4</span> Press the button to place the order. If it is greyed out, the note underneath says why, usually not enough cash.</li>
+          </ul>
+          <p class="tut-note">Watch <b>Cash afterwards</b>. Spending every last dollar leaves you nothing to buy with when a price drops.</p>
+        </div>
+      </li>
+
+      <li class="tut-step">
+        <div class="tut-num">5</div>
+        <div class="tut-body">
+          <h3>Make money three ways</h3>
+          <p>There is no single right way to play, but money reaches you through three doors.</p>
+          <ul class="tut-list">
+            <li><b>Selling for more than you paid.</b> Your gain is only "on paper" until you sell. Sell, and it becomes cash you keep. That is the difference between the <b>Gain or loss</b> and <b>Profit from sales</b> lines.</li>
+            <li><b>Dividends.</b> Some companies pay their shareholders cash every quarter, roughly once a minute. Hold the shares and it lands in your account by itself. The dividend yield stat tells you who pays.</li>
+            <li><b>Staff.</b> Hired staff earn a fee every trading day whether you are trading or not, and they keep earning for up to two hours after you close the game.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="tut-step">
+        <div class="tut-num">6</div>
+        <div class="tut-body">
+          <h3>Check your portfolio</h3>
+          <p>The <b>Portfolio</b> room adds everything up: your net worth, how much of it is cash and how much is in shares, every company you hold, and a set of bars showing how your money is split. If one bar is much longer than the rest, most of your fortune is riding on one company.</p>
+          <figure class="tut-figure">
+            <svg viewBox="0 0 600 190" role="img" aria-label="The portfolio screen, with the holdings table and a breakdown of where the money sits">
+              <rect x="0" y="0" width="600" height="190" fill="#15130f"/>
+              <text class="d-xs" x="16" y="26">EVERYTHING YOU OWN</text>
+              <text class="d-big" x="16" y="58">$1,284.30</text>
+              <text class="d-sm" x="16" y="80" fill="#4cc38a">+$284.30 (+28.43%) since you started</text>
+              <line x1="16" y1="96" x2="584" y2="96" stroke="#2b2721"/>
+              <text class="d-xs" x="16" y="116">STOCK</text><text class="d-xs" x="200" y="116">SHARES</text><text class="d-xs" x="300" y="116">VALUE</text><text class="d-xs" x="430" y="116">GAIN OR LOSS</text>
+              <text class="d-sm" x="16" y="138">TICK</text><text class="d-sm" x="200" y="138">3</text><text class="d-sm" x="300" y="138">$313.80</text><text class="d-sm" x="430" y="138" fill="#4cc38a">+$38.40</text>
+              <text class="d-sm" x="16" y="160">BRWL</text><text class="d-sm" x="200" y="160">6</text><text class="d-sm" x="300" y="160">$246.90</text><text class="d-sm" x="430" y="160" fill="#ff6f5e">−$12.10</text>
+              <circle class="pin-dot" cx="20" cy="120" r="13"/><text class="pin-num" x="20" y="125">1</text>
+            </svg>
+          </figure>
+          <ul class="tut-legend">
+            <li><span class="pin">1</span> Click any row to open that company on the trading floor.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="tut-step">
+        <div class="tut-num">7</div>
+        <div class="tut-body">
+          <h3>Grow the firm in Upgrades</h3>
+          <p>The <b>Upgrades</b> room has the two things that make your desk bigger.</p>
+          <ul class="tut-list">
+            <li><b>Account tiers.</b> Starter, Silver, Gold and Platinum. Each one needs a level and a one-off fee, and each unlocks more companies to trade, from a steady food maker up to biotech and aerospace.</li>
+            <li><b>Staff.</b> A Research Analyst costs $50 and earns $1 a day, so it pays for itself in about 50 days, which is under a minute. Each hire costs a little more than the last, and better roles unlock with better accounts.</li>
+          </ul>
+          <p class="tut-note">Your <b>level</b> is the bar at the top of the screen. You earn XP by trading, hiring and collecting dividends, and every level pays a cash bonus.</p>
+        </div>
+      </li>
+
+      <li class="tut-step">
+        <div class="tut-num">8</div>
+        <div class="tut-body">
+          <h3>Things worth knowing</h3>
+          <ul class="tut-list">
+            <li><b>Your progress saves by itself,</b> in this browser. Using another device or clearing your browsing data starts you over. <b>Settings</b>, at the top right, can reset the game on purpose.</li>
+            <li><b>Prices move on their own</b> every second, and every company reports earnings each quarter. Good news usually lifts a price and bad news drops it, but not always.</li>
+            <li><b>Spread your money out.</b> Owning several companies means one bad earnings report cannot wipe you out. The index fund, IDXF, holds a slice of the whole market and is the calmest place to start.</li>
+            <li><b>High volatility cuts both ways.</b> Voltaic Motors and Helix Therapeutics can jump or fall by a tenth in a day. Keep those positions small until you are comfortable.</li>
+          </ul>
+        </div>
+      </li>
+    </ol>
+
+    <div class="tut-end">
+      <p>That's everything. The market is open whenever you are.</p>
+      <button class="btn btn-buy btn-xl" data-screen="trade">Take me to the trading floor</button>
+    </div>
   </main>
 
   <!-- ============================ FRONT PAGE ============================ -->

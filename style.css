@@ -226,6 +226,105 @@ body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
   .landing-tagline { margin-inline: auto; }
 }
 
+/* ---------------- HOW TO PLAY ---------------- */
+.link-inline {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mustard);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.tut-intro { padding-top: 26px; max-width: 70ch; }
+.tut-facts { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 18px; }
+.tut-facts > div { padding-left: 14px; border-left: 3px solid var(--mustard); }
+.tut-facts dt { font-size: 11px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-3); }
+.tut-facts dd { font-family: var(--serif); font-size: 18px; }
+
+.tut-steps { margin: 6px 0 0; padding: 0; list-style: none; counter-reset: tut; }
+.tut-step {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 20px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tut-num {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #1d8a68, #0f5a43);
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+}
+.tut-body { min-width: 0; max-width: 78ch; }
+.tut-body h3 { font-size: 26px; font-weight: 700; }
+.tut-body > p { margin-top: 8px; font-family: var(--serif); font-size: 17.5px; line-height: 1.55; color: var(--text-2); }
+.tut-body b { color: var(--text); font-weight: 600; }
+
+.tut-figure {
+  margin: 18px 0 0;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: #0f0e0c;
+}
+.tut-figure svg { display: block; width: 100%; height: auto; }
+.tut-figure .d-xs { font-family: var(--mono); font-size: 9px; fill: var(--text-3); }
+.tut-figure .d-sm { font-family: var(--mono); font-size: 12px; fill: var(--text-2); }
+.tut-figure .d-title { font-family: var(--serif); font-size: 17px; font-weight: 700; fill: var(--text); }
+.tut-figure .d-big { font-family: var(--serif); font-size: 30px; font-weight: 500; fill: var(--text); }
+.tut-figure .pin-dot { fill: var(--mustard); stroke: #0f0e0c; stroke-width: 2; }
+.tut-figure .pin-num { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: #1a1305; text-anchor: middle; }
+
+.tut-legend { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.tut-legend li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.45; color: var(--text-2); }
+.pin {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mustard);
+  color: #1a1305;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tut-list { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.tut-list li {
+  padding-left: 14px;
+  border-left: 2px solid var(--line-strong);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.tut-note {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--mustard);
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(120deg, rgba(240, 183, 61, 0.16), rgba(240, 183, 61, 0.03) 80%);
+  font-family: var(--serif);
+  font-size: 16.5px;
+  font-style: italic;
+  color: var(--text);
+}
+.tut-end { padding: 30px 0 10px; text-align: center; }
+.tut-end p { margin-bottom: 16px; font-family: var(--serif); font-size: 19px; font-style: italic; color: var(--text-2); }
+
+@media (max-width: 760px) {
+  .tut-step { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .tut-num { width: 36px; height: 36px; font-size: 18px; }
+}
+
 /* ---------------- PORTFOLIO ---------------- */
 .pf-head {
   display: grid;
@@ -462,6 +561,7 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 }
 .task-switch button:hover { border-color: var(--text-3); color: var(--text); }
 body:has(#homeScreen:not([hidden])) .task-switch [data-screen="home"],
+body:has(#tutorialScreen:not([hidden])) .task-switch [data-screen="tutorial"],
 body:has(#tradeScreen:not([hidden])) .task-switch [data-screen="trade"],
 body:has(#portfolioScreen:not([hidden])) .task-switch [data-screen="portfolio"],
 body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
