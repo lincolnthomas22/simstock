@@ -336,7 +336,7 @@
   }
 
   let state = loadState();
-  const ui = { screen: 'home', selected: 'TICK', range: 63, side: 'buy' };
+  const ui = { screen: 'landing', selected: 'TICK', range: 63, side: 'buy' };
   let tickCount = 0;
   let lastTickAt = Date.now();
   let tipIndex = 0;
@@ -670,14 +670,15 @@
   // ===========================================================
   // SCREENS
   // ===========================================================
-  const SCREEN_TITLES = { home: 'Front page', trade: 'Trading floor', upgrades: 'Upgrades' };
+  const SCREEN_TITLES = { landing: 'SimStock', home: 'Front page', trade: 'Trading floor', upgrades: 'Upgrades' };
 
   function showScreen(name) {
-    if (name !== 'home' && !state.accountOpen) {
+    if (name !== 'home' && name !== 'landing' && !state.accountOpen) {
       showLessons(0);
       return;
     }
     ui.screen = name;
+    $('landingScreen').hidden = name !== 'landing';
     $('homeScreen').hidden = name !== 'home';
     $('tradeScreen').hidden = name !== 'trade';
     $('upgradesScreen').hidden = name !== 'upgrades';
@@ -1273,10 +1274,11 @@
       state.news.unshift(...events.slice().reverse());
       state.news.length = Math.min(state.news.length, NEWS_KEEP);
 
-      let shown = 0;
+      // the title screen stays quiet
+      let shown = ui.screen === 'landing' ? 99 : 0;
       for (const e of events) {
         if (e.paid) {
-          toast('Dividend received', `+${fmt(e.paid)} from your ${e.shares} ${e.ticker} shares.`, 'pos');
+          if (ui.screen !== 'landing') toast('Dividend received', `+${fmt(e.paid)} from your ${e.shares} ${e.ticker} shares.`, 'pos');
           gainXp(XP.dividend);
           continue;
         }
@@ -1351,7 +1353,7 @@
 
   buildWatchlist();
   buildUpgrades();
-  showScreen('home');
+  showScreen('landing');
   updateTip();
   checkOfflineEarnings();
   lastTickAt = Date.now();

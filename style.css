@@ -116,6 +116,76 @@ dl, dd { margin: 0; }
 .sheet { max-width: 1280px; margin: 0 auto; padding: 0 36px 60px; }
 .screen { animation: fadeIn 0.2s ease-out; }
 
+/* ---------------- TITLE SCREEN ---------------- */
+/* nothing else on screen until you step onto the floor */
+body:has(#landingScreen:not([hidden])) .masthead,
+body:has(#landingScreen:not([hidden])) .ledger-bar { display: none; }
+
+.landing { display: grid; place-items: center; min-height: 100vh; padding: 40px 0; }
+.landing-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 56px;
+  width: 100%;
+}
+.landing-kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--green-bright); }
+.landing-name {
+  margin: 10px 0 0 -4px;
+  font-family: var(--serif);
+  font-size: clamp(56px, 8vw, 104px);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.landing-name span {
+  background: linear-gradient(180deg, #ffe09a 10%, #f0b73d 55%, #cf8c18 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: italic;
+  font-weight: 500;
+  text-shadow: none;
+}
+.landing-tagline {
+  max-width: 46ch;
+  margin: 18px 0 28px;
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.btn-xl { padding: 15px 34px; font-size: 18px; border-radius: 4px; }
+.landing-fine { margin-top: 18px; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--text-3); }
+
+.mascot-wrap { margin: 0; text-align: center; }
+.mascot { width: clamp(220px, 26vw, 330px); height: auto; display: block; animation: mrSimIn 0.6s ease-out; }
+.mascot-name {
+  margin-top: 6px;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+.mascot-name span {
+  display: block;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  font-style: normal;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+@keyframes mrSimIn { from { opacity: 0; transform: translateY(14px); } }
+
+@media (max-width: 860px) {
+  .landing-inner { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 28px; text-align: center; }
+  .landing-tagline { margin-inline: auto; }
+  .mascot-wrap { order: -1; }
+}
+
 /* ---------------- BUTTONS ---------------- */
 .btn {
   padding: 9px 16px;
@@ -294,7 +364,8 @@ button:focus-visible, input:focus-visible {
   padding: 16px 0 12px;
   border-bottom: 1px solid var(--line-strong);
 }
-body:has(#homeScreen:not([hidden])) .crumbs { display: none; }
+body:has(#homeScreen:not([hidden])) .crumbs,
+body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .page-title { font-size: 30px; font-weight: 700; }
 .task-switch { display: flex; gap: 6px; margin-left: auto; }
 .task-switch button {

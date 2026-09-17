@@ -52,6 +52,88 @@
     </div>
   </nav>
 
+  <!-- ============================ TITLE SCREEN ============================ -->
+  <main class="screen landing" id="landingScreen">
+    <div class="landing-inner">
+      <div class="landing-copy">
+        <p class="landing-kicker">The market game</p>
+        <h1 class="landing-name">Sim<span>Stock</span></h1>
+        <p class="landing-tagline">Build a firm from $1,000. One second is one trading day, every company is made up, and nothing here costs real money.</p>
+        <button class="btn btn-mustard btn-xl" data-screen="home">Step onto the floor</button>
+        <p class="landing-fine">More rooms are being built. For now, Mr. Sim will show you to the market.</p>
+      </div>
+
+      <figure class="mascot-wrap">
+        <!-- Mr. Sim, the host: green and gold suit, grey beard, golden cane -->
+        <svg class="mascot" viewBox="0 0 220 320" role="img" aria-labelledby="mascotTitle">
+          <title id="mascotTitle">Mr. Sim, an older gentleman in a green and gold suit holding a golden cane</title>
+          <defs>
+            <radialGradient id="mrGlow" cx="50%" cy="45%" r="55%">
+              <stop offset="0%" stop-color="#f0b73d" stop-opacity="0.24"/>
+              <stop offset="100%" stop-color="#f0b73d" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="mrCoat" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1b8262"/>
+              <stop offset="100%" stop-color="#0e4a38"/>
+            </linearGradient>
+            <linearGradient id="mrGold" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+              <stop offset="0%" stop-color="#ffdd92"/>
+              <stop offset="55%" stop-color="#e8b23c"/>
+              <stop offset="100%" stop-color="#c2861a"/>
+            </linearGradient>
+          </defs>
+
+          <circle cx="110" cy="152" r="122" fill="url(#mrGlow)"/>
+          <ellipse cx="110" cy="299" rx="66" ry="10" fill="#000" opacity="0.45"/>
+
+          <!-- cane (a flat colour: a gradient cannot paint a perfectly straight line) -->
+          <path d="M170 150 L170 296" stroke="#d9a02c" stroke-width="7" stroke-linecap="round"/>
+          <path d="M167 158 L167 290" stroke="#ffd98a" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>
+          <circle cx="170" cy="144" r="11" fill="url(#mrGold)" stroke="#a06f13" stroke-width="2"/>
+
+          <!-- legs and shoes -->
+          <path d="M78 194 L142 194 L137 284 L118 284 L110 232 L102 284 L83 284 Z" fill="#0d3b2d" stroke="#08281e" stroke-width="3" stroke-linejoin="round"/>
+          <ellipse cx="92" cy="288" rx="21" ry="9" fill="#17150f"/>
+          <ellipse cx="128" cy="288" rx="21" ry="9" fill="#17150f"/>
+
+          <!-- coat -->
+          <path d="M72 122 Q110 106 148 122 L157 198 Q110 212 63 198 Z" fill="url(#mrCoat)" stroke="#08281e" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M98 114 L122 114 L118 198 L102 198 Z" fill="#f2ead9"/>
+          <path d="M98 114 L110 152 L88 126 Z" fill="url(#mrGold)" stroke="#08281e" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M122 114 L110 152 L132 126 Z" fill="url(#mrGold)" stroke="#08281e" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M104 120 L116 120 L110 154 Z" fill="#0d3b2d"/>
+          <circle cx="128" cy="168" r="3" fill="url(#mrGold)"/>
+          <circle cx="128" cy="182" r="3" fill="url(#mrGold)"/>
+          <path d="M126 150 Q140 158 134 172" fill="none" stroke="url(#mrGold)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="134" cy="176" r="5" fill="url(#mrGold)"/>
+
+          <!-- arms -->
+          <path d="M74 126 Q58 158 66 192" fill="none" stroke="#14654c" stroke-width="19" stroke-linecap="round"/>
+          <path d="M146 126 Q166 142 168 152" fill="none" stroke="#14654c" stroke-width="19" stroke-linecap="round"/>
+          <circle cx="67" cy="196" r="9" fill="#e9c49c" stroke="#c79a72" stroke-width="2"/>
+          <ellipse cx="168" cy="154" rx="10" ry="8" fill="#e9c49c" stroke="#c79a72" stroke-width="2"/>
+
+          <!-- head -->
+          <path d="M101 98 h18 v20 h-18 z" fill="#dcb188"/>
+          <circle cx="110" cy="74" r="30" fill="#e9c49c" stroke="#c79a72" stroke-width="2"/>
+          <ellipse cx="80" cy="78" rx="6" ry="8" fill="#e9c49c" stroke="#c79a72" stroke-width="2"/>
+          <ellipse cx="140" cy="78" rx="6" ry="8" fill="#e9c49c" stroke="#c79a72" stroke-width="2"/>
+          <path d="M82 66 Q86 34 110 34 Q134 34 138 66 Q128 50 110 48 Q92 50 82 66 Z" fill="#cfc8bc" stroke="#aaa294" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M84 74 Q80 106 96 120 Q110 132 124 120 Q140 106 136 74 Q126 92 110 92 Q94 92 84 74 Z" fill="#d8d2c7" stroke="#aaa294" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M94 84 Q110 94 126 84 Q118 78 110 82 Q102 78 94 84 Z" fill="#e6e1d7" stroke="#aaa294" stroke-width="1.5"/>
+          <path d="M108 66 Q113 76 106 78" fill="none" stroke="#c79a72" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="98" cy="68" r="3" fill="#1c1a17"/>
+          <circle cx="122" cy="68" r="3" fill="#1c1a17"/>
+          <path d="M92 59 Q98 55 104 58" fill="none" stroke="#b8b0a2" stroke-width="3" stroke-linecap="round"/>
+          <path d="M116 58 Q122 55 128 59" fill="none" stroke="#b8b0a2" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="122" cy="68" r="11" fill="#fff" fill-opacity="0.12" stroke="url(#mrGold)" stroke-width="2.5"/>
+          <path d="M132 74 Q141 92 135 106" fill="none" stroke="url(#mrGold)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <figcaption class="mascot-name">Mr. Sim<span>your host</span></figcaption>
+      </figure>
+    </div>
+  </main>
+
   <!-- ============================ FRONT PAGE ============================ -->
   <main class="screen" id="homeScreen">
 
