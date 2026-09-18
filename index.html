@@ -461,8 +461,9 @@
           <p>The <b>Upgrades</b> room has the two things that make your desk bigger.</p>
           <ul class="tut-list">
             <li><b>Account tiers.</b> Starter, Silver, Gold and Platinum. Each one needs a level and a one-off fee, and each unlocks four more companies: seventeen in all, from a water utility up to mining, airlines and robotics.</li>
-            <li><b>Staff.</b> A Research Analyst costs $50 to hire, brings in $1 a day in fees and draws $0.45 a day in wages. Each hire costs a little more than the last, and better roles unlock with better accounts. The page tells you how clients are feeling, which is what decides the fees.</li>
+            <li><b>Staff.</b> A Research Analyst costs $50 to hire, brings in $1 a day in fees and draws $0.45 a day in wages. Each hire costs a little more than the last, and better roles unlock with better accounts. The page tells you how clients are feeling, which is what decides the fees. Everyone you hire arrives with a name and a quirk, listed under their role; press a name to read theirs. The quirks are just for fun and don't change what anyone earns.</li>
           </ul>
+          <p>Keep an eye on <b>The firm</b> at the bottom of the front page, too: your desk picks up a pile of research notes, a plant, a second screen and a framed first dollar as the firm grows.</p>
           <p class="tut-note">Your <b>level</b> is the bar at the top of the screen. You earn XP by trading, hiring and collecting dividends, and every level pays a cash bonus.</p>
         </div>
       </li>
@@ -472,7 +473,7 @@
         <div class="tut-body">
           <h3>Things worth knowing</h3>
           <ul class="tut-list">
-            <li><b>Your progress saves by itself,</b> in this browser. Another device, or a clearing of your browsing data, would otherwise start you over, so <b>Settings</b> at the top right has <b>Save to a file</b>: it puts your whole game in your downloads as a small file. <b>Load a file</b> on any browser picks it back up where you left off. Settings can also reset the game on purpose.</li>
+            <li><b>Your progress saves by itself,</b> in this browser. Another device, or a clearing of your browsing data, would otherwise start you over, so <b>Settings</b> at the top right has <b>Save to a file</b>: it puts your whole game in your downloads as a small file. <b>Load a file</b> on any browser picks it back up where you left off. Settings can also turn the sound effects off or back on, and reset the game on purpose.</li>
             <li><b>Prices move on their own</b> every second, and every company reports earnings each quarter. Good news usually lifts a price and bad news drops it, but not always.</li>
             <li><b>Spread your money out.</b> Owning several companies means one bad earnings report cannot wipe you out. The index fund, IDXF, holds a slice of the whole market and is the calmest place to start.</li>
             <li><b>High volatility cuts both ways.</b> Voltaic Motors, Helix Therapeutics and Velocity Airways can jump or fall by a tenth in a day. Keep those positions small until you are comfortable.</li>
@@ -556,8 +557,57 @@
     <div class="bottom-row">
       <section class="column">
         <h2 class="column-head h-mustard">The firm</h2>
-        <p class="column-text">Upgrade your account to trade more companies, and hire staff who bring in money every trading day, even while you're away.</p>
-        <button class="more" data-screen="upgrades">See upgrades</button>
+        <div class="firm-row">
+          <!-- your desk, which gathers things as the firm grows -->
+          <svg class="desk" id="desk" viewBox="0 0 320 170" role="img" aria-labelledby="deskTitle">
+            <title id="deskTitle">Your desk</title>
+            <g data-desk="frame">
+              <rect x="226" y="8" width="62" height="44" rx="2" fill="#1d1a16" stroke="#c9a45c" stroke-width="3"/>
+              <rect x="234" y="16" width="46" height="28" fill="#2e4a38"/>
+              <text x="257" y="36" text-anchor="middle" font-family="Newsreader, Georgia, serif" font-size="17" font-weight="700" fill="#f0b73d">$1</text>
+            </g>
+            <!-- the lamp -->
+            <path d="M40 118 L48 84 L70 70" fill="none" stroke="#877e6e" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="40" cy="119" rx="12" ry="3" fill="#4a4339"/>
+            <path d="M62 60 L86 68 L78 84 Z" fill="#f0b73d"/>
+            <path class="desk-glow" d="M80 76 L118 120 L64 120 Z" fill="#f0b73d" opacity="0.08"/>
+            <g data-desk="notes">
+              <rect x="74" y="108" width="36" height="12" fill="#efe8d8" transform="rotate(-4 92 114)"/>
+              <rect x="76" y="102" width="34" height="8" fill="#d8cfbb" transform="rotate(3 93 106)"/>
+              <path d="M80 111 h22 M80 115 h16" stroke="#877e6e" stroke-width="1" transform="rotate(-4 92 114)"/>
+            </g>
+            <!-- the first screen -->
+            <rect x="120" y="54" width="84" height="54" rx="3" fill="#15130f" stroke="#4a4339" stroke-width="3"/>
+            <polyline points="128,96 142,88 152,92 166,76 178,80 196,64" fill="none" stroke="#4cc38a" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M156 108 v8 M146 118 h20" stroke="#4a4339" stroke-width="4" stroke-linecap="round"/>
+            <g data-desk="screen2">
+              <rect x="210" y="66" width="56" height="42" rx="3" fill="#15130f" stroke="#4a4339" stroke-width="3"/>
+              <rect x="218" y="90" width="8" height="12" fill="#7fb2d6"/>
+              <rect x="230" y="82" width="8" height="20" fill="#f0b73d"/>
+              <rect x="242" y="76" width="8" height="26" fill="#4cc38a"/>
+              <rect x="254" y="86" width="6" height="16" fill="#ad93e8"/>
+              <path d="M238 108 v8 M230 118 h16" stroke="#4a4339" stroke-width="4" stroke-linecap="round"/>
+            </g>
+            <!-- the mug -->
+            <rect x="276" y="102" width="16" height="18" rx="2" fill="#d9536a"/>
+            <path d="M292 106 q7 0 7 6 q0 6 -7 6" fill="none" stroke="#d9536a" stroke-width="2.5"/>
+            <path class="desk-steam" d="M281 97 q-3 -5 0 -10 M287 97 q-3 -5 0 -10" fill="none" stroke="#877e6e" stroke-width="1.5" stroke-linecap="round"/>
+            <g data-desk="plant">
+              <path d="M22 96 q-8 -22 4 -34 M22 96 q4 -26 20 -30 M22 96 q-16 -10 -18 -24" fill="none" stroke="#4cbf8c" stroke-width="5" stroke-linecap="round"/>
+              <path d="M12 96 h20 l-3 22 h-14 z" fill="#b08a6a"/>
+            </g>
+            <!-- the desk itself -->
+            <rect x="6" y="120" width="308" height="10" rx="2" fill="#6b5236"/>
+            <path d="M18 130 v36 M302 130 v36" stroke="#4a3927" stroke-width="6"/>
+            <rect x="196" y="130" width="94" height="26" fill="#5a442c"/>
+            <circle cx="243" cy="143" r="2.5" fill="#c9a45c"/>
+          </svg>
+          <div>
+            <p class="column-text">Upgrade your account to trade more companies, and hire staff who bring in money every trading day, even while you're away.</p>
+            <p class="desk-caption" id="deskCaption"></p>
+            <button class="more" data-screen="upgrades">See upgrades</button>
+          </div>
+        </div>
       </section>
 
       <section class="column">

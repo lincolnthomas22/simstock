@@ -91,6 +91,58 @@
     { id: 'director', name: 'Fund Director',     tier: 3, baseCost: 150000, growth: 1.2,  income: 1600, about: 'Oversees whole funds for large institutions.' },
   ];
   STAFF.forEach(s => { s.salary = Math.round(s.income * SALARY_SHARE * 100) / 100; });
+  const STAFF_BY_ID = Object.fromEntries(STAFF.map(s => [s.id, s]));
+
+  // Everyone you hire gets a name and a quirk. They're for colour only: two
+  // analysts earn the same whatever their habits.
+  const FIRST_NAMES = ['Priya', 'Dev', 'Marta', 'Ollie', 'Keiko', 'Sam', 'Tomasz', 'Ana', 'Rafi', 'June', 'Bea', 'Hugo',
+    'Imani', 'Lars', 'Nell', 'Omar', 'Rosa', 'Theo', 'Wen', 'Yusuf', 'Ada', 'Cal', 'Esme', 'Felix', 'Gus', 'Iris',
+    'Jonah', 'Lena', 'Milo', 'Nadia', 'Pip', 'Quentin', 'Sunny', 'Tariq', 'Uma', 'Vic', 'Zara', 'Bram', 'Cleo', 'Dara'];
+  const LAST_NAMES = ['Nair', 'Okafor', 'Lindqvist', 'Brennan', 'Tanaka', 'Reyes', 'Kowalski', 'Ferreira', 'Haddad', 'Park',
+    'Moreau', 'Adeyemi', 'Novak', 'Quinn', 'Sato', 'Abbott', 'Castillo', 'Doyle', 'Eriksen', 'Fontaine', 'Hale', 'Iyer',
+    'Kerr', 'Achebe', 'Varga', 'Whitlock', 'Oyelaran', 'Bianchi', 'Petrov', 'Delacroix'];
+  const TRAITS = {
+    analyst: [
+      'Colour-codes every spreadsheet',
+      'Has read every annual report on the board, twice',
+      'Runs on espresso and footnotes',
+      'Draws trendlines on napkins',
+      'Believes in utilities the way some people believe in fate',
+      'Keeps a chart of their own coffee intake',
+      'Can recite Tickr\'s last ten earnings from memory',
+      'Has strong opinions about fonts in research notes',
+      'Still has the calculator they used at school',
+      'Labels the office fridge by sector',
+    ],
+    advisor: [
+      'Remembers every client\'s dog\'s name',
+      'Says "spread it out" in their sleep',
+      'Keeps a bowl of the good sweets on the desk',
+      'Once talked a client out of buying a racehorse',
+      'Calm voice, firm handshake, spotless shoes',
+      'Answers every question with a gentle question',
+      'Has never let a client sell in a panic',
+      'Sends handwritten birthday cards',
+    ],
+    manager: [
+      'Rebalances on the first of every month, rain or shine',
+      'Hasn\'t panic-sold since the last crash',
+      'Reads the bond market over breakfast',
+      'Owns eleven identical navy suits',
+      'Thinks in fractions of a percent',
+      'Never checks prices after six in the evening',
+      'Keeps a jar of every commission they ever paid',
+      'Has a whiteboard nobody else may touch',
+    ],
+    director: [
+      'Once had lunch with three central bankers',
+      'Speaks slowly, and everyone listens',
+      'Has a corner office, and a smaller corner office inside it',
+      'Collects fountain pens and pension funds',
+      'Has seen five crashes and outlasted all of them',
+      'Chairs meetings that end early',
+    ],
+  };
 
   // A company that has lost most of its value can fail outright. Only the
   // wildest companies can, and only after a real collapse.
@@ -235,6 +287,8 @@
   const fmtSigned = n => (Math.abs(n) < 0.005 ? fmt(0) : (n > 0 ? '+' : '−') + fmt(Math.abs(n)));
   const fmtPct = (n, digits = 2) => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(digits) + '%';
   const tone = n => (n >= 0 ? 'pos' : 'neg');
+  // for text that came out of a save file, which anyone can edit
+  const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
   function fmtBig(n) {
     if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
@@ -405,6 +459,31 @@
     rt.price = s.start;
   }
 
+  // A new face for a role, avoiding names and quirks already in the office.
+  function newHire(st, roleId) {
+    const taken = new Set(st.roster.map(p => p.name));
+    let name = `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+    for (let i = 0; i < 20 && taken.has(name); i++) name = `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+    const used = new Set(st.roster.filter(p => p.role === roleId).map(p => p.trait));
+    const fresh = TRAITS[roleId].filter(t => !used.has(t));
+    return { role: roleId, name, trait: pick(fresh.length ? fresh : TRAITS[roleId]) };
+  }
+
+  // Keeps the named roster in step with the headcounts, which are what the
+  // money is worked out from.
+  function syncRoster(st) {
+    if (!Array.isArray(st.roster)) st.roster = [];
+    st.roster = st.roster.filter(p => p && STAFF_BY_ID[p.role] && typeof p.name === 'string' && typeof p.trait === 'string');
+    for (const role of STAFF) {
+      let have = st.roster.filter(p => p.role === role.id).length;
+      while (have < st.staff[role.id]) { st.roster.push(newHire(st, role.id)); have++; }
+      while (have > st.staff[role.id]) {
+        st.roster.splice(st.roster.map(p => p.role).lastIndexOf(role.id), 1);
+        have--;
+      }
+    }
+  }
+
   function freshState() {
     const st = {
       version: 3,
@@ -416,6 +495,7 @@
       accountOpen: false,
       speed: 1,
       staff: Object.fromEntries(STAFF.map(s => [s.id, 0])),
+      roster: [],
       totalDividends: 0,
       totalFees: 0,
       market: { level: 1000, history: [] },
@@ -445,6 +525,11 @@
     if (!SPEEDS.includes(saved.speed)) saved.speed = 1;
     saved.version = 3;
 
+    // staff gained names later on; anyone already hired gets one now
+    if (!saved.staff || typeof saved.staff !== 'object') saved.staff = {};
+    STAFF.forEach(s => { if (!Number.isInteger(saved.staff[s.id]) || saved.staff[s.id] < 0) saved.staff[s.id] = 0; });
+    syncRoster(saved);
+
     // companies added since this save was written join the board today
     STOCKS.forEach((s, i) => {
       if (saved.stocks[s.id]) return;
@@ -472,7 +557,7 @@
   }
 
   let state = loadState();
-  const ui = { screen: 'landing', selected: 'TICK', range: 63, side: 'buy' };
+  const ui = { screen: 'landing', selected: 'TICK', range: 63, side: 'buy', staffFocus: {} };
   let tickCount = 0;
   let lastTickAt = Date.now();
   let lastRunningSpeed = SPEEDS.includes(state.speed) && state.speed > 0 ? state.speed : 1;
@@ -541,6 +626,132 @@
       node.classList.add('out');
       setTimeout(() => node.remove(), 300);
     }, 4200);
+  }
+
+  // ===========================================================
+  // SOUND + CONFETTI
+  // Every sound is synthesised on the spot, so there are no audio files to
+  // load. Whether it's on is a setting for this browser, not part of the save.
+  // ===========================================================
+  const SOUND_KEY = 'simstock.sound';
+  let soundOn = true;
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) { /* storage blocked */ }
+  let audio = null;
+  const lastPlayed = {};
+
+  function setSound(on) {
+    soundOn = on;
+    try { localStorage.setItem(SOUND_KEY, on ? 'on' : 'off'); } catch (e) { /* storage blocked */ }
+  }
+
+  // one note: a pitch that rings and fades
+  function note(freq, at, length, { type = 'sine', gain = 0.12, slideTo = null } = {}) {
+    const osc = audio.createOscillator();
+    const amp = audio.createGain();
+    const t = audio.currentTime + at;
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t + length);
+    amp.gain.setValueAtTime(0.0001, t);
+    amp.gain.exponentialRampToValueAtTime(gain, t + 0.01);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    osc.connect(amp).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t + length + 0.02);
+  }
+
+  // a short burst of noise: the drawer of a cash register sliding out
+  function rattle(at, length, gain = 0.08) {
+    const frames = Math.floor(audio.sampleRate * length);
+    const buffer = audio.createBuffer(1, frames, audio.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+    const src = audio.createBufferSource();
+    const filter = audio.createBiquadFilter();
+    const amp = audio.createGain();
+    src.buffer = buffer;
+    filter.type = 'bandpass';
+    filter.frequency.value = 2400;
+    amp.gain.value = gain;
+    src.connect(filter).connect(amp).connect(audio.destination);
+    src.start(audio.currentTime + at);
+  }
+
+  const SOUNDS = {
+    buy: () => { note(880, 0, 0.08, { type: 'triangle', gain: 0.07 }); note(1320, 0.05, 0.1, { type: 'triangle', gain: 0.05 }); },
+    cash: () => { rattle(0, 0.09); note(2093, 0.08, 0.5, { gain: 0.1 }); note(2637, 0.1, 0.6, { gain: 0.07 }); },
+    loss: () => { note(392, 0, 0.18, { type: 'triangle', gain: 0.08, slideTo: 294 }); },
+    coin: () => { note(1568, 0, 0.12, { gain: 0.06 }); note(2349, 0.06, 0.25, { gain: 0.05 }); },
+    hire: () => { [523, 659, 784].forEach((f, i) => note(f, i * 0.07, 0.25, { type: 'triangle', gain: 0.08 })); },
+    level: () => { [784, 988, 1175, 1568].forEach((f, i) => note(f, i * 0.06, 0.9, { gain: 0.07 })); },
+    tier: () => {
+      [523, 659, 784, 1047].forEach((f, i) => note(f, i * 0.11, 0.35, { type: 'triangle', gain: 0.09 }));
+      [1047, 1319, 1568].forEach(f => note(f, 0.46, 1.2, { gain: 0.06 }));
+    },
+    fail: () => { note(147, 0, 0.6, { type: 'sawtooth', gain: 0.05, slideTo: 73 }); note(110, 0.05, 0.7, { gain: 0.12, slideTo: 55 }); },
+  };
+
+  // `gap` keeps a sound from stacking up when the market runs fast
+  function playSound(name, gap = 0) {
+    if (!soundOn || !booted) return;
+    const now = Date.now();
+    if (gap && now - (lastPlayed[name] || 0) < gap) return;
+    lastPlayed[name] = now;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+      SOUNDS[name]();
+    } catch (e) { /* no audio in this browser */ }
+  }
+
+  const calm = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Paper confetti in the given colours, falling over everything for a few seconds.
+  function confetti(count, colours) {
+    if (calm()) return;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'confetti';
+    canvas.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    const bits = Array.from({ length: count }, () => ({
+      x: w / 2 + (Math.random() - 0.5) * w * 0.3,
+      y: h * 0.4,
+      vx: (Math.random() - 0.5) * 18,
+      vy: -8 - Math.random() * 11,
+      spin: (Math.random() - 0.5) * 0.4,
+      angle: Math.random() * Math.PI,
+      size: 8 + Math.random() * 7,
+      colour: pick(colours),
+    }));
+    const started = performance.now();
+    (function frame(t) {
+      const age = (t - started) / 1000;
+      ctx.clearRect(0, 0, w, h);
+      ctx.globalAlpha = Math.max(0, Math.min(1, 3.2 - age));
+      for (const b of bits) {
+        b.vy += 0.35;
+        b.vx *= 0.985;
+        b.x += b.vx;
+        b.y += b.vy;
+        b.angle += b.spin;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.angle);
+        ctx.scale(1, Math.cos(b.angle * 2)); // tumbling paper shows its edge
+        ctx.fillStyle = b.colour;
+        ctx.fillRect(-b.size / 2, -b.size / 4, b.size, b.size / 2);
+        ctx.restore();
+      }
+      if (age < 3.2) requestAnimationFrame(frame);
+      else canvas.remove();
+    })(started);
   }
 
   const modalRoot = $('modalRoot');
@@ -675,6 +886,7 @@
       <h3>Your game</h3>
       <p>Level ${state.level} · ${TIERS[state.tier].name} account · Net worth ${fmt(netWorth())}</p>
       <div class="settings-list">
+        <button class="btn btn-ghost btn-block" data-act="sound" aria-pressed="${soundOn}">Sound effects: ${soundOn ? 'on' : 'off'}</button>
         <button class="btn btn-ghost btn-block" data-act="basics">Replay investing basics</button>
         <button class="btn btn-ghost btn-block" data-act="export">Save to a file</button>
         <button class="btn btn-ghost btn-block" data-act="import">Load a file</button>
@@ -684,6 +896,12 @@
       <div class="modal-actions"><button class="btn btn-ghost" data-act="close">Close</button></div>`);
 
     let confirming = false;
+    modal.querySelector('[data-act="sound"]').onclick = e => {
+      setSound(!soundOn);
+      e.currentTarget.textContent = `Sound effects: ${soundOn ? 'on' : 'off'}`;
+      e.currentTarget.setAttribute('aria-pressed', soundOn);
+      playSound('coin');
+    };
     modal.querySelector('[data-act="basics"]').onclick = () => showLessons(0);
     modal.querySelector('[data-act="export"]').onclick = exportSave;
     modal.querySelector('[data-act="import"]').onclick = pickSaveFile;
@@ -697,6 +915,7 @@
       modalQueue.length = 0;
       state = freshState();
       ui.selected = 'TICK';
+      ui.staffFocus = {};
       lastTip = '';
       renderedNewsKey = '';
       saveState();
@@ -773,7 +992,8 @@
     setSpeed(state.speed === 0 ? lastRunningSpeed : 0);
   }
 
-  function gainXp(amount) {
+  // Returns true on a level-up, which brings its own fanfare unless `quiet`.
+  function gainXp(amount, quiet = false) {
     const startLevel = state.level;
     let bonus = 0;
     state.xp += amount;
@@ -786,7 +1006,13 @@
       state.cash += bonus;
       const level = state.level;
       queueModal(() => showLevelUp(level, bonus));
+      if (!quiet) {
+        playSound('level');
+        confetti(70, ['#f0b73d', '#f4d48c', '#efe8d8']);
+      }
+      return true;
     }
+    return false;
   }
 
   function afterAction() {
@@ -837,7 +1063,7 @@
       rt.costBasis += value + fee; // the commission is part of what the shares cost you
       state.totalFees += fee;
       toast('Order filled', `Bought ${qty} ${s.id} at ${fmt(rt.price)}: ${fmt(value + fee)} with the ${fmt(fee)} commission.`, 'pos');
-      gainXp(XP.buy);
+      if (!gainXp(XP.buy)) playSound('buy');
     } else {
       if (qty > rt.shares) return;
       const paid = avgCost(rt) * qty;
@@ -850,7 +1076,7 @@
       state.totalFees += fee;
       const result = Math.abs(profit) < 0.005 ? 'at break-even' : `for a ${fmt(Math.abs(profit))} ${profit > 0 ? 'profit' : 'loss'}`;
       toast('Order filled', `Sold ${qty} ${s.id} at ${fmt(rt.price)} ${result}, after the ${fmt(fee)} commission.`, profit > -0.005 ? 'pos' : 'neg');
-      gainXp(profit > 0 ? sellProfitXp(profit) : XP.sellLoss);
+      if (!gainXp(profit > 0 ? sellProfitXp(profit) : XP.sellLoss)) playSound(profit > 0 ? 'cash' : 'loss');
     }
     afterAction();
   }
@@ -864,7 +1090,10 @@
       while (state.cash < 0 && state.staff[role.id] > 0) {
         state.staff[role.id] -= 1;
         state.cash += role.salary * 30; // a month of that salary back in the till
-        toast('Payroll missed', `You couldn't cover the wages, so a ${role.name} was let go.`, 'neg');
+        // last in, first out
+        const gone = state.roster.splice(state.roster.map(p => p.role).lastIndexOf(role.id), 1)[0];
+        toast('Payroll missed', `You couldn't cover the wages, so ${esc(gone.name)}, a ${role.name}, was let go.`, 'neg');
+        playSound('loss');
       }
     }
     if (state.cash < 0) state.cash = 0;
@@ -875,8 +1104,11 @@
     if (state.tier < staff.tier || state.cash < cost) return;
     state.cash -= cost;
     state.staff[staff.id] += 1;
-    toast('Staff hired', `${staff.name}: ${fmt(staff.income)} a day in fees, ${fmt(staff.salary)} a day in wages.`, 'accent');
-    gainXp(XP.hire);
+    const person = newHire(state, staff.id);
+    state.roster.push(person);
+    ui.staffFocus[staff.id] = null;
+    toast(`${esc(person.name)} joins as ${staff.name}`, `“${esc(person.trait)}.” ${fmt(staff.income)} a day in fees, ${fmt(staff.salary)} a day in wages.`, 'accent');
+    if (!gainXp(XP.hire)) playSound('hire');
     afterAction();
   }
 
@@ -885,7 +1117,9 @@
     state.cash -= TIERS[i].cost;
     state.tier = i;
     queueModal(() => showTierUnlocked(i));
-    gainXp(XP.tier);
+    gainXp(XP.tier, true);
+    playSound('tier');
+    confetti(160, ['#4cbf8c', '#9fb4c8', '#f0b73d', '#ad93e8', '#efe8d8']);
     afterAction();
   }
 
@@ -1040,6 +1274,34 @@
     }
     renderMovers();
     renderNews();
+    renderDesk();
+  }
+
+  // What sits on the desk, in the order the game hands it out.
+  const DESK_ITEMS = [
+    { id: 'notes',   has: () => state.staff.analyst > 0, hint: 'Hire a Research Analyst and their notes will start piling up here.' },
+    { id: 'plant',   has: () => state.tier >= 1, hint: 'A Silver account comes with a pot plant.' },
+    { id: 'screen2', has: () => state.tier >= 2, hint: 'Gold gets you a second screen.' },
+    { id: 'frame',   has: () => state.tier >= 3, hint: 'Reach Platinum and your first dollar goes up on the wall.' },
+  ];
+  const deskShown = {};
+
+  function renderDesk() {
+    for (const item of DESK_ITEMS) {
+      const on = item.has();
+      if (deskShown[item.id] === on) continue;
+      const node = document.querySelector(`#desk [data-desk="${item.id}"]`);
+      node.style.display = on ? '' : 'none';
+      // anything new since the page loaded gets a little entrance
+      if (on && deskShown[item.id] === false) {
+        node.classList.remove('desk-new');
+        void node.getBoundingClientRect();
+        node.classList.add('desk-new');
+      }
+      deskShown[item.id] = on;
+    }
+    const next = DESK_ITEMS.find(item => !item.has());
+    $('deskCaption').textContent = next ? next.hint : 'The desk is complete. The view from up here is excellent.';
   }
 
   let tierChipsFor = -1;
@@ -1710,11 +1972,12 @@
           <div class="kv"><span class="label">On staff</span><span class="v staff-count"></span></div>
           <div class="kv"><span class="label">Team nets</span><span class="v staff-total"></span></div>
           <button class="btn btn-ghost btn-block"></button>
+          <div class="staff-team"></div>
         </div>`);
       const btn = row.querySelector('button');
       btn.onclick = () => hire(st);
       list.appendChild(row);
-      staffRefs[st.id] = { row, btn, count: row.querySelector('.staff-count'), total: row.querySelector('.staff-total') };
+      staffRefs[st.id] = { row, btn, count: row.querySelector('.staff-count'), total: row.querySelector('.staff-total'), team: row.querySelector('.staff-team'), teamKey: '' };
     }
   }
 
@@ -1767,7 +2030,31 @@
       r.total.className = 'v staff-total ' + (count ? tone(net) : '');
       r.btn.disabled = locked || state.cash < cost;
       r.btn.textContent = locked ? `Needs ${TIERS[st.tier].name}` : `Hire for ${fmt(cost)}`;
+      renderTeam(st, r);
     }
+  }
+
+  const TEAM_SHOWN = 12;
+
+  // The people in a role, by name. Pressing a name brings up their quirk;
+  // otherwise it's the newest hire's.
+  function renderTeam(role, r) {
+    const team = state.roster.filter(p => p.role === role.id);
+    const focus = ui.staffFocus[role.id];
+    const key = `${team.length}:${team.length ? team[team.length - 1].name : ''}:${focus}`;
+    if (r.teamKey === key) return;
+    r.teamKey = key;
+    r.team.hidden = !team.length;
+    if (!team.length) return;
+    const featured = team[focus != null && focus < team.length ? focus : team.length - 1];
+    const shown = team.slice(-TEAM_SHOWN).reverse();
+    const start = team.length - shown.length;
+    r.team.innerHTML = `
+      <div class="team-names">${shown.map((p, i) => {
+        const index = team.length - 1 - i;
+        return `<button class="team-chip${p === featured ? ' on' : ''}" data-role="${role.id}" data-person="${index}">${esc(p.name)}</button>`;
+      }).join('')}${start > 0 ? `<span class="team-more">and ${start} more</span>` : ''}</div>
+      <p class="team-quote"><b>${esc(featured.name)}</b> ${esc(featured.trait)}.</p>`;
   }
 
   // ===========================================================
@@ -1802,11 +2089,12 @@
       for (const e of events) {
         if (e.paid) {
           if (ui.screen !== 'landing') toast('Dividend received', `+${fmt(e.paid)} from your ${e.shares} ${e.ticker} shares.`, 'pos');
-          gainXp(XP.dividend);
+          if (!gainXp(XP.dividend) && ui.screen !== 'landing') playSound('coin', 1500);
           continue;
         }
         if (e.wiped) {
           toast('A company has failed', `${e.ticker} collapsed and your ${e.wiped} shares are now worthless.`, 'neg');
+          playSound('fail');
           continue;
         }
         if (e.kind === 'dividend') continue;
@@ -1851,6 +2139,13 @@
   $('moversList').addEventListener('pointerdown', openStockRow);
   $('holdingsTable').addEventListener('pointerdown', openStockRow);
   $('pfTable').addEventListener('pointerdown', openStockRow);
+
+  $('staffList').addEventListener('click', e => {
+    const chip = e.target.closest('.team-chip');
+    if (!chip) return;
+    ui.staffFocus[chip.dataset.role] = Number(chip.dataset.person);
+    render();
+  });
 
   $('openAccountBtn').onclick = () => showLessons(0);
   $('settingsBtn').onclick = showSettings;

@@ -1277,3 +1277,38 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   .pf-head .figures-row > div:nth-child(odd) { padding-left: 0; border-left: 0; }
   .pf-head .figures-row > div:nth-child(even) { padding-left: 16px; border-left: 1px solid var(--line); }
 }
+
+/* ---------------- THE DESK ---------------- */
+.firm-row { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 26px; align-items: center; }
+.desk { display: block; width: 100%; height: auto; }
+.desk-caption { margin: 10px 0 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--mustard); }
+.desk .desk-steam { animation: steam 3s ease-in-out infinite; }
+.desk-new { transform-box: fill-box; transform-origin: 50% 100%; animation: deskPop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes steam { 0%, 100% { opacity: 0.2; transform: translateY(2px); } 50% { opacity: 0.8; transform: translateY(-2px); } }
+@keyframes deskPop { from { opacity: 0; transform: scale(0.4); } }
+
+@media (max-width: 760px) {
+  .firm-row { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .desk { max-width: 320px; }
+}
+
+/* ---------------- NAMED STAFF ---------------- */
+.staff-team { grid-column: 1 / -1; padding-top: 10px; border-top: 1px dashed var(--line); }
+.team-names { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.team-chip {
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-2);
+  font: 12.5px/1.4 var(--sans);
+  cursor: pointer;
+}
+.team-chip:hover { border-color: var(--tier); color: var(--text); }
+.team-chip.on { border-color: var(--tier); background: color-mix(in srgb, var(--tier) 18%, transparent); color: var(--text); }
+.team-more { font-size: 12.5px; color: var(--text-3); }
+.team-quote { margin: 8px 0 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--text-2); }
+.team-quote b { font-style: normal; font-weight: 600; color: var(--text); }
+
+/* ---------------- CONFETTI ---------------- */
+.confetti { position: fixed; inset: 0; z-index: 150; width: 100vw; height: 100vh; pointer-events: none; }
