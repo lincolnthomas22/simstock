@@ -37,10 +37,15 @@
   // growth: yearly profit growth · pe: typical price-to-earnings ratio
   // ===========================================================
   const TIERS = [
-    { name: 'Starter',  cost: 0,     level: 1,  blurb: 'Your first brokerage account. Steady, famous companies, the two biggest coins and the best-known memecoins.' },
-    { name: 'Silver',   cost: 5000,   level: 3,  blurb: 'Adds a big bank, a software giant, a DIY chain, an electric carmaker and more coins.' },
-    { name: 'Gold',     cost: 30000,  level: 6,  blurb: 'Adds the rough end of the market: biotech, oil, gold mining, an airline and riskier coins.' },
-    { name: 'Platinum', cost: 150000, level: 10, blurb: 'Adds giant, premium-priced companies and the wildest coins on the board.' },
+    // Every tier opens the same amount: three companies, two coins and two
+    // memecoins (one ascended, one rising). Starter also has the two safe places
+    // to park money, the index fund and the stablecoin.
+    { name: 'Starter',  cost: 0,        level: 1,  blurb: 'Your first brokerage account. Steady famous names, the index fund, the two biggest coins, a stablecoin and a first pair of memecoins.' },
+    { name: 'Silver',   cost: 5000,     level: 3,  blurb: 'Adds a courier, the biggest bank and a DIY chain, plus two older coins and two more memecoins.' },
+    { name: 'Gold',     cost: 30000,    level: 6,  blurb: 'Adds software, oil and online shopping giants, plus two faster coins and two more memecoins.' },
+    { name: 'Platinum', cost: 150000,   level: 10, blurb: 'Adds the rough end of the market: an electric carmaker, gold mining and an airline, plus riskier coins.' },
+    { name: 'Diamond',  cost: 1000000,  level: 14, blurb: 'Adds a make-or-break biotech, a social media giant and a defence contractor, plus two ambitious coins.' },
+    { name: 'Obsidian', cost: 10000000, level: 18, blurb: 'The very top: giant premium-priced companies, the wildest coins on the board and the last of the memecoins.' },
   ];
 
   // Every name is a light parody of a real company or coin, and each one is
@@ -56,32 +61,36 @@
       about: 'Sells fizzy drinks in almost every country on earth. People keep buying them whatever the economy does, so the stock is steady and pays a rising dividend.' },
     { id: 'DUKK', name: 'Duck Energy', sector: 'Utilities', tier: 0, risk: 1, start: 105, vol: 0.15, beta: 0.45, growth: 0.02, pe: 18, divYield: 0.039, sharesOut: 770e6,
       about: 'Keeps the lights on for millions of homes. Growth is slow and dull, but the bills get paid and so do its dividends.' },
-    { id: 'FDUP', name: 'FedUp Corporation', sector: 'Logistics', tier: 0, risk: 2, start: 250, vol: 0.28, beta: 1.05, growth: 0.06, pe: 15, divYield: 0.02, sharesOut: 245e6,
+    { id: 'FDUP', name: 'FedUp Corporation', sector: 'Logistics', tier: 1, risk: 2, start: 250, vol: 0.28, beta: 1.05, growth: 0.06, pe: 15, divYield: 0.02, sharesOut: 245e6,
       about: 'Flies and trucks parcels around the world overnight. Busy when shops and factories are, and it feels every slowdown first.' },
-    { id: 'TSLO', name: 'Teslo Motors', sector: 'Automotive', tier: 1, risk: 4, start: 240, vol: 0.58, beta: 1.8, growth: 0.15, pe: 70, divYield: 0, sharesOut: 3.2e9,
+    { id: 'TSLO', name: 'Teslo Motors', sector: 'Automotive', tier: 3, risk: 4, start: 240, vol: 0.58, beta: 1.8, growth: 0.15, pe: 70, divYield: 0, sharesOut: 3.2e9,
       about: "The world's most valuable carmaker, run by a founder who is never far from the headlines. Priced for enormous growth, so it swings hard on every rumour." },
     { id: 'JPMG', name: 'J.P. Morgane Chase', sector: 'Financials', tier: 1, risk: 2, start: 200, vol: 0.24, beta: 1.1, growth: 0.05, pe: 12, divYield: 0.024, sharesOut: 2.85e9,
       about: 'The biggest bank in the country, lending to families, companies and governments. It rises and falls with the economy, but it has come through every crisis so far.' },
-    { id: 'MCSF', name: 'Macrosoft Corporation', sector: 'Technology', tier: 1, risk: 2, start: 410, vol: 0.25, beta: 1.1, growth: 0.1, pe: 34, divYield: 0.008, sharesOut: 7.4e9,
+    { id: 'MCSF', name: 'Macrosoft Corporation', sector: 'Technology', tier: 2, risk: 2, start: 410, vol: 0.25, beta: 1.1, growth: 0.1, pe: 34, divYield: 0.008, sharesOut: 7.4e9,
       about: "Sells the office software and cloud computing half the world's businesses run on, paid for by the month. Enormous, steady, and still growing fast." },
     { id: 'HDPO', name: 'The Home Depo', sector: 'Home improvement', tier: 1, risk: 2, start: 350, vol: 0.24, beta: 1.0, growth: 0.06, pe: 23, divYield: 0.025, sharesOut: 990e6,
       about: "Sells timber, tools and paint to builders and weekend DIYers. It booms when people are moving house and doing up homes, and slows when they aren't." },
-    { id: 'MDRO', name: 'Moderno', sector: 'Biotech', tier: 2, risk: 5, start: 38, vol: 0.65, beta: 0.8, growth: 0.15, pe: 40, divYield: 0, sharesOut: 385e6,
+    { id: 'MDRO', name: 'Moderno', sector: 'Biotech', tier: 4, risk: 5, start: 38, vol: 0.65, beta: 0.8, growth: 0.15, pe: 40, divYield: 0, sharesOut: 385e6,
       about: 'Made its name with a fast-built vaccine and is now betting everything on the next one. A single trial result can double the stock or halve it.' },
     { id: 'XOMB', name: 'ExxonMobile', sector: 'Energy', tier: 2, risk: 2, start: 112, vol: 0.26, beta: 0.85, growth: 0.04, pe: 13, divYield: 0.034, sharesOut: 4.4e9,
       about: 'Pumps, refines and sells oil and gas all over the world. Its price follows energy prices, and it pays out a big dividend.' },
-    { id: 'NMNT', name: 'Newmint Mining', sector: 'Mining', tier: 2, risk: 3, start: 45, vol: 0.38, beta: 0.6, growth: 0.07, pe: 14, divYield: 0.022, sharesOut: 1.15e9,
+    { id: 'NMNT', name: 'Newmint Mining', sector: 'Mining', tier: 3, risk: 3, start: 45, vol: 0.38, beta: 0.6, growth: 0.07, pe: 14, divYield: 0.022, sharesOut: 1.15e9,
       about: "The world's biggest gold miner. Gold prices swing on fear and interest rates, and a single flooded mine can wipe out a year of profit." },
-    { id: 'DLTA', name: 'Delto Air Lines', sector: 'Airlines', tier: 2, risk: 4, start: 48, vol: 0.42, beta: 1.4, growth: 0.08, pe: 8, divYield: 0.012, sharesOut: 645e6,
+    { id: 'DLTA', name: 'Delto Air Lines', sector: 'Airlines', tier: 3, risk: 4, start: 48, vol: 0.42, beta: 1.4, growth: 0.08, pe: 8, divYield: 0.012, sharesOut: 645e6,
       about: 'One of the biggest airlines in the world. Full planes and cheap fuel make it soar; a recession or a fuel spike can bring it down hard.' },
-    { id: 'LKMN', name: 'Lockheed Martian', sector: 'Aerospace', tier: 3, risk: 2, start: 470, vol: 0.22, beta: 0.5, growth: 0.05, pe: 17, divYield: 0.027, sharesOut: 237e6,
+    { id: 'LKMN', name: 'Lockheed Martian', sector: 'Aerospace', tier: 4, risk: 2, start: 470, vol: 0.22, beta: 0.5, growth: 0.05, pe: 17, divYield: 0.027, sharesOut: 237e6,
       about: 'Builds fighter jets, missiles and spacecraft for governments. Its customers sign contracts years in advance, which keeps it steady.' },
-    { id: 'BRKH', name: 'Berkshire Hathaweigh', sector: 'Conglomerate', tier: 3, risk: 1, start: 460, vol: 0.17, beta: 0.85, growth: 0.06, pe: 22, divYield: 0, sharesOut: 2.16e9,
+    { id: 'BRKH', name: 'Berkshire Hathaweigh', sector: 'Conglomerate', tier: 5, risk: 1, start: 460, vol: 0.17, beta: 0.85, growth: 0.06, pe: 22, divYield: 0, sharesOut: 2.16e9,
       about: 'Owns an insurance empire, a railroad and dozens of other businesses, run by a famously patient investor. It never pays a dividend: it keeps the cash and buys more businesses.' },
-    { id: 'ELYL', name: 'Ely Lilly', sector: 'Pharmaceuticals', tier: 3, risk: 2, start: 780, vol: 0.28, beta: 0.5, growth: 0.12, pe: 55, divYield: 0.007, sharesOut: 950e6,
+    { id: 'ELYL', name: 'Ely Lilly', sector: 'Pharmaceuticals', tier: 5, risk: 2, start: 780, vol: 0.28, beta: 0.5, growth: 0.12, pe: 55, divYield: 0.007, sharesOut: 950e6,
       about: 'Sells weight-loss and diabetes drugs the whole world wants. Expensive per share, and priced for years more growth.' },
-    { id: 'NVDO', name: 'Nvidio Corporation', sector: 'Semiconductors', tier: 3, risk: 4, start: 880, vol: 0.52, beta: 1.7, growth: 0.2, pe: 60, divYield: 0, sharesOut: 2.46e9,
+    { id: 'NVDO', name: 'Nvidio Corporation', sector: 'Semiconductors', tier: 5, risk: 4, start: 880, vol: 0.52, beta: 1.7, growth: 0.2, pe: 60, divYield: 0, sharesOut: 2.46e9,
       about: 'Makes the chips artificial intelligence runs on, and cannot build them fast enough. The fastest-growing giant on the board, and one of the wildest.' },
+    { id: 'AMZE', name: 'Amazin.com Inc.', sector: 'Online retail', tier: 2, risk: 3, start: 180, vol: 0.34, beta: 1.25, growth: 0.12, pe: 45, divYield: 0, sharesOut: 10.5e9,
+      about: 'Sells nearly everything online and rents out the computers half the internet runs on. Thin profits on the shopping, fat ones on the cloud, and it spends heavily on both.' },
+    { id: 'METT', name: 'Metta Platforms', sector: 'Technology', tier: 4, risk: 3, start: 480, vol: 0.4, beta: 1.3, growth: 0.12, pe: 25, divYield: 0.004, sharesOut: 2.53e9,
+      about: 'Owns the social networks billions of people scroll every day, and makes its money from the adverts in between. It once lost two-thirds of its value in a year, then won it all back.' },
 
     // Waiting in the wings: each of these lists on the exchange when a company
     // fails, taking its place on the board. None of them trade before then.
@@ -89,25 +98,25 @@
       about: 'The biggest shop in the world, with a store near almost everyone. People buy groceries in good times and bad.' },
     { id: 'SNPP', name: 'Snapp Inc.', sector: 'Technology', later: true, tier: 0, risk: 4, start: 11, vol: 0.6, beta: 1.5, growth: 0.15, pe: 60, divYield: 0, sharesOut: 1.65e9,
       about: 'A disappearing-photo app loved by teenagers and yet to make a steady profit. Exciting, and fragile.' },
-    { id: 'OOBR', name: 'Oober Technologies', sector: 'Logistics', later: true, tier: 0, risk: 3, start: 70, vol: 0.4, beta: 1.3, growth: 0.12, pe: 35, divYield: 0, sharesOut: 2.1e9,
+    { id: 'OOBR', name: 'Oober Technologies', sector: 'Logistics', later: true, tier: 1, risk: 3, start: 70, vol: 0.4, beta: 1.3, growth: 0.12, pe: 35, divYield: 0, sharesOut: 2.1e9,
       about: 'Rides and food delivery at the tap of a phone, in cities all over the world. Growing fast, and only lately making a profit.' },
     { id: 'WFGO', name: 'Wells Fargone', sector: 'Financials', later: true, tier: 1, risk: 2, start: 60, vol: 0.27, beta: 1.15, growth: 0.04, pe: 11, divYield: 0.027, sharesOut: 3.4e9,
       about: 'A giant high-street bank still repairing its name after a string of scandals. Pays a solid dividend and follows the economy.' },
-    { id: 'RVON', name: 'Rivion Automotive', sector: 'Automotive', later: true, tier: 1, risk: 5, start: 12, vol: 0.7, beta: 1.7, growth: 0.18, pe: 60, divYield: 0, sharesOut: 1e9,
+    { id: 'RVON', name: 'Rivion Automotive', sector: 'Automotive', later: true, tier: 3, risk: 5, start: 12, vol: 0.7, beta: 1.7, growth: 0.18, pe: 60, divYield: 0, sharesOut: 1e9,
       about: 'Builds electric pickups and delivery vans, and spends money far faster than it earns it. It could be huge, or it could be gone.' },
-    { id: 'USTL', name: 'U.S. Steal', sector: 'Materials', later: true, tier: 1, risk: 3, start: 38, vol: 0.38, beta: 1.3, growth: 0.05, pe: 12, divYield: 0.005, sharesOut: 225e6,
+    { id: 'USTL', name: 'U.S. Steal', sector: 'Materials', later: true, tier: 2, risk: 3, start: 38, vol: 0.38, beta: 1.3, growth: 0.05, pe: 12, divYield: 0.005, sharesOut: 225e6,
       about: 'Melts iron ore into steel for cars, bridges and buildings. Profits rise and fall sharply with construction.' },
-    { id: 'NVVX', name: 'Novavacks', sector: 'Biotech', later: true, tier: 2, risk: 5, start: 9, vol: 0.8, beta: 0.9, growth: 0.15, pe: 45, divYield: 0, sharesOut: 160e6,
+    { id: 'NVVX', name: 'Novavacks', sector: 'Biotech', later: true, tier: 4, risk: 5, start: 9, vol: 0.8, beta: 0.9, growth: 0.15, pe: 45, divYield: 0, sharesOut: 160e6,
       about: 'Has one vaccine on the market and not much cash left. The next trial will make or break it.' },
     { id: 'TSOC', name: 'Transoceano', sector: 'Energy', later: true, tier: 2, risk: 4, start: 5, vol: 0.6, beta: 1.2, growth: 0.1, pe: 20, divYield: 0, sharesOut: 870e6,
       about: 'Rents out giant drilling rigs far out at sea. Buried in debt, and its price lurches with every move in oil.' },
-    { id: 'SPRT', name: 'Spirited Airlines', sector: 'Airlines', later: true, tier: 2, risk: 5, start: 4, vol: 0.75, beta: 1.6, growth: 0.15, pe: 10, divYield: 0, sharesOut: 110e6,
+    { id: 'SPRT', name: 'Spirited Airlines', sector: 'Airlines', later: true, tier: 3, risk: 5, start: 4, vol: 0.75, beta: 1.6, growth: 0.15, pe: 10, divYield: 0, sharesOut: 110e6,
       about: 'The yellow budget airline with the cheapest seats and the most complaints. Losing money and short of cash; a fuel spike could ground it for good.' },
-    { id: 'MSTG', name: 'MicroStratagem', sector: 'Technology', later: true, tier: 3, risk: 5, start: 340, vol: 0.9, beta: 1.4, cryptoBeta: 1.3, growth: 0.2, pe: 80, divYield: 0, sharesOut: 230e6,
+    { id: 'MSTG', name: 'MicroStratagem', sector: 'Technology', later: true, tier: 4, risk: 5, start: 340, vol: 0.9, beta: 1.4, cryptoBeta: 1.3, growth: 0.2, pe: 80, divYield: 0, sharesOut: 230e6,
       about: 'A small software company that borrowed billions to buy Bitcoyn. Its shares move like the coin itself, only more so.' },
-    { id: 'CSTK', name: 'Costko Wholesale', sector: 'Consumer staples', later: true, tier: 3, risk: 1, start: 900, vol: 0.2, beta: 0.75, growth: 0.08, pe: 50, divYield: 0.005, sharesOut: 443e6,
+    { id: 'CSTK', name: 'Costko Wholesale', sector: 'Consumer staples', later: true, tier: 5, risk: 1, start: 900, vol: 0.2, beta: 0.75, growth: 0.08, pe: 50, divYield: 0.005, sharesOut: 443e6,
       about: 'Sells groceries and televisions in bulk to members who pay a yearly fee to shop there. Steady, loved, and expensive per share.' },
-    { id: 'JNJN', name: 'Johnsen & Johnsen', sector: 'Pharmaceuticals', later: true, tier: 3, risk: 1, start: 158, vol: 0.17, beta: 0.55, growth: 0.04, pe: 16, divYield: 0.031, sharesOut: 2.4e9,
+    { id: 'JNJN', name: 'Johnsen & Johnsen', sector: 'Pharmaceuticals', later: true, tier: 5, risk: 1, start: 158, vol: 0.17, beta: 0.55, growth: 0.04, pe: 16, divYield: 0.031, sharesOut: 2.4e9,
       about: 'Makes everyday medicines and medical devices found in every hospital and chemist. Calm, profitable and a reliable dividend payer.' },
 
     // ---------- CRYPTO ----------
@@ -119,29 +128,33 @@
       about: 'The network thousands of other apps and tokens run on. It swings harder than Bitcoyn and follows it closely.' },
     { id: 'USDR', market: 'crypto', name: 'Tethur', sector: 'Stablecoin', stable: true, tier: 0, risk: 1, solid: true, start: 1, vol: 0.01, beta: 0, growth: 0, sharesOut: 115e9,
       about: "A stablecoin: each one is meant to be worth exactly one dollar, backed by cash and bonds the issuer holds. Traders use it to park money without leaving crypto. It shouldn't grow, and it shouldn't fall." },
-    { id: 'SOLO', market: 'crypto', name: 'Solano', sector: 'Crypto', tier: 1, risk: 4, start: 150, vol: 0.95, beta: 1.5, growth: 0.12, sharesOut: 470e6,
+    { id: 'SOLO', market: 'crypto', name: 'Solano', sector: 'Crypto', tier: 2, risk: 4, start: 150, vol: 0.95, beta: 1.5, growth: 0.12, sharesOut: 470e6,
       about: 'A fast, cheap network that once crashed 95% and came roaring back. The favourite of memecoin traders.' },
-    { id: 'RPL', market: 'crypto', name: 'Rippel', sector: 'Crypto', tier: 1, risk: 4, start: 0.55, vol: 0.85, beta: 1.1, growth: 0.06, sharesOut: 56e9,
+    { id: 'RPL', market: 'crypto', name: 'Rippel', sector: 'Crypto', tier: 2, risk: 4, start: 0.55, vol: 0.85, beta: 1.1, growth: 0.06, sharesOut: 56e9,
       about: 'Built to move money between banks in seconds. Spent years fighting regulators in court, and its price jumps on every ruling.' },
     { id: 'LTN', market: 'crypto', name: 'Lightcoin', sector: 'Crypto', tier: 1, risk: 3, start: 72, vol: 0.75, beta: 1.1, growth: 0.03, sharesOut: 75e6,
       about: 'One of the oldest coins, a lighter, faster copy of Bitcoyn. Still around, but most of the excitement has moved elsewhere.' },
-    { id: 'ADO', market: 'crypto', name: 'Cardono', sector: 'Crypto', tier: 2, risk: 4, start: 0.45, vol: 0.9, beta: 1.3, growth: 0.06, sharesOut: 35e9,
+    { id: 'ADO', market: 'crypto', name: 'Cardono', sector: 'Crypto', tier: 3, risk: 4, start: 0.45, vol: 0.9, beta: 1.3, growth: 0.06, sharesOut: 35e9,
       about: "A carefully researched network that takes its time shipping anything. Fans love it; critics say it's mostly promises." },
-    { id: 'LNKK', market: 'crypto', name: 'Chainlynk', sector: 'Crypto', tier: 2, risk: 4, start: 14, vol: 0.9, beta: 1.3, growth: 0.08, sharesOut: 600e6,
+    { id: 'LNKK', market: 'crypto', name: 'Chainlynk', sector: 'Crypto', tier: 4, risk: 4, start: 14, vol: 0.9, beta: 1.3, growth: 0.08, sharesOut: 600e6,
       about: 'Feeds real-world prices and data into crypto apps. Useful plumbing, with a price that swings like everything else in crypto.' },
-    { id: 'BNN', market: 'crypto', name: 'Binanse Coin', sector: 'Crypto', tier: 2, risk: 3, start: 560, vol: 0.6, beta: 1.0, growth: 0.08, sharesOut: 146e6,
+    { id: 'BNN', market: 'crypto', name: 'Binanse Coin', sector: 'Crypto', tier: 1, risk: 3, start: 560, vol: 0.6, beta: 1.0, growth: 0.08, sharesOut: 146e6,
       about: "The coin of the world's biggest crypto exchange. It lives and dies by the exchange, and the exchange has had its share of run-ins with regulators." },
-    { id: 'AVLN', market: 'crypto', name: 'Avalanch', sector: 'Crypto', tier: 3, risk: 4, start: 28, vol: 1.0, beta: 1.5, growth: 0.1, sharesOut: 400e6,
+    { id: 'AVLN', market: 'crypto', name: 'Avalanch', sector: 'Crypto', tier: 5, risk: 4, start: 28, vol: 1.0, beta: 1.5, growth: 0.1, sharesOut: 400e6,
       about: 'A rival network that promised to be faster than Etherium. When crypto runs, it runs harder; when crypto falls, it falls harder.' },
-    { id: 'LUNH', market: 'crypto', name: 'Lunah', sector: 'Crypto', tier: 3, risk: 5, start: 80, vol: 1.2, beta: 1.6, growth: 0.2, sharesOut: 700e6,
+    { id: 'LUNH', market: 'crypto', name: 'Lunah', sector: 'Crypto', tier: 5, risk: 5, start: 80, vol: 1.2, beta: 1.6, growth: 0.2, sharesOut: 700e6,
       about: 'Pays sky-high interest through its sister stablecoin, and nobody is quite sure where the money comes from. The fastest riser in crypto, and the likeliest to vanish overnight.' },
-    { id: 'TONN', market: 'crypto', name: 'Toncoyn', sector: 'Crypto', later: true, tier: 1, risk: 4, start: 5.5, vol: 1.0, beta: 1.2, growth: 0.1, sharesOut: 2.5e9,
+    { id: 'TRNN', market: 'crypto', name: 'Tronn', sector: 'Crypto', tier: 3, risk: 4, start: 0.12, vol: 0.8, beta: 1.0, growth: 0.08, sharesOut: 87e9,
+      about: 'A network built for cheap, fast transfers, and a favourite for moving stablecoins around. Its founder is as famous for publicity stunts as for the technology.' },
+    { id: 'DOTT', market: 'crypto', name: 'Polkadott', sector: 'Crypto', tier: 4, risk: 4, start: 7, vol: 0.95, beta: 1.35, growth: 0.08, sharesOut: 1.4e9,
+      about: 'Links lots of separate blockchains together so they can talk to each other. Ambitious, technical, and still waiting for the crowd to arrive.' },
+    { id: 'TONN', market: 'crypto', name: 'Toncoyn', sector: 'Crypto', later: true, tier: 2, risk: 4, start: 5.5, vol: 1.0, beta: 1.2, growth: 0.1, sharesOut: 2.5e9,
       about: 'Tied to a messaging app with a billion users. If they all start paying each other in it, it could be huge.' },
-    { id: 'POLG', market: 'crypto', name: 'Pollygon', sector: 'Crypto', later: true, tier: 1, risk: 4, start: 0.5, vol: 1.0, beta: 1.4, growth: 0.06, sharesOut: 9.3e9,
+    { id: 'POLG', market: 'crypto', name: 'Pollygon', sector: 'Crypto', later: true, tier: 3, risk: 4, start: 0.5, vol: 1.0, beta: 1.4, growth: 0.06, sharesOut: 9.3e9,
       about: 'Makes Etherium cheaper and faster to use by bundling transactions together. Useful, crowded, and fighting a dozen copycats.' },
-    { id: 'APTS', market: 'crypto', name: 'Aptoss', sector: 'Crypto', later: true, tier: 2, risk: 5, start: 8, vol: 1.2, beta: 1.5, growth: 0.12, sharesOut: 450e6,
+    { id: 'APTS', market: 'crypto', name: 'Aptoss', sector: 'Crypto', later: true, tier: 4, risk: 5, start: 8, vol: 1.2, beta: 1.5, growth: 0.12, sharesOut: 450e6,
       about: 'A young network built by engineers who left a social media giant. Plenty of money behind it, and not much yet built on it.' },
-    { id: 'SUEY', market: 'crypto', name: 'Suey', sector: 'Crypto', later: true, tier: 3, risk: 5, start: 1.2, vol: 1.3, beta: 1.6, growth: 0.15, sharesOut: 2.8e9,
+    { id: 'SUEY', market: 'crypto', name: 'Suey', sector: 'Crypto', later: true, tier: 5, risk: 5, start: 1.2, vol: 1.3, beta: 1.6, growth: 0.15, sharesOut: 2.8e9,
       about: 'A brand-new network, barely a year old and priced as if it has already won.' },
 
     // ---------- MEMECOINS ----------
@@ -150,27 +163,27 @@
     // rug: yearly chance of the makers vanishing with the money.
     { id: 'DOGG', market: 'meme', phase: 'ascended', name: 'Doggecoin', sector: 'Memecoin', tier: 0, risk: 4, solid: true, start: 0.12, vol: 1.0, beta: 1.4, growth: 0.05, sharesOut: 146e9,
       about: 'Started as a joke with a dog on it and became one of the biggest coins in the world. A single post from the right billionaire can move it 20% in a day.' },
-    { id: 'SHBU', market: 'meme', phase: 'ascended', name: 'Shiba Inyu', sector: 'Memecoin', tier: 0, risk: 4, solid: true, start: 0.000018, vol: 1.1, beta: 1.5, growth: 0.05, sharesOut: 589e12,
+    { id: 'SHBU', market: 'meme', phase: 'ascended', name: 'Shiba Inyu', sector: 'Memecoin', tier: 1, risk: 4, solid: true, start: 0.000018, vol: 1.1, beta: 1.5, growth: 0.05, sharesOut: 589e12,
       about: "The self-styled Doggecoin killer, with nearly 600 trillion coins in circulation. A few dollars buys you millions of them." },
-    { id: 'PEPP', market: 'meme', phase: 'ascended', name: 'Peppe', sector: 'Memecoin', tier: 1, risk: 4, solid: true, start: 0.0000095, vol: 1.2, beta: 1.6, growth: 0.06, sharesOut: 420e12,
+    { id: 'PEPP', market: 'meme', phase: 'ascended', name: 'Peppe', sector: 'Memecoin', tier: 2, risk: 4, solid: true, start: 0.0000095, vol: 1.2, beta: 1.6, growth: 0.06, sharesOut: 420e12,
       about: 'A cartoon frog that went from internet in-joke to a multi-billion-dollar coin in weeks. No roadmap, no purpose, no apologies.' },
-    { id: 'BONQ', market: 'meme', phase: 'ascended', name: 'Bonkk', sector: 'Memecoin', tier: 1, risk: 4, solid: true, start: 0.000022, vol: 1.3, beta: 1.7, growth: 0.06, sharesOut: 70e12,
+    { id: 'BONQ', market: 'meme', phase: 'ascended', name: 'Bonkk', sector: 'Memecoin', tier: 3, risk: 4, solid: true, start: 0.000022, vol: 1.3, beta: 1.7, growth: 0.06, sharesOut: 70e12,
       about: 'The dog coin of the Solano network, handed out free to its early users. It rises and falls with Solano, only more so.' },
-    { id: 'WCAP', market: 'meme', phase: 'ascended', name: 'dogwifcap', sector: 'Memecoin', tier: 2, risk: 4, solid: true, start: 2.1, vol: 1.4, beta: 1.8, growth: 0.06, sharesOut: 1e9,
+    { id: 'WCAP', market: 'meme', phase: 'ascended', name: 'dogwifcap', sector: 'Memecoin', tier: 5, risk: 4, solid: true, start: 2.1, vol: 1.4, beta: 1.8, growth: 0.06, sharesOut: 1e9,
       about: "A dog in a knitted cap. That's it. That's the whole thing, and at one point it was worth billions." },
-    { id: 'FLKK', market: 'meme', phase: 'ascended', name: 'Flokki', sector: 'Memecoin', tier: 2, risk: 4, solid: true, start: 0.00015, vol: 1.2, beta: 1.6, growth: 0.05, sharesOut: 9.7e12,
+    { id: 'FLKK', market: 'meme', phase: 'ascended', name: 'Flokki', sector: 'Memecoin', tier: 4, risk: 4, solid: true, start: 0.00015, vol: 1.2, beta: 1.6, growth: 0.05, sharesOut: 9.7e12,
       about: "Named after a famous billionaire's dog, with its own game and a marketing budget bigger than most startups'." },
     { id: 'MDNG', market: 'meme', phase: 'rising', name: 'Moo Dang', sector: 'Memecoin', tier: 0, risk: 5, rug: 0.8, start: 0.00021, vol: 1.6, beta: 1.5, growth: 0.3, sharesOut: 1e9,
       about: 'Named after a baby hippo who went viral for being grumpy. Tiny, brand new, and one video away from taking off. Or from nothing at all.' },
-    { id: 'TURB', market: 'meme', phase: 'rising', name: 'Turbbo', sector: 'Memecoin', tier: 0, risk: 5, rug: 0.8, start: 0.0000042, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 69e9,
+    { id: 'TURB', market: 'meme', phase: 'rising', name: 'Turbbo', sector: 'Memecoin', tier: 1, risk: 5, rug: 0.8, start: 0.0000042, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 69e9,
       about: 'A coin an AI chatbot designed for fun, from the name to the logo. It has a loud community and not much else.' },
-    { id: 'BRET', market: 'meme', phase: 'rising', name: 'Bret', sector: 'Memecoin', tier: 1, risk: 5, rug: 0.8, start: 0.000065, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 10e9,
+    { id: 'BRET', market: 'meme', phase: 'rising', name: 'Bret', sector: 'Memecoin', tier: 2, risk: 5, rug: 0.8, start: 0.000065, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 10e9,
       about: 'The blue cartoon friend of a much more famous frog. Its holders are sure its moment is coming.' },
-    { id: 'MOGG', market: 'meme', phase: 'rising', name: 'Mogg', sector: 'Memecoin', tier: 2, risk: 5, rug: 0.8, start: 0.00000031, vol: 1.8, beta: 1.7, growth: 0.35, sharesOut: 420e9,
+    { id: 'MOGG', market: 'meme', phase: 'rising', name: 'Mogg', sector: 'Memecoin', tier: 3, risk: 5, rug: 0.8, start: 0.00000031, vol: 1.8, beta: 1.7, growth: 0.35, sharesOut: 420e9,
       about: 'A cat in sunglasses whose whole pitch is that it is cooler than you. A third of a millionth of a dollar per coin.' },
-    { id: 'PCAT', market: 'meme', phase: 'rising', name: 'Popcatt', sector: 'Memecoin', tier: 3, risk: 5, rug: 0.8, start: 0.0008, vol: 1.6, beta: 1.5, growth: 0.3, sharesOut: 980e6,
+    { id: 'PCAT', market: 'meme', phase: 'rising', name: 'Popcatt', sector: 'Memecoin', tier: 4, risk: 5, rug: 0.8, start: 0.0008, vol: 1.6, beta: 1.5, growth: 0.3, sharesOut: 980e6,
       about: 'A cat with its mouth open, looped forever. Millions of people have seen the video; a few thousand own the coin.' },
-    { id: 'BOMS', market: 'meme', phase: 'rising', name: 'Book of Memes', sector: 'Memecoin', tier: 3, risk: 5, rug: 0.8, start: 0.000011, vol: 1.8, beta: 1.7, growth: 0.35, sharesOut: 69e9,
+    { id: 'BOMS', market: 'meme', phase: 'rising', name: 'Book of Memes', sector: 'Memecoin', tier: 5, risk: 5, rug: 0.8, start: 0.000011, vol: 1.8, beta: 1.7, growth: 0.35, sharesOut: 69e9,
       about: 'Promises to store every meme ever made, forever, on the blockchain. Nobody has checked whether it does.' },
     // new memecoins launch as others ascend or get rugged
     { id: 'GGCH', market: 'meme', phase: 'rising', later: true, name: 'Gigachadd', sector: 'Memecoin', tier: 0, risk: 5, rug: 0.8, start: 0.00009, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 9.6e9,
@@ -189,6 +202,10 @@
       about: 'A blue monkey with a bad attitude, favoured by the loudest corner of the internet.' },
     { id: 'MYRH', market: 'meme', phase: 'rising', later: true, name: 'Myroh', sector: 'Memecoin', tier: 3, risk: 5, rug: 0.8, start: 0.00007, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 1e9,
       about: "The dog of a famous crypto founder. Its fans say it's the next Doggecoin; so do everyone else's." },
+    { id: 'PENG', market: 'meme', phase: 'rising', later: true, name: 'Pudgy Penguu', sector: 'Memecoin', tier: 4, risk: 5, rug: 0.8, start: 0.0000055, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 88e9,
+      about: 'A chubby cartoon penguin from a collection of pricey digital pictures, now a coin anyone can buy for a fraction of a cent.' },
+    { id: 'CHLL', market: 'meme', phase: 'rising', later: true, name: 'Just a Chill Guyy', sector: 'Memecoin', tier: 5, risk: 5, rug: 0.8, start: 0.00018, vol: 1.8, beta: 1.7, growth: 0.3, sharesOut: 1e9,
+      about: "A cartoon dog in a grey sweater who doesn't care about anything. Its holders care a great deal." },
   ];
   STOCKS.forEach(s => { if (!s.market) s.market = 'stock'; });
   const STOCK_BY_ID = Object.fromEntries(STOCKS.map(s => [s.id, s]));
@@ -273,7 +290,7 @@
       check: () => state.accountOpen },
     { id: 'first_hire', category: 'Getting started', name: 'First Hire', blurb: 'Hire your first member of staff.',
       check: () => staffCount() >= 1 },
-    { id: 'full_house', category: 'Getting started', name: 'Full House', blurb: 'Reach a Platinum account.',
+    { id: 'full_house', category: 'Getting started', name: 'Full House', blurb: 'Reach an Obsidian account, the top tier.',
       check: () => state.tier === TIERS.length - 1 },
 
     // Trading
@@ -552,6 +569,10 @@
     'Semiconductors': {
       good: ['{n} sells out a whole year of AI chips in advance', 'A cloud giant places a record chip order with {n}'],
       bad: ['Export limits cut {n} off from a big market', 'A rival unveils a faster chip than anything {n} makes'],
+    },
+    'Online retail': {
+      good: ['Holiday orders set a record at {n}', 'The {n} cloud arm signs a giant new customer'],
+      bad: ['Regulators sue {n} over how it treats rival sellers', 'Warehouse costs squeeze margins at {n}'],
     },
     'Home improvement': {
       good: ['Spring DIY season lifts sales at {n}', 'House moves pick up, filling {n} stores'],
@@ -1919,7 +1940,9 @@
     const qty = orderQty();
     const value = qty * rt.price;
     const fee = commission(value);
-    if (!isUnlocked(s) || rt.delisted || qty <= 0) return;
+    if (rt.delisted || qty <= 0) return;
+    // anything you already own can always be sold, even if its tier is above yours
+    if (!isUnlocked(s) && (ui.side !== 'sell' || !rt.shares)) return;
     const qtyText = `${fmtQty(s, qty)} ${s.id}`;
 
     if (ui.side === 'buy') {
@@ -2773,7 +2796,11 @@
   }
 
   function renderOrder(s, rt, locked) {
-    const closed = locked || rt.delisted;
+    // something you own from before its tier moved up stays sellable
+    const sellOnly = locked && rt.shares > 0 && !rt.delisted;
+    const closed = (locked && !sellOnly) || rt.delisted;
+    if (sellOnly) ui.side = 'sell';
+    document.querySelector('#sideSeg [data-side="buy"]').disabled = sellOnly;
     $('orderForm').hidden = closed;
     $('orderLocked').hidden = !closed;
     if (rt.delisted) {
@@ -2781,7 +2808,7 @@
       $('lockedText').textContent = `${s.name} failed, and its ${units(s)} are worth nothing. Trading in it is closed for good.`;
       return;
     }
-    if (locked) {
+    if (locked && !sellOnly) {
       $('lockedTitle').textContent = `${s.id} needs a ${TIERS[s.tier].name} account`;
       $('lockedText').textContent = `You can watch the price and read the news in the meantime. Trading opens once you upgrade.`;
       return;
@@ -2824,7 +2851,9 @@
     btn.className = `btn btn-block ${buying ? 'btn-buy' : 'btn-sell'}`;
     btn.textContent = `${buying ? 'Buy' : 'Sell'}${qty > 0 ? ' ' + fmtQty(s, qty) : ''} ${s.id}`;
     const hint = $('orderHint');
-    hint.textContent = problem || `Market order: fills instantly at the current price. The broker takes ${(COMMISSION_RATE * 100).toFixed(2)}% of every trade, at least ${fmt(COMMISSION_MIN)}.`;
+    hint.textContent = problem
+      || (sellOnly ? `${s.id} now needs a ${TIERS[s.tier].name} account to buy, but you can always sell what you already own.` : '')
+      || `Market order: fills instantly at the current price. The broker takes ${(COMMISSION_RATE * 100).toFixed(2)}% of every trade, at least ${fmt(COMMISSION_MIN)}.`;
     hint.classList.toggle('warn', !!problem);
   }
 

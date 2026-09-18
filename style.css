@@ -36,6 +36,8 @@
   --tier-1: #9fb4c8;
   --tier-2: #f0b73d;
   --tier-3: #ad93e8;
+  --tier-4: #6fd3e6;
+  --tier-5: #e86a8a;
 
   --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
   --sans: 'IBM Plex Sans', system-ui, sans-serif;
@@ -117,6 +119,8 @@ dl, dd { margin: 0; }
 .tier-1 { --tier: var(--tier-1); }
 .tier-2 { --tier: var(--tier-2); }
 .tier-3 { --tier: var(--tier-3); }
+.tier-4 { --tier: var(--tier-4); }
+.tier-5 { --tier: var(--tier-5); }
 
 .label,
 .section-label,
@@ -1106,7 +1110,7 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .upgrade-section + .upgrade-section { margin-top: 18px; }
 .section-note { margin: 0 0 16px; font-family: var(--serif); font-size: 17px; font-style: italic; color: var(--text-2); }
 
-.tier-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.tier-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .tier-card {
   display: flex;
   flex-direction: column;
