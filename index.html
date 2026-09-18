@@ -41,6 +41,8 @@
         <button data-speed="2" title="Two trading days a second">2&times;</button>
         <button data-speed="4" title="Four trading days a second">4&times;</button>
       </div>
+      <!-- shows only while the economy is in a boom or a recession -->
+      <span class="cycle-tag" id="cycleTag" hidden></span>
     </div>
     <div class="nameplate-group">
       <button class="nameplate" data-screen="landing" title="Back to the home screen">Sim<span>Stock</span></button>
@@ -505,6 +507,7 @@
           <ul class="tut-list">
             <li><b>Your progress saves by itself,</b> in this browser. Another device, or a clearing of your browsing data, would otherwise start you over, so <b>Settings</b> at the top right has <b>Save to a file</b>: it puts your whole game in your downloads as a small file. <b>Load a file</b> on any browser picks it back up where you left off. Settings can also turn the sound effects and the music off or back on, turn the music down, and reset the game on purpose.</li>
             <li><b>Prices move on their own</b> every second, and every company reports earnings each quarter. Good news usually lifts a price and bad news drops it, but not always.</li>
+            <li><b>Booms and recessions are rare,</b> about one every half hour of play at normal speed, and you get a notice when one starts and when it ends. While one is under way, a tag under the speed buttons says so. A recession lasts six months to a year of trading days: the market can lose a third of its value, shaky companies fail more often, and airlines, carmakers and banks fall hardest while utilities, groceries, medicine and gold hold up best. Prices usually start recovering before the recession is declared over. A boom lifts almost everything, cyclical companies most, and ends when interest rates go up. Crypto follows the stock market in both, only harder.</li>
             <li><b>Spread your money out.</b> Owning several companies means one bad earnings report cannot wipe you out. The index fund, VTMF, holds a slice of the whole market and is the calmest place to start.</li>
             <li><b>Every company has a risk rating</b> from 1 to 5, shown as a row of pips beside its ticker and spelled out on its page. Green pips (1 and 2) are steady companies that grow slowly. Gold (3) is in between. Red (4 and 5) swing hard, and can jump or fall by a tenth in a day. Riskier companies grow faster on average, which is the reward for putting up with the swings. Keep those positions small until you are comfortable.</li>
             <li><b>Companies rated 3 or higher can fail completely,</b> and the higher the rating, the likelier it is. Usually there is a warning first: bad news knocks the price down and the company says it may not be able to pay its debts. From then on it might collapse on any day, unless the price recovers. A company rated 5 can occasionally collapse overnight with no warning at all. When a company fails, the shares are worthless and the money does not come back. That is the price of the faster growth, and it is why nobody sensible puts everything into one wild company. A few weeks later a new company lists on the exchange and takes the empty place, with its own risk rating.</li>

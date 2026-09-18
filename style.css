@@ -536,6 +536,21 @@ button:focus-visible, input:focus-visible {
   color: var(--text-3);
 }
 .dateline.paused { color: var(--mustard); }
+/* a boom or recession under way, under the speed buttons */
+.cycle-tag {
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.35);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cycle-tag[hidden] { display: none; }
+.cycle-tag.recession { color: var(--loss); }
+.cycle-tag.boom { color: var(--gain); }
 .seg-speed { border-color: rgba(239, 232, 216, 0.26); background: rgba(0, 0, 0, 0.2); }
 .seg-speed button { padding: 3px 9px; font-size: 11.5px; color: #bfd8cc; }
 .seg-speed button + button { border-left-color: rgba(239, 232, 216, 0.26); }

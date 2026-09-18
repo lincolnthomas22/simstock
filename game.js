@@ -615,6 +615,49 @@
     good: ['Regulators approve new crypto funds for ordinary investors', 'A big bank says it will hold crypto for its clients', 'A country makes Bitcoyn legal tender'],
     bad: ['A major crypto exchange collapses', 'Regulators announce a crackdown on crypto trading', 'A giant crypto lender freezes withdrawals'],
   };
+  // Booms and recessions. Now and then the whole economy turns, about once every
+  // 1,800 trading days: half an hour of play at 1x, or roughly every seven game
+  // years, which is about how often it happens for real. A recession front-loads
+  // the damage: the market slides about a third, bottoms out before the
+  // recession is declared over and claws some back. A boom climbs steadily and
+  // calmly. Cyclical businesses (airlines, carmakers, banks) feel either one
+  // most; defensive ones (utilities, groceries, medicine, gold) least, and
+  // crypto swings harder than all of them.
+  const CYCLE_CHANCE = 1 / 1800;        // per trading day, once the game has begun
+  const CYCLE_GAP = 250;                // quiet days after one ends before another can start
+  const CYCLE_NEWS_CHANCE = 1 / 40;     // a headline about the economy, per day of a cycle
+  const CYCLES = {
+    recession: {
+      days: [126, 252], tilt: -1, volX: 1.7, shockX: 2, goodNews: 0.2, jump: -0.025,
+      // the market's log move over the whole cycle, beyond its usual drift, spread across the
+      // days: down 0.43 over the first 70%, then back up 0.12 as it recovers ahead of the economy
+      path: f => (f < 0.7 ? -0.43 / 0.7 : 0.12 / 0.3),
+      title: 'Recession', startTone: 'neg',
+      start: 'The economy tips into recession. Stocks slide as companies cut jobs and spending',
+      startTip: 'Cyclical companies like airlines, carmakers and banks usually fall hardest. Utilities, groceries, medicine and gold hold up better.',
+      endTitle: 'Recession over', end: 'The recession is over. The economy is growing again', endMood: 'up',
+      news: ['Unemployment rises for another month', 'Factory orders fall to a two-year low', 'Shoppers cut back as the downturn deepens',
+        'Banks tighten lending as loan defaults climb', 'Central bank cuts interest rates to prop up the economy', 'Company profit warnings pile up'],
+    },
+    boom: {
+      days: [189, 378], tilt: 1, volX: 0.8, shockX: 0.6, goodNews: 0.8, jump: 0.015,
+      path: () => 0.3,
+      title: 'Economic boom', startTone: 'pos',
+      start: 'The economy is booming. Hiring, spending and profits are all surging',
+      startTip: 'Cyclical companies usually lead a boom. Steady defensive names tend to lag behind.',
+      endTitle: 'Boom over', end: 'The boom cools off as the central bank raises interest rates to rein in prices', endMood: 'down',
+      news: ['Hiring surges as companies race to expand', 'Consumer confidence hits a record high', 'Company profits beat forecasts across the board',
+        'Home sales climb to their best level in years', 'Economists warn the market may be overheating', 'Factories run flat out to keep up with orders'],
+    },
+  };
+  // how hard a sector leans into the cycle: +1 cyclical, -1 defensive (it gains ground in a recession)
+  const CYCLICAL = {
+    'Airlines': 1, 'Automotive': 1, 'Materials': 1, 'Financials': 1, 'Logistics': 0.6, 'Home improvement': 0.6,
+    'Online retail': 0.5, 'Energy': 0.5, 'Semiconductors': 0.5,
+    'Utilities': -1, 'Consumer staples': -1, 'Pharmaceuticals': -0.8, 'Mining': -1, 'Aerospace': -0.4,
+  };
+  const CYCLE_TILT = 0.0006;            // extra daily move per unit of CYCLICAL during a cycle
+
   // news that is about a whole market rather than one company or coin
   const MARKET_TICKERS = { MKT: 'Economy', CRYPTO: 'Crypto market' };
 
@@ -752,9 +795,16 @@
     const events = [];
     const add = (ticker, mood, kind, text) => events.push({ day, ticker, mood, kind, text });
 
-    let market = MARKET_DRIFT / DAYS_PER_YEAR + gauss() * DAILY_MARKET_VOL;
+    const cycle = stepCycle(st, events);
+    const phase = cycle && CYCLES[cycle.kind];
+    let market = MARKET_DRIFT / DAYS_PER_YEAR + gauss() * DAILY_MARKET_VOL * (phase ? phase.volX : 1);
+    if (phase) {
+      market += phase.path(1 - cycle.left / cycle.days) / cycle.days;
+      if (cycle.left === cycle.days) market += phase.jump;
+      else if (Math.random() < CYCLE_NEWS_CHANCE) add('MKT', cycle.kind === 'boom' ? 'up' : 'down', 'market', pick(phase.news));
+    }
     if (Math.random() < MARKET_NEWS_CHANCE) {
-      const good = Math.random() < 0.5;
+      const good = Math.random() < (phase ? phase.goodNews : 0.5);
       market += (good ? 1 : -1) * (0.012 + Math.random() * 0.02);
       add('MKT', good ? 'up' : 'down', 'market', pick(MARKET_NEWS[good ? 'good' : 'bad']));
     }
@@ -800,13 +850,16 @@
         const dailyVol = s.vol / Math.sqrt(DAYS_PER_YEAR);
         const cryptoBeta = s.cryptoBeta || 0;
         const ownVol = Math.sqrt(Math.max(0, dailyVol ** 2 - (s.beta * DAILY_MARKET_VOL) ** 2 - (cryptoBeta * DAILY_CRYPTO_VOL) ** 2));
-        // profits grow slowly and partly follow the economy
-        rt.eps *= Math.exp(s.growth / DAYS_PER_YEAR + s.beta * marketSurprise * 0.6);
+        // profits grow slowly and partly follow the economy; in a boom or recession,
+        // cyclical businesses' profits swing with it and defensive ones' hold up
+        const tilt = phase ? phase.tilt * (CYCLICAL[s.sector] || 0) * CYCLE_TILT : 0;
+        rt.eps *= Math.exp(s.growth / DAYS_PER_YEAR + s.beta * marketSurprise * 0.6 + tilt);
         const fairValue = rt.eps * s.pe;
         move = s.growth / DAYS_PER_YEAR
           + s.beta * marketSurprise
           + cryptoBeta * cryptoSurprise
           + ownVol * gauss()
+          + tilt
           + REVERSION * Math.log(fairValue / rt.price);
       }
 
@@ -870,7 +923,9 @@
 
       // the blow that can start a risky company's slide into failure
       const risk = RISK[graduated(s, rt) ? 4 : s.risk];
-      if (risk.shock && canFail(s, rt) && !rt.distress && Math.random() < (risk.shock * FAIL_RULES[s.market].shock) / DAYS_PER_YEAR) {
+      // a recession tips more weak companies over the edge; a boom keeps more of them afloat
+      const shockX = phase && !coin ? phase.shockX : 1;
+      if (risk.shock && canFail(s, rt) && !rt.distress && Math.random() < (risk.shock * FAIL_RULES[s.market].shock * shockX) / DAYS_PER_YEAR) {
         const hit = 0.4 + Math.random() * 0.25;
         move += Math.log(1 - hit);
         if (!coin) rt.eps *= 1 - hit;
@@ -937,6 +992,29 @@
       if (gameReady) updateDailyStats();
     }
     return events;
+  }
+
+  // Moves the business cycle on by a day, starting or ending a boom or recession
+  // now and then. Returns the cycle today belongs to, or null in ordinary times.
+  // The practice year before day one stays ordinary.
+  function stepCycle(st, events) {
+    const day = st.day;
+    if (st.cycle) {
+      st.cycle.left -= 1;
+      if (st.cycle.left > 0) return st.cycle;
+      const phase = CYCLES[st.cycle.kind];
+      events.push({ day, ticker: 'MKT', mood: phase.endMood, kind: 'market', cycle: 'end', cycleKind: st.cycle.kind, text: phase.end });
+      st.cycle = null;
+      st.cycleQuietUntil = day + CYCLE_GAP;
+      return null;
+    }
+    if (day < 0 || day < (st.cycleQuietUntil || 0) || Math.random() >= CYCLE_CHANCE) return null;
+    const kind = Math.random() < 0.5 ? 'recession' : 'boom';
+    const phase = CYCLES[kind];
+    const days = phase.days[0] + Math.floor(Math.random() * (phase.days[1] - phase.days[0]));
+    st.cycle = { kind, days, left: days, startDay: day };
+    events.push({ day, ticker: 'MKT', mood: kind === 'boom' ? 'up' : 'down', kind: 'market', cycle: 'start', cycleKind: kind, text: phase.start });
+    return st.cycle;
   }
 
   function fail(st, s, events, text, rug = false) {
@@ -1107,6 +1185,8 @@
       totalDividends: 0,
       totalFees: 0,
       market: { level: 1000, history: [] },
+      cycle: null,          // the boom or recession under way, if any
+      cycleQuietUntil: 0,
       worth: { history: [] },
       stocks: {},
       news: [],
@@ -1132,6 +1212,10 @@
     if (typeof saved.totalFees !== 'number') saved.totalFees = 0;
     if (!SPEEDS.includes(saved.speed)) saved.speed = 1;
     saved.version = 3;
+
+    // booms and recessions arrived later
+    if (!saved.cycle || !CYCLES[saved.cycle.kind] || !(saved.cycle.left > 0) || !(saved.cycle.days > 0)) saved.cycle = null;
+    if (typeof saved.cycleQuietUntil !== 'number') saved.cycleQuietUntil = 0;
 
     // achievements arrived later; every save gets the tracking fields
     if (!saved.achieved || typeof saved.achieved !== 'object') saved.achieved = {};
@@ -2176,6 +2260,14 @@
     const paused = state.speed === 0;
     $('clockText').textContent = clockLabel() + (paused ? ' · paused' : '');
     $('clockText').classList.toggle('paused', paused);
+    const cycle = state.cycle;
+    const cycleTag = $('cycleTag');
+    cycleTag.hidden = !cycle;
+    if (cycle) {
+      cycleTag.textContent = cycle.kind === 'boom' ? 'Economy: boom' : 'Economy: recession';
+      cycleTag.className = `cycle-tag ${cycle.kind}`;
+      cycleTag.title = `Began ${daysAgo(state.day - cycle.startDay)}`;
+    }
     speedButtons.forEach(b => {
       const on = Number(b.dataset.speed) === state.speed;
       b.classList.toggle('active', on);
@@ -3316,6 +3408,18 @@
           // aim to recover to whatever your net worth was the day before this hit
           const peakBefore = Math.max(0, ...state.worth.history.slice(0, -1));
           state.stats.burnRecoveryTarget = Math.max(state.stats.burnRecoveryTarget ?? 0, peakBefore);
+          continue;
+        }
+        // a boom or recession starting or ending is news for everyone, holding or not
+        if (e.cycle) {
+          if (ui.screen === 'landing') continue;
+          const phase = CYCLES[e.cycleKind];
+          if (e.cycle === 'start') {
+            toast(phase.title, `${e.text}. ${phase.startTip}`, phase.startTone);
+            playSound(phase.startTone === 'neg' ? 'loss' : 'level');
+          } else {
+            toast(phase.endTitle, `${e.text}.`, e.mood === 'up' ? 'pos' : 'neg');
+          }
           continue;
         }
         if (e.kind === 'dividend') continue;
