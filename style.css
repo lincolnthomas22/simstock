@@ -519,12 +519,17 @@ button:focus-visible, input:focus-visible {
   padding: 16px 36px 14px;
 }
 .clock-group { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
+/* the date sits quietly beside "Your firm" on the front page */
 .dateline {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line-strong);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 400;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: #a9cbbb;
+  color: var(--text-3);
 }
 .dateline.paused { color: var(--mustard); }
 .seg-speed { border-color: rgba(239, 232, 216, 0.26); background: rgba(0, 0, 0, 0.2); }
@@ -1312,3 +1317,13 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
 
 /* ---------------- CONFETTI ---------------- */
 .confetti { position: fixed; inset: 0; z-index: 150; width: 100vw; height: 100vh; pointer-events: none; }
+
+/* ---------------- RISK ---------------- */
+/* five pips, filled up to the company's rating */
+.risk-pips { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: 1px; }
+.risk-pips i { width: 5px; height: 5px; border-radius: 1px; background: rgba(239, 232, 216, 0.14); }
+.risk-pips.risk-1 i:nth-child(-n+1),
+.risk-pips.risk-2 i:nth-child(-n+2) { background: var(--gain); }
+.risk-pips.risk-3 i:nth-child(-n+3) { background: var(--mustard); }
+.risk-pips.risk-4 i:nth-child(-n+4),
+.risk-pips.risk-5 i:nth-child(-n+5) { background: var(--loss); }

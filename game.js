@@ -44,42 +44,83 @@
   ];
 
   const STOCKS = [
-    { id: 'IDXF', name: 'Evergreen Total Market Fund', sector: 'Index fund', fund: true, tier: 0, start: 250, vol: 0.16, beta: 1.0, growth: 0.07, pe: 20, divYield: 0.015, sharesOut: 2.1e9, color: '#7f9cc4',
+    { id: 'IDXF', name: 'Evergreen Total Market Fund', sector: 'Index fund', fund: true, tier: 0, risk: 1, start: 250, vol: 0.16, beta: 1.0, growth: 0.055, pe: 20, divYield: 0.015, sharesOut: 2.1e9, color: '#7f9cc4',
       about: 'Owns a small slice of every company in the market. It moves with the market as a whole, so it swings less than most single stocks.' },
-    { id: 'TICK', name: 'Tickr Inc.', sector: 'Technology', tier: 0, start: 100, vol: 0.32, beta: 1.2, growth: 0.12, pe: 30, divYield: 0, sharesOut: 850e6, color: '#5b8def',
+    { id: 'TICK', name: 'Tickr Inc.', sector: 'Technology', tier: 0, risk: 3, start: 100, vol: 0.32, beta: 1.2, growth: 0.1, pe: 30, divYield: 0, sharesOut: 850e6, color: '#5b8def',
       about: 'Builds trading software and cloud tools for banks. It is growing quickly and reinvests its profits instead of paying a dividend.' },
-    { id: 'BRWL', name: 'Brightwell Foods', sector: 'Consumer staples', tier: 0, start: 48, vol: 0.17, beta: 0.6, growth: 0.05, pe: 18, divYield: 0.032, sharesOut: 1.4e9, color: '#c9a45c',
+    { id: 'BRWL', name: 'Brightwell Foods', sector: 'Consumer staples', tier: 0, risk: 1, start: 48, vol: 0.17, beta: 0.6, growth: 0.02, pe: 18, divYield: 0.032, sharesOut: 1.4e9, color: '#c9a45c',
       about: 'Makes cereal, snacks and frozen meals. People buy groceries in good times and bad, so the stock is steady and pays a regular dividend.' },
-    { id: 'CIVC', name: 'Civic Power & Water', sector: 'Utilities', tier: 0, start: 62, vol: 0.14, beta: 0.45, growth: 0.03, pe: 16, divYield: 0.042, sharesOut: 900e6, color: '#6f9aa8',
+    { id: 'CIVC', name: 'Civic Power & Water', sector: 'Utilities', tier: 0, risk: 1, start: 62, vol: 0.14, beta: 0.45, growth: 0.01, pe: 16, divYield: 0.042, sharesOut: 900e6, color: '#6f9aa8',
       about: 'Keeps the lights on and the taps running for millions of homes. Growth is slow and dull, but the bills get paid and so do its dividends.' },
-    { id: 'PARC', name: 'Parcelworks', sector: 'Logistics', tier: 0, start: 84, vol: 0.22, beta: 0.9, growth: 0.07, pe: 19, divYield: 0.012, sharesOut: 700e6, color: '#b08a6a',
+    { id: 'PARC', name: 'Parcelworks', sector: 'Logistics', tier: 0, risk: 2, start: 84, vol: 0.22, beta: 0.9, growth: 0.065, pe: 19, divYield: 0.012, sharesOut: 700e6, color: '#b08a6a',
       about: 'Runs delivery vans and sorting depots. When shops and factories are busy it thrives, and when they slow down so does it.' },
-    { id: 'VOLT', name: 'Voltaic Motors', sector: 'Automotive', fragile: true, tier: 1, start: 64, vol: 0.55, beta: 1.6, growth: 0.15, pe: 45, divYield: 0, sharesOut: 1.1e9, color: '#4fb3a9',
+    { id: 'VOLT', name: 'Voltaic Motors', sector: 'Automotive', tier: 1, risk: 5, start: 64, vol: 0.55, beta: 1.6, growth: 0.18, pe: 45, divYield: 0, sharesOut: 1.1e9, color: '#4fb3a9',
       about: 'An electric vehicle maker betting big on new factories. Investors expect a lot of growth, so the stock swings hard on any news.' },
-    { id: 'NRTH', name: 'Northgate Bank', sector: 'Financials', tier: 1, start: 72, vol: 0.25, beta: 1.15, growth: 0.06, pe: 11, divYield: 0.036, sharesOut: 2.6e9, color: '#8a93d6',
+    { id: 'NRTH', name: 'Northgate Bank', sector: 'Financials', tier: 1, risk: 2, start: 72, vol: 0.25, beta: 1.15, growth: 0.04, pe: 11, divYield: 0.036, sharesOut: 2.6e9, color: '#8a93d6',
       about: 'A large bank that earns money lending to families and businesses. It tends to rise and fall with the overall economy.' },
-    { id: 'NIMB', name: 'Nimbus Software', sector: 'Technology', tier: 1, start: 118, vol: 0.38, beta: 1.25, growth: 0.14, pe: 38, divYield: 0, sharesOut: 620e6, color: '#6f8fe0',
+    { id: 'NIMB', name: 'Nimbus Software', sector: 'Technology', tier: 1, risk: 3, start: 118, vol: 0.38, beta: 1.25, growth: 0.1, pe: 38, divYield: 0, sharesOut: 620e6, color: '#6f8fe0',
       about: 'Sells office software that companies pay for by the month. Those payments are reliable, but investors expect fast growth and punish any slip.' },
-    { id: 'HRVS', name: 'Harvest Materials', sector: 'Materials', tier: 1, start: 57, vol: 0.28, beta: 1.05, growth: 0.05, pe: 13, divYield: 0.028, sharesOut: 1.1e9, color: '#a8925c',
+    { id: 'HRVS', name: 'Harvest Materials', sector: 'Materials', tier: 1, risk: 2, start: 57, vol: 0.28, beta: 1.05, growth: 0.045, pe: 13, divYield: 0.028, sharesOut: 1.1e9, color: '#a8925c',
       about: 'Makes cement, glass and steel for building work. Its fortunes follow construction, which booms and stalls with the economy.' },
-    { id: 'HELX', name: 'Helix Therapeutics', sector: 'Biotech', fragile: true, tier: 2, start: 38, vol: 0.62, beta: 0.8, growth: 0.14, pe: 40, divYield: 0, sharesOut: 520e6, color: '#b98ac6',
+    { id: 'HELX', name: 'Helix Therapeutics', sector: 'Biotech', tier: 2, risk: 5, start: 38, vol: 0.62, beta: 0.8, growth: 0.18, pe: 40, divYield: 0, sharesOut: 520e6, color: '#b98ac6',
       about: 'Develops new medicines. A single drug trial result can send the stock sharply up or down, no matter what the market is doing.' },
-    { id: 'CRST', name: 'Crestline Energy', sector: 'Energy', tier: 2, start: 91, vol: 0.30, beta: 0.9, growth: 0.04, pe: 12, divYield: 0.045, sharesOut: 1.9e9, color: '#d08a57',
+    { id: 'CRST', name: 'Crestline Energy', sector: 'Energy', tier: 2, risk: 3, start: 91, vol: 0.30, beta: 0.9, growth: 0.055, pe: 12, divYield: 0.045, sharesOut: 1.9e9, color: '#d08a57',
       about: 'Produces oil and natural gas. Its price follows energy prices, and it returns much of its cash to investors as dividends.' },
-    { id: 'AURA', name: 'Aurora Mining', sector: 'Mining', tier: 2, start: 41, vol: 0.45, beta: 1.1, growth: 0.04, pe: 14, divYield: 0.02, sharesOut: 800e6, color: '#c98f4a',
+    { id: 'AURA', name: 'Aurora Mining', sector: 'Mining', tier: 2, risk: 4, start: 41, vol: 0.45, beta: 1.1, growth: 0.115, pe: 14, divYield: 0.02, sharesOut: 800e6, color: '#c98f4a',
       about: 'Digs copper and gold out of the ground. Metal prices swing hard, and a single flooded mine can wipe out a year of profit.' },
-    { id: 'VELO', name: 'Velocity Airways', sector: 'Airlines', fragile: true, tier: 2, start: 33, vol: 0.50, beta: 1.5, growth: 0.06, pe: 10, divYield: 0, sharesOut: 540e6, color: '#7fa9c9',
+    { id: 'VELO', name: 'Velocity Airways', sector: 'Airlines', tier: 2, risk: 4, start: 33, vol: 0.50, beta: 1.5, growth: 0.135, pe: 10, divYield: 0, sharesOut: 540e6, color: '#7fa9c9',
       about: 'Flies short-haul routes on thin margins. Cheap fuel and full planes make it soar; a downturn or a fuel spike can sink it entirely.' },
-    { id: 'ORBT', name: 'Orbital Systems', sector: 'Aerospace', tier: 3, start: 220, vol: 0.40, beta: 1.3, growth: 0.13, pe: 35, divYield: 0, sharesOut: 640e6, color: '#6aa6d6',
+    { id: 'ORBT', name: 'Orbital Systems', sector: 'Aerospace', tier: 3, risk: 4, start: 220, vol: 0.40, beta: 1.3, growth: 0.135, pe: 35, divYield: 0, sharesOut: 640e6, color: '#6aa6d6',
       about: 'Launches satellites and builds spacecraft for governments. Big contracts can lift the stock, and launch failures can sink it.' },
-    { id: 'SUMT', name: 'Summit Global Holdings', sector: 'Conglomerate', tier: 3, start: 410, vol: 0.18, beta: 0.9, growth: 0.08, pe: 22, divYield: 0.022, sharesOut: 1.3e9, color: '#9aa7b8',
+    { id: 'SUMT', name: 'Summit Global Holdings', sector: 'Conglomerate', tier: 3, risk: 1, start: 410, vol: 0.18, beta: 0.9, growth: 0.03, pe: 22, divYield: 0.022, sharesOut: 1.3e9, color: '#9aa7b8',
       about: 'Owns dozens of businesses, from insurance to railroads. Pricey per share, but steady, diversified and a reliable dividend payer.' },
-    { id: 'MERD', name: 'Meridian Pharma', sector: 'Pharmaceuticals', tier: 3, start: 330, vol: 0.24, beta: 0.7, growth: 0.07, pe: 19, divYield: 0.031, sharesOut: 1.6e9, color: '#9ab8a0',
+    { id: 'MERD', name: 'Meridian Pharma', sector: 'Pharmaceuticals', tier: 3, risk: 2, start: 330, vol: 0.24, beta: 0.7, growth: 0.045, pe: 19, divYield: 0.031, sharesOut: 1.6e9, color: '#9ab8a0',
       about: 'Sells medicines people take for years at a time. Far calmer than a young biotech, because it already has drugs earning money.' },
-    { id: 'QNTA', name: 'Quanta Robotics', sector: 'Robotics', tier: 3, start: 265, vol: 0.42, beta: 1.35, growth: 0.16, pe: 48, divYield: 0, sharesOut: 700e6, color: '#a58fd6',
-      about: 'Builds factory robots and the software that runs them. The fastest grower on the board, priced as though that will never stop.' },
+    { id: 'QNTA', name: 'Quanta Robotics', sector: 'Robotics', tier: 3, risk: 4, start: 265, vol: 0.42, beta: 1.35, growth: 0.135, pe: 48, divYield: 0, sharesOut: 700e6, color: '#a58fd6',
+      about: 'Builds factory robots and the software that runs them. One of the fastest growers on the board, priced as though that will never stop.' },
+
+    // Waiting in the wings: each of these lists on the exchange when a company
+    // fails, taking its place on the board. None of them trade before then.
+    { id: 'FRSH', name: 'Freshfield Grocers', sector: 'Consumer staples', later: true, tier: 0, risk: 1, start: 36, vol: 0.16, beta: 0.55, growth: 0.02, pe: 17, divYield: 0.033, sharesOut: 1.2e9, color: '#b5a86a',
+      about: 'Runs neighbourhood supermarkets. Nobody gets rich quick owning it, but people always need milk and bread.' },
+    { id: 'PNGW', name: 'Pingwire', sector: 'Technology', later: true, tier: 0, risk: 4, start: 22, vol: 0.47, beta: 1.4, growth: 0.135, pe: 50, divYield: 0, sharesOut: 900e6, color: '#5fa8e8',
+      about: 'A young messaging app signing up users fast and yet to make a profit. Exciting, and fragile.' },
+    { id: 'DSHL', name: 'Dashline Couriers', sector: 'Logistics', later: true, tier: 0, risk: 2, start: 44, vol: 0.24, beta: 0.95, growth: 0.06, pe: 17, divYield: 0.015, sharesOut: 600e6, color: '#b3906f',
+      about: 'Same-day delivery by bike and van in big cities. Busy when shoppers are, quieter when they are not.' },
+    { id: 'KEEL', name: 'Keel & Harbour Bank', sector: 'Financials', later: true, tier: 1, risk: 2, start: 54, vol: 0.26, beta: 1.1, growth: 0.04, pe: 10, divYield: 0.038, sharesOut: 1.8e9, color: '#8f8fd0',
+      about: 'A regional bank lending to shipyards, farms and small firms. Pays a solid dividend and follows the economy.' },
+    { id: 'SPRK', name: 'Sparkline EV', sector: 'Automotive', later: true, tier: 1, risk: 5, start: 18, vol: 0.60, beta: 1.7, growth: 0.18, pe: 60, divYield: 0, sharesOut: 800e6, color: '#45c2b0',
+      about: 'Makes electric scooters and vans, and spends money far faster than it earns it. It could be huge, or it could be gone.' },
+    { id: 'FORG', name: 'Forge Steelworks', sector: 'Materials', later: true, tier: 1, risk: 3, start: 39, vol: 0.33, beta: 1.2, growth: 0.075, pe: 12, divYield: 0.025, sharesOut: 900e6, color: '#a88a5a',
+      about: 'Melts scrap into new steel for bridges and buildings. Profits rise and fall sharply with construction.' },
+    { id: 'GNVA', name: 'Genova Bio', sector: 'Biotech', later: true, tier: 2, risk: 5, start: 27, vol: 0.64, beta: 0.8, growth: 0.18, pe: 45, divYield: 0, sharesOut: 450e6, color: '#c08fd0',
+      about: 'Has one promising drug in late trials and not much else. The result will make or break it.' },
+    { id: 'TDWR', name: 'Tidewater Offshore', sector: 'Energy', later: true, tier: 2, risk: 3, start: 58, vol: 0.34, beta: 1.0, growth: 0.06, pe: 11, divYield: 0.04, sharesOut: 1.2e9, color: '#d49a62',
+      about: 'Drills for oil and gas far out at sea. Big projects, big costs, and a price that follows energy markets.' },
+    { id: 'SKYL', name: 'Skylark Air', sector: 'Airlines', later: true, tier: 2, risk: 4, start: 26, vol: 0.48, beta: 1.5, growth: 0.135, pe: 11, divYield: 0, sharesOut: 480e6, color: '#86b0d0',
+      about: 'A budget airline growing route by route. Full planes make it fly; a fuel spike could ground it.' },
+    { id: 'NOVL', name: 'Nova Launch', sector: 'Aerospace', later: true, tier: 3, risk: 5, start: 180, vol: 0.58, beta: 1.4, growth: 0.18, pe: 60, divYield: 0, sharesOut: 500e6, color: '#74b0e0',
+      about: 'Builds reusable rockets on a shoestring. Every launch is a bet on the whole company.' },
+    { id: 'ATLS', name: 'Atlas Consolidated', sector: 'Conglomerate', later: true, tier: 3, risk: 1, start: 360, vol: 0.17, beta: 0.85, growth: 0.03, pe: 20, divYield: 0.024, sharesOut: 1.4e9, color: '#a0abbb',
+      about: 'Owns railways, insurers and a chain of hardware shops. Steady, sprawling and unexciting.' },
+    { id: 'CURW', name: 'Curewell Pharma', sector: 'Pharmaceuticals', later: true, tier: 3, risk: 2, start: 290, vol: 0.23, beta: 0.7, growth: 0.045, pe: 18, divYield: 0.03, sharesOut: 1.5e9, color: '#a2c0a8',
+      about: 'Makes everyday medicines sold in every chemist. Calm, profitable and a reliable dividend payer.' },
   ];
   const STOCK_BY_ID = Object.fromEntries(STOCKS.map(s => [s.id, s]));
+
+  // Risk, from 1 to 5, follows how hard a company's price swings. Riskier
+  // companies grow faster on average, and from 3 upward they can fail outright.
+  // shock: yearly chance of a blow that puts the company's survival in doubt.
+  // sudden: yearly chance of collapsing overnight, with no warning at all.
+  const RISK = [
+    null,
+    { label: 'Very safe',  shock: 0,    sudden: 0 },
+    { label: 'Safe',       shock: 0,    sudden: 0 },
+    { label: 'Medium',     shock: 0.03, sudden: 0 },
+    { label: 'Risky',      shock: 0.07, sudden: 0 },
+    { label: 'Very risky', shock: 0.10, sudden: 0.025 },
+  ];
+  const canFail = s => s.risk >= 3;
 
   // income is the fee clients pay per trading day; salary is paid out every day
   // whether the fees arrive or not.
@@ -148,7 +189,8 @@
   // wildest companies can, and only after a real collapse.
   const DISTRESS_LEVEL = 0.35;   // below this share of its year's high, it is in trouble
   const RECOVERY_LEVEL = 0.55;   // above this, the trouble is over
-  const DELIST_CHANCE = 1 / 260; // per day, while in trouble
+  const DELIST_CHANCE = 1 / 150; // per day, while in trouble
+  const RELIST_AFTER = [15, 35];  // trading days before a failed company's place is filled
 
   const HEADLINES = {
     'Technology': {
@@ -212,6 +254,20 @@
       bad: ['{n} recalls robots after a software fault', 'A key customer delays its {n} rollout'],
     },
   };
+  // Blows that put a risky company's survival in doubt.
+  const SHOCKS = {
+    'Technology': ["{n} loses its biggest customer", "{n} is hit by a data breach and a wave of lawsuits"],
+    'Automotive': ["{n} recalls every car it made this year", "{n} runs short of cash for its new factory"],
+    'Biotech': ["{n}'s lead drug fails its final trial", "Regulators halt {n}'s drug trial over safety fears"],
+    'Energy': ["{n}'s flagship well comes up dry", "An oil spill leaves {n} facing a huge clean-up bill"],
+    'Mining': ["Flooding shuts {n}'s biggest mine", "{n} loses its licence to dig at its main site"],
+    'Airlines': ["{n} grounds its fleet after a fuel spike", "{n} cancels a month of flights amid a strike"],
+    'Aerospace': ["{n}'s rocket explodes on the launch pad", "{n} loses its government contract"],
+    'Robotics': ["{n}'s biggest order is cancelled", "{n} admits its new robot does not work yet"],
+    'Materials': ["{n} closes two plants as orders dry up", "{n} is fined heavily over pollution"],
+    default: ["{n} reports a shock loss", "{n} misses a payment to its lenders"],
+  };
+
   const MARKET_NEWS = {
     good: ['Central bank signals interest rate cuts', 'Jobs report shows strong hiring', 'Inflation cools more than expected'],
     bad: ['Central bank hints at more rate hikes', 'Recession worries hit global markets', 'Inflation comes in hotter than expected'],
@@ -340,9 +396,11 @@
     pushHistory(st.market.history, st.market.level);
     const marketSurprise = market - MARKET_DRIFT / DAYS_PER_YEAR;
 
+    fillEmptyPlaces(st, add);
+
     for (const s of STOCKS) {
       const rt = st.stocks[s.id];
-      if (rt.delisted) continue;
+      if (rt.delisted || !rt.listed) continue;
       const dailyVol = s.vol / Math.sqrt(DAYS_PER_YEAR);
       const ownVol = Math.sqrt(Math.max(0, dailyVol ** 2 - (s.beta * DAILY_MARKET_VOL) ** 2));
       const quarterDay = mod(day, DAYS_PER_QUARTER);
@@ -375,11 +433,21 @@
         add(s.id, good ? 'up' : 'down', 'news', pick(lines[good ? 'good' : 'bad']).replace('{n}', s.name));
       }
 
+      // the blow that can start a risky company's slide into failure
+      const risk = RISK[s.risk];
+      if (risk.shock && !rt.distress && Math.random() < risk.shock / DAYS_PER_YEAR) {
+        const hit = 0.4 + Math.random() * 0.25;
+        move += Math.log(1 - hit);
+        rt.eps *= 1 - hit;
+        rt.distress = true;
+        add(s.id, 'down', 'news', `${pick(SHOCKS[s.sector] || SHOCKS.default).replace('{n}', s.name)}. It warns it may not be able to pay its debts`);
+      }
+
       rt.price = Math.max(0.5, rt.price * Math.exp(move));
       pushHistory(rt.history, rt.price);
 
       // a collapse can turn into outright failure, and the shares become worthless
-      if (s.fragile) {
+      if (canFail(s)) {
         const high = Math.max(...rt.history);
         if (!rt.distress && rt.price < high * DISTRESS_LEVEL) {
           rt.distress = true;
@@ -389,17 +457,13 @@
           add(s.id, 'up', 'news', `${s.name} steadies itself and calls off the alarm`);
         }
         if (rt.distress && Math.random() < DELIST_CHANCE) {
-          rt.delisted = true;
-          rt.distress = false;
-          const lost = rt.shares;
-          if (lost > 0) {
-            rt.realized -= rt.costBasis;
-            rt.shares = 0;
-            rt.costBasis = 0;
-          }
-          const event = { day, ticker: s.id, mood: 'down', kind: 'news', text: `${s.name} collapses. Trading is halted and the shares are worthless.` };
-          if (lost > 0) event.wiped = lost;
-          events.push(event);
+          fail(st, s, events, `${s.name} collapses. Trading is halted and the shares are worthless.`);
+          continue;
+        }
+        // the very riskiest can go without any warning at all
+        if (!rt.distress && risk.sudden && Math.random() < risk.sudden / DAYS_PER_YEAR) {
+          fail(st, s, events, `${s.name} collapses overnight after its accounts turn out to be fiction. The shares are worthless.`);
+          continue;
         }
       }
 
@@ -427,6 +491,41 @@
     return events;
   }
 
+  function fail(st, s, events, text) {
+    const rt = st.stocks[s.id];
+    rt.delisted = true;
+    rt.distress = false;
+    rt.relistOn = st.day + RELIST_AFTER[0] + Math.floor(Math.random() * (RELIST_AFTER[1] - RELIST_AFTER[0]));
+    const lost = rt.shares;
+    if (lost > 0) {
+      rt.realized -= rt.costBasis;
+      rt.shares = 0;
+      rt.costBasis = 0;
+    }
+    const event = { day: st.day, ticker: s.id, mood: 'down', kind: 'news', text };
+    if (lost > 0) event.wiped = lost;
+    events.push(event);
+  }
+
+  // A few weeks after a failure, a new company lists and takes the empty place,
+  // from the same account tier if one is waiting, from any tier if not. Once
+  // nobody is left waiting, the place stays empty.
+  function fillEmptyPlaces(st, add) {
+    for (const s of STOCKS) {
+      const rt = st.stocks[s.id];
+      if (!rt.delisted || rt.retired || rt.relistOn == null || st.day < rt.relistOn) continue;
+      const waiting = STOCKS.filter(c => c.later && !st.stocks[c.id].listed);
+      const next = waiting.find(c => c.tier === s.tier) || waiting[0];
+      rt.relistOn = null;
+      if (!next) continue;
+      const nt = st.stocks[next.id];
+      inventHistory(nt, next);
+      nt.listed = true;
+      rt.retired = true;
+      add(next.id, 'up', 'listing', `${next.name} lists on the exchange, taking the place ${s.name} left behind`);
+    }
+  }
+
   // ===========================================================
   // STATE + SAVING
   // ===========================================================
@@ -441,6 +540,7 @@
       dividends: 0,
       distress: false,
       delisted: false,
+      listed: !s.later,
       earningsDay: (index * 7 + 20) % DAYS_PER_QUARTER,
     };
   }
@@ -532,9 +632,15 @@
 
     // companies added since this save was written join the board today
     STOCKS.forEach((s, i) => {
-      if (saved.stocks[s.id]) return;
+      const old = saved.stocks[s.id];
+      if (old) {
+        if (old.listed === undefined) old.listed = true;
+        // failures from before new companies could replace them
+        if (old.delisted && !old.retired && old.relistOn === undefined) old.relistOn = saved.day + RELIST_AFTER[0];
+        return;
+      }
       const rt = blankStock(s, i);
-      inventHistory(rt, s);
+      if (!s.later) inventHistory(rt, s);
       saved.stocks[s.id] = rt;
     });
     return saved;
@@ -572,6 +678,12 @@
   // ===========================================================
   const rtOf = id => state.stocks[id];
   const isUnlocked = s => state.tier >= s.tier;
+  // on the board: listed at some point, and not yet replaced after failing
+  const onBoard = s => rtOf(s.id).listed && !rtOf(s.id).retired;
+  const trading = s => onBoard(s) && !rtOf(s.id).delisted;
+  const boardStocks = () => STOCKS.filter(onBoard).sort((a, b) => a.tier - b.tier);
+  const boardKey = () => boardStocks().map(s => s.id).join();
+  const riskPips = s => `<span class="risk-pips risk-${s.risk}" title="Risk ${s.risk} of 5: ${RISK[s.risk].label}">${'<i></i>'.repeat(5)}</span>`;
   const avgCost = rt => (rt.shares ? rt.costBasis / rt.shares : 0);
 
   // What the broker charges to put a trade through, rounded to the cent.
@@ -858,14 +970,14 @@
 
   function showTierUnlocked(i) {
     const tier = TIERS[i];
-    const stocks = STOCKS.filter(s => s.tier === i);
+    const stocks = boardStocks().filter(s => s.tier === i && trading(s));
     const staff = STAFF.filter(s => s.tier === i);
     const modal = openModal(`
       <div class="modal-kicker">Account upgraded</div>
       <h3>Welcome to ${tier.name}</h3>
       <p>You can now trade ${stocks.length} more companies:</p>
       <ul class="new-stocks">
-        ${stocks.map(s => `<li>${tkr(s)}<span>${s.name}</span><span class="muted">${s.sector}</span></li>`).join('')}
+        ${stocks.map(s => `<li>${tkr(s)}<span>${s.name}</span><span class="muted">${RISK[s.risk].label}</span></li>`).join('')}
       </ul>
       ${staff.length ? `<p>You can also hire a new role: ${staff.map(s => s.name).join(', ')}.</p>` : ''}
       <div class="modal-actions">
@@ -874,7 +986,7 @@
       </div>`);
     modal.querySelector('[data-act="close"]').onclick = closeModal;
     modal.querySelector('[data-act="trade"]').onclick = () => {
-      ui.selected = stocks[0].id;
+      if (stocks.length) ui.selected = stocks[0].id;
       closeModal();
       showScreen('trade');
     };
@@ -1244,7 +1356,7 @@
   function renderTape() {
     const items = [
       `<span class="tape-item"><b>INDEX</b>${state.market.level.toFixed(2)} ${chg(dayChangePct(state.market.history))}</span>`,
-      ...STOCKS.filter(s => !rtOf(s.id).delisted)
+      ...boardStocks().filter(trading)
         .map(s => `<span class="tape-item"><b>${s.id}</b>${fmt(rtOf(s.id).price)} ${chg(dayChangePct(rtOf(s.id).history))}</span>`),
     ].join('');
     $('tape').innerHTML = items + items;
@@ -1304,7 +1416,7 @@
     $('deskCaption').textContent = next ? next.hint : 'The desk is complete. The view from up here is excellent.';
   }
 
-  let tierChipsFor = -1;
+  let tierChipsFor = '';
   function renderTierProgress() {
     const nextIndex = state.tier + 1;
     const next = TIERS[nextIndex];
@@ -1313,9 +1425,10 @@
     if (!next) return;
 
     $('tierNextTitle').textContent = `${next.name} account`;
-    if (tierChipsFor !== nextIndex) {
-      $('tierNextStocks').innerHTML = tkrList(STOCKS.filter(s => s.tier === nextIndex));
-      tierChipsFor = nextIndex;
+    const chipsKey = nextIndex + ':' + boardKey();
+    if (tierChipsFor !== chipsKey) {
+      $('tierNextStocks').innerHTML = tkrList(boardStocks().filter(s => s.tier === nextIndex && trading(s)));
+      tierChipsFor = chipsKey;
     }
     const levelDone = state.level >= next.level;
     const cashDone = state.cash >= next.cost;
@@ -1362,7 +1475,7 @@
     marketEl.textContent = `Index ${fmtPct(marketDay)}`;
     marketEl.className = tone(marketDay);
 
-    const rows = STOCKS.filter(s => isUnlocked(s) && !rtOf(s.id).delisted)
+    const rows = boardStocks().filter(s => isUnlocked(s) && trading(s))
       .map(s => ({ s, rt: rtOf(s.id), change: dayChangePct(rtOf(s.id).history) }))
       .sort((a, b) => b.change - a.change)
       .map(({ s, rt, change }) => `<tr data-stock="${s.id}">
@@ -1563,18 +1676,23 @@
   }
 
   // ---------- Trading ----------
-  const watchRefs = {};
+  let watchRefs = {};
+  let watchKey = '';
 
+  // Built again whenever a company leaves the board or a new one joins it.
   function buildWatchlist() {
     const list = $('watchList');
+    list.innerHTML = '';
+    watchRefs = {};
+    watchKey = boardKey();
     let group = -1;
-    for (const s of STOCKS) {
+    for (const s of boardStocks()) {
       if (s.tier !== group) {
         group = s.tier;
         list.appendChild(el(`<div class="watch-group tier-${group}">${TIERS[group].name} account</div>`));
       }
       const row = el(`<button class="watch-row">
-          <span class="watch-id"><span class="watch-ticker">${s.id}</span><span class="watch-name">${s.name}</span></span>
+          <span class="watch-id"><span class="watch-ticker">${s.id} ${riskPips(s)}</span><span class="watch-name">${s.name}</span></span>
           <svg class="spark" viewBox="0 0 44 20" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke-width="1.5" stroke-linejoin="round"/></svg>
           <span class="watch-quote"><span class="watch-price"></span><span class="watch-change"></span></span>
         </button>`);
@@ -1610,7 +1728,9 @@
     $('marketChange').textContent = `${fmtPct(marketDay)} today`;
     $('marketChange').className = 'change-sm ' + tone(marketDay);
 
-    for (const s of STOCKS) {
+    if (watchKey !== boardKey()) buildWatchlist();
+    if (!onBoard(STOCK_BY_ID[ui.selected])) ui.selected = boardStocks().find(trading).id;
+    for (const s of boardStocks()) {
       const r = watchRefs[s.id];
       const rt = rtOf(s.id);
       const locked = !isUnlocked(s);
@@ -1641,7 +1761,7 @@
 
     // header + price
     $('dName').textContent = s.name;
-    $('dMeta').textContent = `${s.id} · ${s.sector}`;
+    $('dMeta').innerHTML = `${s.id} · ${s.sector} · ${riskPips(s)} ${RISK[s.risk].label}`;
     $('dLock').hidden = !locked || rt.delisted;
     $('dLockText').textContent = TIERS[s.tier].name;
     const warn = $('dWarn');
@@ -1671,7 +1791,10 @@
     $('sPe').textContent = (rt.price / rt.eps).toFixed(1);
     $('sDiv').textContent = s.divYield ? (s.divYield * 100).toFixed(1) + '%' : 'None';
     $('sRange').textContent = `${fmt(Math.min(...rt.history))} – ${fmt(Math.max(...rt.history))}`;
-    $('sVol').textContent = `${s.vol < 0.2 ? 'Low' : s.vol < 0.4 ? 'Medium' : 'High'} · ${Math.round(s.vol * 100)}%/yr`;
+    $('sVol').textContent = `${s.risk} of 5 · swings ${Math.round(s.vol * 100)}%/yr`;
+    $('sVolNote').textContent = canFail(s)
+      ? `Grows faster on average, but ${s.risk === 5 ? 'can fail with little or no warning' : 'can fail if things go badly'}`
+      : 'Grows slowly, and too solid to fail outright';
     $('sBeta').textContent = s.beta.toFixed(2);
 
     // about + calendar
@@ -1751,7 +1874,7 @@
     setV($('pDivs'), fmt(rt.dividends), rt.dividends ? 'pos' : '');
   }
 
-  const NEWS_KINDS = { market: 'Economy', earnings: 'Earnings', news: 'Company news', dividend: 'Dividend' };
+  const NEWS_KINDS = { market: 'Economy', earnings: 'Earnings', news: 'Company news', dividend: 'Dividend', listing: 'New listing' };
 
   function renderNews() {
     const top = state.news[0];
@@ -1940,7 +2063,7 @@
       const card = el(`<div class="tier-card tier-${i}">
           <div class="tier-top"><span class="tier-name">${t.name}</span><span class="tier-status"></span></div>
           <div class="tier-blurb">${t.blurb}</div>
-          <div class="tier-stocks">${tkrList(STOCKS.filter(s => s.tier === i))}</div>
+          <div class="tier-stocks"></div>
           <div class="reqs">
             <div class="req" data-req="level"><span class="req-icon"></span>Level ${t.level}</div>
             <div class="req" data-req="cash"><span class="req-icon"></span>${fmt(t.cost)} upgrade fee</div>
@@ -1955,6 +2078,8 @@
         card,
         btn,
         status: card.querySelector('.tier-status'),
+        stocks: card.querySelector('.tier-stocks'),
+        stocksKey: '',
         reqs: card.querySelector('.reqs'),
         levelReq: card.querySelector('[data-req="level"]'),
         cashReq: card.querySelector('[data-req="cash"]'),
@@ -2007,6 +2132,11 @@
       const current = i === state.tier;
       const next = i === state.tier + 1;
       r.card.classList.toggle('current', current);
+      const key = boardKey();
+      if (r.stocksKey !== key) {
+        r.stocks.innerHTML = tkrList(boardStocks().filter(s => s.tier === i && trading(s)));
+        r.stocksKey = key;
+      }
       r.status.textContent = current ? 'Current' : owned ? 'Unlocked' : next ? 'Next' : 'Locked';
       r.status.className = 'tier-status ' + (current ? 'current' : owned ? 'owned' : '');
       r.reqs.hidden = owned;
@@ -2098,6 +2228,10 @@
           continue;
         }
         if (e.kind === 'dividend') continue;
+        if (e.kind === 'listing' && isUnlocked(STOCK_BY_ID[e.ticker]) && shown++ < 2) {
+          toast('New on the exchange', e.text, 'accent');
+          continue;
+        }
         const affectsYou = e.ticker === 'MKT' ? holdingsValue() > 0 : rtOf(e.ticker).shares > 0;
         if (affectsYou && shown++ < 2) {
           const title = e.ticker === 'MKT' ? 'Market news' : `${e.ticker} · ${NEWS_KINDS[e.kind]}`;

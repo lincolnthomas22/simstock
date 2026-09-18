@@ -34,7 +34,6 @@
 <header class="masthead">
   <div class="masthead-top">
     <div class="clock-group">
-      <span class="dateline" id="clockText">Year 1 · Q1 · Day 1</span>
       <!-- how fast the days go by, or whether they go by at all -->
       <div class="seg seg-speed" id="speedSeg" role="group" aria-label="Market speed">
         <button data-speed="0" title="Stop the market">Pause</button>
@@ -242,7 +241,7 @@
         <div><dt>One minute</dt><dd>is about three months</dd></div>
         <div><dt>You start with</dt><dd>$1,000 in cash</dd></div>
       </div>
-      <p class="tut-note">The market runs whether you are watching or not. Beside the date at the top left are <b>Pause</b>, <b>1&times;</b>, <b>2&times;</b> and <b>4&times;</b>: stop the days going by while you think, or run them up to four times faster. The space bar stops and starts it too. Everything paid by the day moves with it, so running at 4&times; pays four days of wages a second, and pausing costs you nothing at all.</p>
+      <p class="tut-note">The market runs whether you are watching or not. At the top left are <b>Pause</b>, <b>1&times;</b>, <b>2&times;</b> and <b>4&times;</b>: stop the days going by while you think, or run them up to four times faster. The space bar stops and starts it too. Everything paid by the day moves with it, so running at 4&times; pays four days of wages a second, and pausing costs you nothing at all. Today's date, counted in years, quarters and trading days, sits in small print beside <b>Your firm</b> on the front page.</p>
     </section>
 
     <ol class="tut-steps">
@@ -340,7 +339,7 @@
               <rect x="248" y="212" width="88" height="46" fill="none" stroke="#2b2721"/>
               <text class="d-xs" x="256" y="230">DIVIDEND</text><text class="d-sm" x="256" y="248">None</text>
               <rect x="338" y="212" width="86" height="46" fill="none" stroke="#2b2721"/>
-              <text class="d-xs" x="346" y="230">VOLATILITY</text><text class="d-sm" x="346" y="248">Medium</text>
+              <text class="d-xs" x="346" y="230">RISK</text><text class="d-sm" x="346" y="248">3 of 5</text>
               <rect x="444" y="12" width="146" height="150" rx="4" fill="#1b1814" stroke="#4a4339"/>
               <rect x="444" y="12" width="146" height="26" fill="#0f5a43"/>
               <text class="d-sm" x="456" y="30" fill="#efe8d8">Order ticket</text>
@@ -460,7 +459,7 @@
           <h3>Grow the firm in Upgrades</h3>
           <p>The <b>Upgrades</b> room has the two things that make your desk bigger.</p>
           <ul class="tut-list">
-            <li><b>Account tiers.</b> Starter, Silver, Gold and Platinum. Each one needs a level and a one-off fee, and each unlocks four more companies: seventeen in all, from a water utility up to mining, airlines and robotics.</li>
+            <li><b>Account tiers.</b> Starter, Silver, Gold and Platinum. Each one needs a level and a one-off fee, and each unlocks more companies, from a water utility up to mining, airlines and robotics.</li>
             <li><b>Staff.</b> A Research Analyst costs $50 to hire, brings in $1 a day in fees and draws $0.45 a day in wages. Each hire costs a little more than the last, and better roles unlock with better accounts. The page tells you how clients are feeling, which is what decides the fees. Everyone you hire arrives with a name and a quirk, listed under their role; press a name to read theirs. The quirks are just for fun and don't change what anyone earns.</li>
           </ul>
           <p>Keep an eye on <b>The firm</b> at the bottom of the front page, too: your desk picks up a pile of research notes, a plant, a second screen and a framed first dollar as the firm grows.</p>
@@ -476,8 +475,8 @@
             <li><b>Your progress saves by itself,</b> in this browser. Another device, or a clearing of your browsing data, would otherwise start you over, so <b>Settings</b> at the top right has <b>Save to a file</b>: it puts your whole game in your downloads as a small file. <b>Load a file</b> on any browser picks it back up where you left off. Settings can also turn the sound effects off or back on, and reset the game on purpose.</li>
             <li><b>Prices move on their own</b> every second, and every company reports earnings each quarter. Good news usually lifts a price and bad news drops it, but not always.</li>
             <li><b>Spread your money out.</b> Owning several companies means one bad earnings report cannot wipe you out. The index fund, IDXF, holds a slice of the whole market and is the calmest place to start.</li>
-            <li><b>High volatility cuts both ways.</b> Voltaic Motors, Helix Therapeutics and Velocity Airways can jump or fall by a tenth in a day. Keep those positions small until you are comfortable.</li>
-            <li><b>Three companies can fail completely:</b> Voltaic Motors, Helix Therapeutics and Velocity Airways. If one loses most of its value, it posts a warning that it may not be able to pay its debts. From then on it might collapse on any day, and if it does, the shares are worthless and trading in it closes for good. The money does not come back. That is the price of the bigger swings, and it is why nobody sensible puts everything into one wild company.</li>
+            <li><b>Every company has a risk rating</b> from 1 to 5, shown as a row of pips beside its ticker and spelled out on its page. Green pips (1 and 2) are steady companies that grow slowly. Gold (3) is in between. Red (4 and 5) swing hard, and can jump or fall by a tenth in a day. Riskier companies grow faster on average, which is the reward for putting up with the swings. Keep those positions small until you are comfortable.</li>
+            <li><b>Companies rated 3 or higher can fail completely,</b> and the higher the rating, the likelier it is. Usually there is a warning first: bad news knocks the price down and the company says it may not be able to pay its debts. From then on it might collapse on any day, unless the price recovers. A company rated 5 can occasionally collapse overnight with no warning at all. When a company fails, the shares are worthless and the money does not come back. That is the price of the faster growth, and it is why nobody sensible puts everything into one wild company. A few weeks later a new company lists on the exchange and takes the empty place, with its own risk rating.</li>
           </ul>
         </div>
       </li>
@@ -494,7 +493,7 @@
 
     <div class="lead-row">
       <section class="lead">
-        <div class="section-label">Your firm</div>
+        <div class="section-label">Your firm <span class="dateline" id="clockText">Year 1 · Q1 · Day 1</span></div>
         <div class="worth-big" id="homeWorth">$1,000.00</div>
         <p class="worth-change" id="homeWorthChange"></p>
         <dl class="figures-row">
@@ -667,7 +666,7 @@
           <div class="stat"><dt>P/E ratio</dt><dd id="sPe"></dd><small>Price divided by a year's profit per share</small></div>
           <div class="stat"><dt>Dividend yield</dt><dd id="sDiv"></dd><small>Cash paid out each year, as a share of price</small></div>
           <div class="stat"><dt>1-year range</dt><dd id="sRange"></dd><small>Lowest and highest price this year</small></div>
-          <div class="stat"><dt>Volatility</dt><dd id="sVol"></dd><small>How far the price tends to swing</small></div>
+          <div class="stat"><dt>Risk</dt><dd id="sVol"></dd><small id="sVolNote"></small></div>
           <div class="stat"><dt>Beta</dt><dd id="sBeta"></dd><small>1.00 moves with the market; higher swings more</small></div>
         </dl>
 
