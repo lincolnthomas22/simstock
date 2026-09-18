@@ -1161,6 +1161,13 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
 }
 .reward-loss { background: linear-gradient(90deg, rgba(255, 111, 94, 0.22), rgba(255, 111, 94, 0.05)); color: var(--loss); }
 .settings-list { display: grid; gap: 10px; margin-top: 4px; }
+.volume-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 4px;
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+}
+.volume-row input { flex: 1; min-width: 0; accent-color: var(--mustard); cursor: pointer; }
+.volume-row output { width: 4ch; text-align: right; font-family: var(--mono); font-size: 13px; color: var(--mustard); }
 .new-stocks { margin: 0 0 14px; padding: 0; list-style: none; border-top: 2px solid var(--line-strong); }
 .new-stocks li { display: flex; align-items: baseline; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-family: var(--serif); font-size: 17px; }
 .new-stocks .muted { margin-left: auto; font-size: 14px; font-style: italic; }

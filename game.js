@@ -998,11 +998,158 @@
     if (gap && now - (lastPlayed[name] || 0) < gap) return;
     lastPlayed[name] = now;
     try {
-      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-      if (audio.state === 'suspended') audio.resume();
+      getAudio();
       SOUNDS[name]();
     } catch (e) { /* no audio in this browser */ }
   }
+
+  function getAudio() {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === 'suspended') audio.resume();
+    return audio;
+  }
+
+  // Background music: a little swing tune in F for a synthesised trio (walking
+  // bass, piano chords, brushed ride). A vibraphone plays the melody on every
+  // other chorus and noodles around the chords on the rest.
+  const MUSIC_KEY = 'simstock.music';
+  let musicOn = true;
+  try { musicOn = localStorage.getItem(MUSIC_KEY) !== 'off'; } catch (e) { /* storage blocked */ }
+  const VOLUME_KEY = 'simstock.musicVolume';
+  let musicVolume = 60;
+  try {
+    const saved = parseInt(localStorage.getItem(VOLUME_KEY), 10);
+    if (saved >= 0 && saved <= 100) musicVolume = saved;
+  } catch (e) { /* storage blocked */ }
+  // squared so the slider feels even to the ear; 60% matches the original level
+  const musicGain = () => Math.max(0.0001, (musicVolume / 100) ** 2 * 1.4);
+  const BEAT = 0.5; // 120 bpm
+  const SWUNG = BEAT * 2 / 3; // where a swung off-beat lands
+  const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
+  // eight bars: F6  D9  Gm9  C13  Am7  D9  Gm9  C13
+  const TUNE = {
+    chords: [[57, 60, 64, 67], [54, 60, 64, 69], [58, 62, 65, 69], [58, 62, 64, 69],
+             [55, 60, 64, 71], [54, 60, 64, 69], [58, 62, 65, 69], [58, 62, 64, 69]],
+    bass: [[41, 45, 48, 49], [50, 42, 45, 44], [43, 45, 46, 47], [48, 43, 40, 44],
+           [45, 43, 40, 39], [38, 42, 45, 44], [43, 46, 50, 49], [48, 46, 43, 40]],
+    // [eighth note in the bar, pitch, length in eighths]
+    melody: [
+      [[0, 72, 1], [1, 74, 1], [2, 76, 1], [3, 77, 1], [4, 79, 3]],
+      [[1, 78, 1], [2, 79, 1], [3, 78, 1], [4, 74, 2], [6, 72, 2]],
+      [[0, 70, 1], [1, 74, 1], [2, 77, 1], [3, 81, 1], [4, 79, 3]],
+      [[0, 76, 2], [2, 74, 1], [3, 72, 1], [4, 70, 2], [6, 67, 2]],
+      [[0, 69, 1], [1, 72, 1], [2, 76, 2], [5, 74, 1], [6, 72, 2]],
+      [[0, 78, 1], [1, 76, 1], [2, 74, 1], [3, 72, 1], [4, 69, 3]],
+      [[0, 70, 1], [1, 74, 1], [2, 77, 2], [4, 76, 1], [5, 74, 1], [6, 72, 1]],
+      [[0, 70, 2], [2, 69, 1], [3, 67, 1], [4, 64, 2]],
+    ],
+  };
+  const music = { bus: null, timer: null, next: 0, beat: 0, noise: null };
+
+  function setMusic(on) {
+    musicOn = on;
+    try { localStorage.setItem(MUSIC_KEY, on ? 'on' : 'off'); } catch (e) { /* storage blocked */ }
+    if (on) startMusic();
+    else stopMusic();
+  }
+
+  function pluck(m, t, length, gain, type = 'sine') {
+    const osc = audio.createOscillator();
+    const amp = audio.createGain();
+    osc.type = type;
+    osc.frequency.value = midiHz(m);
+    amp.gain.setValueAtTime(0.0001, t);
+    amp.gain.exponentialRampToValueAtTime(gain, t + 0.015);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    osc.connect(amp).connect(music.bus);
+    osc.start(t);
+    osc.stop(t + length + 0.02);
+  }
+
+  function brush(t, gain, length, pitch) {
+    const src = audio.createBufferSource();
+    const filter = audio.createBiquadFilter();
+    const amp = audio.createGain();
+    src.buffer = music.noise;
+    filter.type = 'highpass';
+    filter.frequency.value = pitch;
+    amp.gain.setValueAtTime(gain, t);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    src.connect(filter).connect(amp).connect(music.bus);
+    src.start(t);
+    src.stop(t + length);
+  }
+
+  function playBeat(i, t) {
+    const bar = Math.floor(i / 4) % 8, beat = i % 4, chorus = Math.floor(i / 32);
+    const chord = TUNE.chords[bar];
+    pluck(TUNE.bass[bar][beat], t, BEAT * 0.95, 0.22, 'triangle');
+    brush(t, 0.04, 0.35, 7000);
+    if (beat % 2) {
+      brush(t, 0.03, 0.05, 3500);
+      brush(t + SWUNG, 0.03, 0.2, 7000);
+    }
+    if (beat === 0) chord.forEach(m => pluck(m, t, BEAT * 0.6, 0.03));
+    if (beat === 1) chord.forEach(m => pluck(m, t + SWUNG, BEAT * 1.2, 0.025));
+    if (chorus % 2 === 0) {
+      TUNE.melody[bar]
+        .filter(([pos]) => Math.floor(pos / 2) === beat)
+        .forEach(([pos, m, len]) => pluck(m, t + (pos % 2 ? SWUNG : 0), len * BEAT / 2 + 0.25, 0.06));
+    } else if (Math.random() < 0.4) {
+      const m = chord[Math.floor(Math.random() * chord.length)] + 12;
+      pluck(m, t + (Math.random() < 0.5 ? 0 : SWUNG), 0.4, 0.045);
+    }
+  }
+
+  // Browsers only allow sound after a click or key press, so this is also
+  // called on every one of those and does nothing once the music is going.
+  function startMusic() {
+    if (!musicOn || !booted || music.timer || document.hidden) return;
+    try {
+      getAudio();
+      if (!music.noise) {
+        music.noise = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
+        const data = music.noise.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      }
+      music.bus = audio.createGain();
+      music.bus.gain.setValueAtTime(0.0001, audio.currentTime);
+      music.bus.gain.exponentialRampToValueAtTime(musicGain(), audio.currentTime + 2);
+      music.bus.connect(audio.destination);
+      music.next = audio.currentTime + 0.1;
+      music.timer = setInterval(() => {
+        while (music.next < audio.currentTime + 0.3) {
+          playBeat(music.beat++, music.next);
+          music.next += BEAT;
+        }
+      }, 100);
+    } catch (e) { /* no audio in this browser */ }
+  }
+
+  function setMusicVolume(v) {
+    musicVolume = v;
+    try { localStorage.setItem(VOLUME_KEY, String(v)); } catch (e) { /* storage blocked */ }
+    if (!music.timer) return;
+    const g = music.bus.gain;
+    g.cancelScheduledValues(audio.currentTime);
+    g.setValueAtTime(g.value, audio.currentTime);
+    g.linearRampToValueAtTime(musicGain(), audio.currentTime + 0.1);
+  }
+
+  function stopMusic() {
+    if (!music.timer) return;
+    clearInterval(music.timer);
+    music.timer = null;
+    const bus = music.bus;
+    bus.gain.cancelScheduledValues(audio.currentTime);
+    bus.gain.setValueAtTime(bus.gain.value, audio.currentTime);
+    bus.gain.linearRampToValueAtTime(0, audio.currentTime + 0.4);
+    setTimeout(() => bus.disconnect(), 500);
+  }
+
+  document.addEventListener('pointerdown', startMusic);
+  document.addEventListener('keydown', startMusic);
+  document.addEventListener('visibilitychange', () => (document.hidden ? stopMusic() : startMusic()));
 
   const calm = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1187,6 +1334,12 @@
       <p>Level ${state.level} · ${TIERS[state.tier].name} account · Net worth ${fmt(netWorth())}</p>
       <div class="settings-list">
         <button class="btn btn-ghost btn-block" data-act="sound" aria-pressed="${soundOn}">Sound effects: ${soundOn ? 'on' : 'off'}</button>
+        <button class="btn btn-ghost btn-block" data-act="music" aria-pressed="${musicOn}">Music: ${musicOn ? 'on' : 'off'}</button>
+        <label class="volume-row">
+          <span>Music volume</span>
+          <input type="range" min="0" max="100" step="5" value="${musicVolume}" data-act="volume" aria-valuetext="${musicVolume}%">
+          <output>${musicVolume}%</output>
+        </label>
         <button class="btn btn-ghost btn-block" data-act="basics">Replay investing basics</button>
         <button class="btn btn-ghost btn-block" data-act="export">Save to a file</button>
         <button class="btn btn-ghost btn-block" data-act="import">Load a file</button>
@@ -1201,6 +1354,17 @@
       e.currentTarget.textContent = `Sound effects: ${soundOn ? 'on' : 'off'}`;
       e.currentTarget.setAttribute('aria-pressed', soundOn);
       playSound('coin');
+    };
+    modal.querySelector('[data-act="music"]').onclick = e => {
+      setMusic(!musicOn);
+      e.currentTarget.textContent = `Music: ${musicOn ? 'on' : 'off'}`;
+      e.currentTarget.setAttribute('aria-pressed', musicOn);
+    };
+    modal.querySelector('[data-act="volume"]').oninput = e => {
+      const v = Number(e.currentTarget.value);
+      setMusicVolume(v);
+      e.currentTarget.setAttribute('aria-valuetext', `${v}%`);
+      e.currentTarget.nextElementSibling.textContent = `${v}%`;
     };
     modal.querySelector('[data-act="basics"]').onclick = () => showLessons(0);
     modal.querySelector('[data-act="export"]').onclick = exportSave;
