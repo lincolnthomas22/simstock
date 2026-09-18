@@ -538,7 +538,6 @@ button:focus-visible, input:focus-visible {
 .seg-speed button:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 .seg-speed button.active { background: var(--mustard); color: #1a1305; }
 .nameplate-group { display: flex; align-items: center; justify-content: center; gap: 14px; }
-.mast-mascot { width: 54px; height: 54px; flex-shrink: 0; }
 .nameplate {
   padding: 0;
   border: 0;
@@ -1311,7 +1310,6 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
   .sheet { padding: 0 16px 40px; }
   .masthead-top { grid-template-columns: 1fr 1fr; row-gap: 8px; padding: 14px 16px 12px; }
   .nameplate-group { grid-column: 1 / -1; grid-row: 1; }
-  .mast-mascot { width: 42px; height: 42px; }
   .clock-group, .masthead-top #settingsBtn { grid-row: 2; }
   .figure { padding: 0 14px; }
   .worth-big { font-size: 56px; }
