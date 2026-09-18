@@ -12,6 +12,15 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="SimStock · Stock Market Simulator Game">
 <meta property="og:description" content="Learn how investing works by building a trading desk in a free, beginner-friendly stock market game.">
+<meta property="og:url" content="https://lincolnthomas22.github.io/simstock/">
+<meta property="og:image" content="https://lincolnthomas22.github.io/simstock/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="SimStock: a stock market simulator game, shown as a newspaper masthead over a rising share price chart.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SimStock · Stock Market Simulator Game">
+<meta name="twitter:description" content="Learn how investing works by building a trading desk in a free, beginner-friendly stock market game.">
+<meta name="twitter:image" content="https://lincolnthomas22.github.io/simstock/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
@@ -19,10 +28,21 @@
 </head>
 <body>
 
+<a class="skip-link" href="#pageTitle">Skip to the page</a>
+
 <!-- ============================ MASTHEAD ============================ -->
 <header class="masthead">
   <div class="masthead-top">
-    <span class="dateline" id="clockText">Year 1 · Q1 · Day 1</span>
+    <div class="clock-group">
+      <span class="dateline" id="clockText">Year 1 · Q1 · Day 1</span>
+      <!-- how fast the days go by, or whether they go by at all -->
+      <div class="seg seg-speed" id="speedSeg" role="group" aria-label="Market speed">
+        <button data-speed="0" title="Stop the market">Pause</button>
+        <button data-speed="1" title="One trading day a second">1&times;</button>
+        <button data-speed="2" title="Two trading days a second">2&times;</button>
+        <button data-speed="4" title="Four trading days a second">4&times;</button>
+      </div>
+    </div>
     <div class="nameplate-group">
       <!-- Mr. Sim again, as a portrait beside the name -->
       <svg class="mast-mascot" viewBox="0 0 100 100" aria-hidden="true">
@@ -48,7 +68,7 @@
     </div>
     <button class="text-btn" id="settingsBtn">Settings</button>
   </div>
-  <div class="tape" aria-label="Latest prices"><div class="tape-track" id="tape"></div></div>
+  <div class="tape" aria-hidden="true"><div class="tape-track" id="tape"></div></div>
 </header>
 
 <div class="sheet">
@@ -67,7 +87,7 @@
   <!-- once you are inside: the way home, and a jump to any other room -->
   <nav class="crumbs">
     <button class="text-btn" data-screen="landing">← Home</button>
-    <h1 class="page-title" id="pageTitle">Front page</h1>
+    <h1 class="page-title" id="pageTitle" tabindex="-1">Front page</h1>
     <div class="task-switch">
       <button data-screen="home">Front page</button>
       <button data-screen="trade">Trading floor</button>
@@ -180,7 +200,20 @@
         <div><dt>In shares</dt><dd id="pfInvested"></dd></div>
         <div><dt>Profit from sales</dt><dd id="pfRealized"></dd></div>
         <div><dt>Dividends earned</dt><dd id="pfDividends"></dd></div>
+        <div><dt>Commission paid</dt><dd id="pfFees"></dd></div>
       </dl>
+    </section>
+
+    <section class="pf-section">
+      <h2 class="column-head h-mustard">You against the market</h2>
+      <p class="section-note" id="pfVsNote"></p>
+      <div class="vs-chart" id="pfVsChart" hidden>
+        <canvas id="worthChart" role="img" aria-label="Your net worth against the market"></canvas>
+        <ul class="vs-legend">
+          <li><span class="key key-you"></span>Your net worth: cash, shares and everything your staff have brought in</li>
+          <li><span class="key key-market"></span>The same money left sitting in the whole market instead</li>
+        </ul>
+      </div>
     </section>
 
     <section class="pf-section">
@@ -209,6 +242,7 @@
         <div><dt>One minute</dt><dd>is about three months</dd></div>
         <div><dt>You start with</dt><dd>$1,000 in cash</dd></div>
       </div>
+      <p class="tut-note">The market runs whether you are watching or not. Beside the date at the top left are <b>Pause</b>, <b>1&times;</b>, <b>2&times;</b> and <b>4&times;</b>: stop the days going by while you think, or run them up to four times faster. The space bar stops and starts it too. Everything paid by the day moves with it, so running at 4&times; pays four days of wages a second, and pausing costs you nothing at all.</p>
     </section>
 
     <ol class="tut-steps">
@@ -343,10 +377,10 @@
         <div class="tut-num">4</div>
         <div class="tut-body">
           <h3>Place your first order</h3>
-          <p>Orders fill instantly at the price on screen. There are no fees in SimStock, so a trade costs exactly the price times the number of shares.</p>
+          <p>Orders fill instantly at the price on screen. On top of that the broker takes a <b>commission</b> of 0.25% of the trade, and never less than $1. You pay it going in and again coming out, so a share has to rise by about half a percent before a quick round trip is worth doing at all.</p>
           <figure class="tut-figure">
             <svg viewBox="0 0 420 280" role="img" aria-label="The order ticket close up">
-              <rect x="10" y="10" width="400" height="260" rx="4" fill="#1b1814" stroke="#4a4339"/>
+              <rect x="10" y="10" width="400" height="264" rx="4" fill="#1b1814" stroke="#4a4339"/>
               <rect x="10" y="10" width="400" height="34" fill="#0f5a43"/>
               <text class="d-title" x="26" y="34" fill="#efe8d8">Order ticket</text>
               <rect x="26" y="58" width="180" height="30" rx="3" fill="#2e9866"/><text class="d-sm" x="100" y="78" fill="#04170d">Buy</text>
@@ -356,25 +390,28 @@
               <rect x="66" y="120" width="210" height="30" rx="3" fill="#0a0908" stroke="#4a4339"/><text class="d-sm" x="164" y="140">3</text>
               <rect x="282" y="120" width="34" height="30" rx="3" fill="none" stroke="#4a4339"/><text class="d-sm" x="294" y="140">+</text>
               <rect x="322" y="120" width="70" height="30" rx="3" fill="none" stroke="#4a4339"/><text class="d-sm" x="342" y="140">Max</text>
-              <text class="d-sm" x="26" y="176">Price per share</text><text class="d-sm" x="392" y="176" text-anchor="end">$104.60</text>
-              <text class="d-sm" x="26" y="198">Estimated cost</text><text class="d-sm" x="392" y="198" text-anchor="end">$313.80</text>
-              <line x1="26" y1="208" x2="392" y2="208" stroke="#4a4339"/>
-              <text class="d-sm" x="26" y="226">Cash afterwards</text><text class="d-sm" x="392" y="226" text-anchor="end">$686.20</text>
-              <rect x="26" y="238" width="366" height="20" rx="3" fill="#2e9866"/>
-              <text class="d-sm" x="176" y="253" fill="#04170d">Buy 3 TICK</text>
+              <text class="d-sm" x="26" y="172">Price per share</text><text class="d-sm" x="392" y="172" text-anchor="end">$104.60</text>
+              <text class="d-sm" x="26" y="194">Shares cost</text><text class="d-sm" x="392" y="194" text-anchor="end">$313.80</text>
+              <text class="d-sm" x="26" y="216">Commission</text><text class="d-sm" x="392" y="216" text-anchor="end">$1.00</text>
+              <line x1="26" y1="226" x2="392" y2="226" stroke="#4a4339"/>
+              <text class="d-sm" x="26" y="244">Cash afterwards</text><text class="d-sm" x="392" y="244" text-anchor="end">$685.20</text>
+              <rect x="26" y="252" width="366" height="20" rx="3" fill="#2e9866"/>
+              <text class="d-sm" x="176" y="267" fill="#04170d">Buy 3 TICK</text>
               <circle class="pin-dot" cx="30" cy="62" r="13"/><text class="pin-num" x="30" y="67">1</text>
               <circle class="pin-dot" cx="70" cy="124" r="13"/><text class="pin-num" x="70" y="129">2</text>
               <circle class="pin-dot" cx="326" cy="124" r="13"/><text class="pin-num" x="326" y="129">3</text>
-              <circle class="pin-dot" cx="30" cy="242" r="13"/><text class="pin-num" x="30" y="247">4</text>
+              <circle class="pin-dot" cx="30" cy="212" r="13"/><text class="pin-num" x="30" y="217">4</text>
+              <circle class="pin-dot" cx="30" cy="256" r="13"/><text class="pin-num" x="30" y="261">5</text>
             </svg>
           </figure>
           <ul class="tut-legend">
             <li><span class="pin">1</span> Choose <b>Buy</b> or <b>Sell</b>.</li>
             <li><span class="pin">2</span> Type how many shares, or use the minus and plus buttons.</li>
             <li><span class="pin">3</span> <b>Max</b> fills in as many as your cash allows, or when selling, everything you own.</li>
-            <li><span class="pin">4</span> Press the button to place the order. If it is greyed out, the note underneath says why, usually not enough cash.</li>
+            <li><span class="pin">4</span> <b>The commission,</b> what the broker charges to put the trade through. On a small order the $1 minimum is most of it, which is why buying one share at a time is an expensive habit.</li>
+            <li><span class="pin">5</span> Press the button to place the order. If it is greyed out, the note underneath says why, usually not enough cash.</li>
           </ul>
-          <p class="tut-note">Watch <b>Cash afterwards</b>. Spending every last dollar leaves you nothing to buy with when a price drops.</p>
+          <p class="tut-note">Watch <b>Cash afterwards</b>. It already has the commission taken out, and spending every last dollar leaves you nothing to buy with when a price drops.</p>
         </div>
       </li>
 
@@ -397,6 +434,7 @@
         <div class="tut-body">
           <h3>Check your portfolio</h3>
           <p>The <b>Portfolio</b> room adds everything up: your net worth, how much of it is cash and how much is in shares, every company you hold, and a set of bars showing how your money is split. If one bar is much longer than the rest, most of your fortune is riding on one company.</p>
+          <p>At the top of the room is the chart that matters most, <b>You against the market</b>. The solid line is your net worth. The grey dashed line beside it is what the same money would have done sitting in the whole market, untouched. Your line goes green when you are ahead of it and red when you are behind. Beating that dashed line is harder than it looks, and it is the honest test of whether your trading is doing anything for you.</p>
           <figure class="tut-figure">
             <svg viewBox="0 0 600 190" role="img" aria-label="The portfolio screen, with the holdings table and a breakdown of where the money sits">
               <rect x="0" y="0" width="600" height="190" fill="#15130f"/>
@@ -434,7 +472,7 @@
         <div class="tut-body">
           <h3>Things worth knowing</h3>
           <ul class="tut-list">
-            <li><b>Your progress saves by itself,</b> in this browser. Using another device or clearing your browsing data starts you over. <b>Settings</b>, at the top right, can reset the game on purpose.</li>
+            <li><b>Your progress saves by itself,</b> in this browser. Another device, or a clearing of your browsing data, would otherwise start you over, so <b>Settings</b> at the top right has <b>Save to a file</b>: it puts your whole game in your downloads as a small file. <b>Load a file</b> on any browser picks it back up where you left off. Settings can also reset the game on purpose.</li>
             <li><b>Prices move on their own</b> every second, and every company reports earnings each quarter. Good news usually lifts a price and bad news drops it, but not always.</li>
             <li><b>Spread your money out.</b> Owning several companies means one bad earnings report cannot wipe you out. The index fund, IDXF, holds a slice of the whole market and is the calmest place to start.</li>
             <li><b>High volatility cuts both ways.</b> Voltaic Motors, Helix Therapeutics and Velocity Airways can jump or fall by a tenth in a day. Keep those positions small until you are comfortable.</li>
@@ -554,7 +592,7 @@
             <div class="stock-meta" id="dMeta"></div>
             <h2 class="stock-name" id="dName"></h2>
           </div>
-          <div class="seg" id="rangeSeg" role="tablist" aria-label="Chart range">
+          <div class="seg" id="rangeSeg" role="group" aria-label="Chart range">
             <button data-range="21">1M</button>
             <button data-range="63">3M</button>
             <button data-range="252">1Y</button>
@@ -603,7 +641,7 @@
         <div class="ticket">
           <div id="orderForm">
             <div class="ticket-head">Order ticket</div>
-            <div class="seg seg-full" id="sideSeg">
+            <div class="seg seg-full" id="sideSeg" role="group" aria-label="Buy or sell">
               <button data-side="buy" class="buy">Buy</button>
               <button data-side="sell" class="sell">Sell</button>
             </div>
@@ -616,7 +654,8 @@
             </div>
             <div class="lines order-lines">
               <div><span>Price per share</span><span class="v" id="oPrice"></span></div>
-              <div><span id="oTotalLabel">Estimated cost</span><span class="v" id="oTotal"></span></div>
+              <div><span id="oTotalLabel">Shares cost</span><span class="v" id="oTotal"></span></div>
+              <div><span>Commission</span><span class="v" id="oFee"></span></div>
               <div class="total"><span>Cash afterwards</span><span class="v" id="oCashAfter"></span></div>
             </div>
             <button class="btn btn-buy btn-block" id="placeOrderBtn">Buy</button>

@@ -44,6 +44,23 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+
+/* out of the way until it is tabbed to */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: -9999px;
+  z-index: 60;
+  padding: 10px 16px;
+  border-radius: 0 0 3px 0;
+  background: var(--mustard);
+  color: #1a1305;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus { left: 0; }
+/* nothing to skip to on the title screen, which has no masthead */
+body:has(#landingScreen:not([hidden])) .skip-link { display: none; }
 html, body { margin: 0; }
 
 body {
@@ -340,6 +357,30 @@ body:has(#landingScreen:not([hidden])) .sheet { max-width: none; padding-inline:
 .pf-section { padding-top: 26px; }
 .pf-section + .pf-section { margin-top: 10px; }
 
+.vs-chart { margin-top: 18px; }
+#worthChart {
+  display: block;
+  width: 100%;
+  height: 280px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: radial-gradient(90% 100% at 70% 0%, rgba(239, 232, 216, 0.035), transparent 70%);
+}
+.vs-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.vs-legend li { display: flex; align-items: center; gap: 10px; }
+.vs-legend .key { flex-shrink: 0; width: 24px; border-top: 2.5px solid var(--gain); }
+.vs-chart.behind .key-you { border-top-color: var(--loss); }
+.vs-legend .key-market { border-top: 2px dashed var(--text-3); }
+
 .mix-row {
   display: grid;
   grid-template-columns: 90px minmax(0, 1fr) 110px 62px;
@@ -477,6 +518,7 @@ button:focus-visible, input:focus-visible {
   margin: 0 auto;
   padding: 16px 36px 14px;
 }
+.clock-group { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
 .dateline {
   font-family: var(--mono);
   font-size: 12px;
@@ -484,6 +526,12 @@ button:focus-visible, input:focus-visible {
   text-transform: uppercase;
   color: #a9cbbb;
 }
+.dateline.paused { color: var(--mustard); }
+.seg-speed { border-color: rgba(239, 232, 216, 0.26); background: rgba(0, 0, 0, 0.2); }
+.seg-speed button { padding: 3px 9px; font-size: 11.5px; color: #bfd8cc; }
+.seg-speed button + button { border-left-color: rgba(239, 232, 216, 0.26); }
+.seg-speed button:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.seg-speed button.active { background: var(--mustard); color: #1a1305; }
 .nameplate-group { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .mast-mascot { width: 54px; height: 54px; flex-shrink: 0; }
 .nameplate {
@@ -1195,7 +1243,7 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   .masthead-top { grid-template-columns: 1fr 1fr; row-gap: 8px; padding: 14px 16px 12px; }
   .nameplate-group { grid-column: 1 / -1; grid-row: 1; }
   .mast-mascot { width: 42px; height: 42px; }
-  .dateline, .masthead-top #settingsBtn { grid-row: 2; }
+  .clock-group, .masthead-top #settingsBtn { grid-row: 2; }
   .figure { padding: 0 14px; }
   .worth-big { font-size: 56px; }
   .figures-row, .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1210,4 +1258,22 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   .detail { margin-top: 22px; padding: 0; border-left: 0; }
   .order-col { padding-left: 0; }
   .tier-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------------- PORTFOLIO FIGURES ---------------- */
+/* five figures here against the front page’s four */
+.pf-head .figures-row { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.pf-head .figures-row > div { padding-right: 12px; }
+.pf-head .figures-row > div + div { padding-left: 12px; }
+.pf-head .figures-row dd { font-size: 15px; }
+
+@media (max-width: 1080px) {
+  .pf-head .figures-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pf-head .figures-row > div:nth-child(3n+1) { padding-left: 0; border-left: 0; }
+}
+
+@media (max-width: 760px) {
+  .pf-head .figures-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pf-head .figures-row > div:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .pf-head .figures-row > div:nth-child(even) { padding-left: 16px; border-left: 1px solid var(--line); }
 }

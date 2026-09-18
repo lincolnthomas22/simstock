@@ -8,6 +8,8 @@
   // TUNING
   // ===========================================================
   const STARTING_CASH = 1000;
+  const COMMISSION_RATE = 0.0025;       // the broker's cut of every trade
+  const COMMISSION_MIN = 1;             // ...but never less than a dollar
   const DAYS_PER_YEAR = 252;            // trading days in a year
   const DAYS_PER_QUARTER = 63;
   const MARKET_DRIFT = 0.07;            // average yearly market return
@@ -22,6 +24,7 @@
   const SAVE_EVERY_TICKS = 5;
   const NEWS_KEEP = 40;
   const TIP_EVERY_TICKS = 12;
+  const SPEEDS = [0, 1, 2, 4];          // trading days per real second; 0 is paused
 
   const XP = { buy: 1, sellLoss: 1, hire: 15, openAccount: 50, dividend: 3, tier: 60 };
   const sellProfitXp = profit => Math.min(50, 5 + Math.floor(profit / 20));
@@ -359,6 +362,14 @@
         events.push(event);
       }
     }
+
+    // The player's own equity curve, kept beside the market's so the two can be
+    // compared later. There is nothing worth recording before day one.
+    if (st.day >= 0) {
+      let worth = st.cash;
+      for (const s of STOCKS) worth += st.stocks[s.id].shares * st.stocks[s.id].price;
+      pushHistory(st.worth.history, worth);
+    }
     return events;
   }
 
@@ -396,16 +407,19 @@
 
   function freshState() {
     const st = {
-      version: 2,
+      version: 3,
       day: -DAYS_PER_YEAR,
       cash: STARTING_CASH,
       xp: 0,
       level: 1,
       tier: 0,
       accountOpen: false,
+      speed: 1,
       staff: Object.fromEntries(STAFF.map(s => [s.id, 0])),
       totalDividends: 0,
+      totalFees: 0,
       market: { level: 1000, history: [] },
+      worth: { history: [] },
       stocks: {},
       news: [],
       lastSeen: Date.now(),
@@ -417,19 +431,34 @@
     return st;
   }
 
+  // Brings a save written by an older build up to date, in place. Returns null
+  // if the thing handed to it isn't a SimStock save at all, which is what makes
+  // it safe to run over a file someone picked off their own disk.
+  function migrate(saved) {
+    if (!saved || typeof saved !== 'object') return null;
+    if (saved.version !== 2 && saved.version !== 3) return null;
+    if (!saved.stocks || typeof saved.cash !== 'number' || typeof saved.day !== 'number') return null;
+
+    // version 3 added the equity curve, commission and the speed control
+    if (!saved.worth || !Array.isArray(saved.worth.history)) saved.worth = { history: [] };
+    if (typeof saved.totalFees !== 'number') saved.totalFees = 0;
+    if (!SPEEDS.includes(saved.speed)) saved.speed = 1;
+    saved.version = 3;
+
+    // companies added since this save was written join the board today
+    STOCKS.forEach((s, i) => {
+      if (saved.stocks[s.id]) return;
+      const rt = blankStock(s, i);
+      inventHistory(rt, s);
+      saved.stocks[s.id] = rt;
+    });
+    return saved;
+  }
+
   function loadState() {
     try {
-      const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || localStorage.getItem(OLD_SAVE_KEY));
-      if (saved && saved.version === 2) {
-        // companies added since this save was written join the board today
-        STOCKS.forEach((s, i) => {
-          if (saved.stocks[s.id]) return;
-          const rt = blankStock(s, i);
-          inventHistory(rt, s);
-          saved.stocks[s.id] = rt;
-        });
-        return saved;
-      }
+      const saved = migrate(JSON.parse(localStorage.getItem(SAVE_KEY) || localStorage.getItem(OLD_SAVE_KEY)));
+      if (saved) return saved;
     } catch (e) { /* storage blocked or save unreadable: start fresh */ }
     return freshState();
   }
@@ -446,6 +475,8 @@
   const ui = { screen: 'landing', selected: 'TICK', range: 63, side: 'buy' };
   let tickCount = 0;
   let lastTickAt = Date.now();
+  let lastRunningSpeed = SPEEDS.includes(state.speed) && state.speed > 0 ? state.speed : 1;
+  let booted = false;
   let tipIndex = 0;
   let lastTip = '';
   let renderedNewsKey = '';
@@ -457,6 +488,9 @@
   const rtOf = id => state.stocks[id];
   const isUnlocked = s => state.tier >= s.tier;
   const avgCost = rt => (rt.shares ? rt.costBasis / rt.shares : 0);
+
+  // What the broker charges to put a trade through, rounded to the cent.
+  const commission = value => Math.round(Math.max(COMMISSION_MIN, value * COMMISSION_RATE) * 100) / 100;
   const staffCost = s => s.baseCost * Math.pow(s.growth, state.staff[s.id]);
   const staffSalaries = () => STAFF.reduce((sum, s) => sum + state.staff[s.id] * s.salary, 0);
 
@@ -510,16 +544,20 @@
   }
 
   const modalRoot = $('modalRoot');
+  let returnFocusTo = null;
   const modalQueue = [];
 
   // Opens a modal, or swaps the content of the one already open.
   function openModal(html) {
     let modal = modalRoot.querySelector('.modal');
     if (!modal) {
-      modalRoot.innerHTML = '<div class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true"></div></div>';
+      returnFocusTo = document.activeElement;
+      modalRoot.innerHTML = '<div class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></div></div>';
       modal = modalRoot.querySelector('.modal');
     }
     modal.innerHTML = html;
+    const heading = modal.querySelector('h3');
+    if (heading) heading.id = 'modalTitle';
     const focusTarget = modal.querySelector('.btn-ink, .btn');
     if (focusTarget) focusTarget.focus();
     return modal;
@@ -528,7 +566,10 @@
   function closeModal() {
     modalRoot.innerHTML = '';
     const next = modalQueue.shift();
-    if (next) next();
+    if (next) return next();
+    // whatever opened the modal gets the keyboard back
+    if (returnFocusTo && document.contains(returnFocusTo)) returnFocusTo.focus();
+    returnFocusTo = null;
   }
 
   // Shows a modal now, or after the one currently open is closed.
@@ -635,12 +676,17 @@
       <p>Level ${state.level} · ${TIERS[state.tier].name} account · Net worth ${fmt(netWorth())}</p>
       <div class="settings-list">
         <button class="btn btn-ghost btn-block" data-act="basics">Replay investing basics</button>
+        <button class="btn btn-ghost btn-block" data-act="export">Save to a file</button>
+        <button class="btn btn-ghost btn-block" data-act="import">Load a file</button>
         <button class="btn btn-danger btn-block" data-act="reset">Reset all progress</button>
       </div>
+      <p class="fine-print">Your game normally lives in this browser alone. Saving it to a file is how you move it to another browser or device, or keep it safe from a clearing of your browsing data.</p>
       <div class="modal-actions"><button class="btn btn-ghost" data-act="close">Close</button></div>`);
 
     let confirming = false;
     modal.querySelector('[data-act="basics"]').onclick = () => showLessons(0);
+    modal.querySelector('[data-act="export"]').onclick = exportSave;
+    modal.querySelector('[data-act="import"]').onclick = pickSaveFile;
     modal.querySelector('[data-act="close"]').onclick = closeModal;
     modal.querySelector('[data-act="reset"]').onclick = e => {
       if (!confirming) {
@@ -661,8 +707,72 @@
   }
 
   // ===========================================================
+  // SAVING TO A FILE
+  // localStorage is per-browser, so a file is the only way to carry a game
+  // from one to another, or to keep a copy of it at all.
+  // ===========================================================
+  function exportSave() {
+    saveState();
+    const name = `simstock-save-day-${Math.max(0, state.day) + 1}.json`;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(state)], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast('Game saved to a file', `${name} is in your downloads. Load it back from Settings on any browser.`, 'accent');
+  }
+
+  function pickSaveFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = () => { if (input.files && input.files[0]) readSaveFile(input.files[0]); };
+    input.click();
+  }
+
+  function readSaveFile(file) {
+    const reader = new FileReader();
+    reader.onerror = () => toast("That file couldn't be read", 'Your game is untouched.', 'neg');
+    reader.onload = () => {
+      let loaded = null;
+      try { loaded = migrate(JSON.parse(reader.result)); } catch (e) { loaded = null; }
+      if (!loaded) {
+        toast("That isn't a SimStock save", 'Your game is untouched.', 'neg');
+        return;
+      }
+      modalQueue.length = 0;
+      state = loaded;
+      ui.selected = 'TICK';
+      chartHover = null;
+      lastTip = '';
+      renderedNewsKey = '';
+      lastTickAt = Date.now();
+      saveState();
+      closeModal();
+      showScreen(state.accountOpen ? 'home' : 'landing');
+      toast('Game loaded', `Back at year ${Math.floor(Math.max(0, state.day) / DAYS_PER_YEAR) + 1}, with ${fmt(netWorth())} to your name.`, 'accent');
+    };
+    reader.readAsText(file);
+  }
+
+  // ===========================================================
   // ACTIONS
   // ===========================================================
+  function setSpeed(n) {
+    if (!SPEEDS.includes(n)) return;
+    if (n > 0) lastRunningSpeed = n;
+    state.speed = n;
+    render();
+    saveState();
+  }
+
+  function togglePause() {
+    setSpeed(state.speed === 0 ? lastRunningSpeed : 0);
+  }
+
   function gainXp(amount) {
     const startLevel = state.level;
     let bonus = 0;
@@ -693,6 +803,15 @@
     toast('Account opened', `+${XP.openAccount} XP. Pick a stock from the list to get started.`, 'accent');
   }
 
+  // The most shares your cash can cover once the commission is paid too.
+  function maxBuyQty(price) {
+    let n = Math.max(0, Math.floor(state.cash / (price * (1 + COMMISSION_RATE))));
+    while (n > 0 && n * price + commission(n * price) > state.cash + 1e-9) n -= 1;
+    // below the flat minimum the rate-based guess is too cautious, so creep back up
+    while ((n + 1) * price + commission((n + 1) * price) <= state.cash + 1e-9) n += 1;
+    return n;
+  }
+
   function orderQty() {
     const n = Math.floor(Number($('qtyInput').value));
     return Number.isFinite(n) && n > 0 ? n : 0;
@@ -707,26 +826,30 @@
     const s = STOCK_BY_ID[ui.selected];
     const rt = rtOf(s.id);
     const qty = orderQty();
-    const total = qty * rt.price;
+    const value = qty * rt.price;
+    const fee = commission(value);
     if (!isUnlocked(s) || rt.delisted || qty < 1) return;
 
     if (ui.side === 'buy') {
-      if (total > state.cash + 1e-9) return;
-      state.cash -= total;
+      if (value + fee > state.cash + 1e-9) return;
+      state.cash -= value + fee;
       rt.shares += qty;
-      rt.costBasis += total;
-      toast('Order filled', `Bought ${qty} ${s.id} at ${fmt(rt.price)} for ${fmt(total)}.`, 'pos');
+      rt.costBasis += value + fee; // the commission is part of what the shares cost you
+      state.totalFees += fee;
+      toast('Order filled', `Bought ${qty} ${s.id} at ${fmt(rt.price)}: ${fmt(value + fee)} with the ${fmt(fee)} commission.`, 'pos');
       gainXp(XP.buy);
     } else {
       if (qty > rt.shares) return;
       const paid = avgCost(rt) * qty;
-      const profit = total - paid;
-      state.cash += total;
+      const proceeds = value - fee;
+      const profit = proceeds - paid;
+      state.cash += proceeds;
       rt.shares -= qty;
       rt.costBasis = rt.shares ? rt.costBasis - paid : 0;
       rt.realized += profit;
+      state.totalFees += fee;
       const result = Math.abs(profit) < 0.005 ? 'at break-even' : `for a ${fmt(Math.abs(profit))} ${profit > 0 ? 'profit' : 'loss'}`;
-      toast('Order filled', `Sold ${qty} ${s.id} at ${fmt(rt.price)} ${result}.`, profit > -0.005 ? 'pos' : 'neg');
+      toast('Order filled', `Sold ${qty} ${s.id} at ${fmt(rt.price)} ${result}, after the ${fmt(fee)} commission.`, profit > -0.005 ? 'pos' : 'neg');
       gainXp(profit > 0 ? sellProfitXp(profit) : XP.sellLoss);
     }
     afterAction();
@@ -823,12 +946,19 @@
     $('portfolioScreen').hidden = name !== 'portfolio';
     $('upgradesScreen').hidden = name !== 'upgrades';
     $('tutorialScreen').hidden = name !== 'tutorial';
+    document.querySelectorAll('.task-switch [data-screen]').forEach(b => {
+      if (b.dataset.screen === name) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
     window.scrollTo(0, 0);
     render();
     if (name === 'trade') {
       sizeChart();
       updateTip();
     }
+    if (name === 'portfolio') sizeWorthChart();
+    // move the keyboard to the new room, but not on the way in to the game
+    if (booted && name !== 'landing') $('pageTitle').focus();
   }
 
   function selectStock(id) {
@@ -850,10 +980,19 @@
     if (ui.screen === 'upgrades') renderUpgrades();
   }
 
+  const speedButtons = Array.from(document.querySelectorAll('#speedSeg button'));
+
   function renderChrome() {
     const need = xpToNext(state.level);
     $('pageTitle').textContent = SCREEN_TITLES[ui.screen];
-    $('clockText').textContent = clockLabel();
+    const paused = state.speed === 0;
+    $('clockText').textContent = clockLabel() + (paused ? ' · paused' : '');
+    $('clockText').classList.toggle('paused', paused);
+    speedButtons.forEach(b => {
+      const on = Number(b.dataset.speed) === state.speed;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
     $('topCash').textContent = fmtBig(state.cash);
     $('topWorth').textContent = fmtBig(netWorth());
     const income = staffIncome();
@@ -988,6 +1127,9 @@
     $('pfInvested').textContent = fmt(invested);
     $('pfRealized').textContent = fmtSigned(Math.abs(realized) < 0.005 ? 0 : realized);
     $('pfDividends').textContent = fmt(state.totalDividends);
+    $('pfFees').textContent = fmt(state.totalFees);
+
+    renderVsMarket();
 
     const held = STOCKS.filter(s => rtOf(s.id).shares > 0)
       .sort((a, b) => rtOf(b.id).shares * rtOf(b.id).price - rtOf(a.id).shares * rtOf(a.id).price);
@@ -1026,6 +1168,136 @@
           <span class="mix-pct">${pct.toFixed(1)}%</span>
         </div>`;
     }).join('');
+  }
+
+  // ---------- You against the market ----------
+  // Both lines cover the same stretch of days and start from the same dollar,
+  // so the only thing to read is the gap between them.
+  const worthChart = $('worthChart');
+  const worthCtx = worthChart.getContext('2d');
+
+  function worthSeries() {
+    const n = state.worth.history.length;
+    if (n < 2) return null;
+    const market = state.market.history.slice(-n);
+    if (market.length < n || !market[0]) return null;
+    // The curve only gains a point when a day passes, so the last one is brought
+    // up to date by hand: otherwise a trade, or a pause, leaves the chart behind.
+    const mine = state.worth.history.slice();
+    mine[n - 1] = netWorth();
+    const start = mine[0];
+    return { mine, bench: market.map(v => (start * v) / market[0]), n };
+  }
+
+  function renderVsMarket() {
+    const series = worthSeries();
+    const note = $('pfVsNote');
+    $('pfVsChart').hidden = !series;
+    if (!series) {
+      note.textContent = 'This chart needs a couple of trading days before it has anything to draw. Leave the market running and come back.';
+      worthChart.setAttribute('aria-label', 'Not enough history yet to compare your net worth with the market.');
+    } else {
+      const mineRet = (series.mine[series.n - 1] / series.mine[0] - 1) * 100;
+      const benchRet = (series.bench[series.n - 1] / series.bench[0] - 1) * 100;
+      const gap = mineRet - benchRet;
+      const days = `${series.n} trading day${series.n === 1 ? '' : 's'}`;
+      const verdict = `${Math.abs(gap).toFixed(2)} points ${gap >= 0 ? 'ahead of' : 'behind'}`;
+      $('pfVsChart').classList.toggle('behind', gap < 0); // the legend key follows the line
+      note.innerHTML = `Over the past ${days} your desk is <b class="${tone(mineRet)}">${fmtPct(mineRet)}</b> and the market is <b class="${tone(benchRet)}">${fmtPct(benchRet)}</b>. That puts you <b class="${tone(gap)}">${verdict}</b> simply owning the whole market and doing nothing else.`;
+      worthChart.setAttribute('aria-label', `Your net worth against the market over ${days}: you ${fmtPct(mineRet)}, the market ${fmtPct(benchRet)}, leaving you ${verdict} the market.`);
+    }
+    drawWorthChart();
+  }
+
+  function sizeWorthChart() {
+    const dpr = window.devicePixelRatio || 1;
+    const { width, height } = worthChart.getBoundingClientRect();
+    if (!width) return;
+    worthChart.width = Math.round(width * dpr);
+    worthChart.height = Math.round(height * dpr);
+    drawWorthChart();
+  }
+
+  function drawWorthChart() {
+    if (ui.screen !== 'portfolio' || !worthChart.width) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = worthChart.width / dpr;
+    const h = worthChart.height / dpr;
+    const ctx = worthCtx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const series = worthSeries();
+    if (!series) return;
+    const { mine, bench, n } = series;
+    const box = { left: 4, right: w - 74, top: 12, bottom: h - 26 };
+    let min = Math.min(Math.min(...mine), Math.min(...bench));
+    let max = Math.max(Math.max(...mine), Math.max(...bench));
+    const pad = (max - min) * 0.1 || max * 0.04;
+    min -= pad;
+    max += pad;
+    const x = i => box.left + (i / (n - 1)) * (box.right - box.left);
+    const y = v => box.bottom - ((v - min) / (max - min)) * (box.bottom - box.top);
+
+    ctx.font = '11px "IBM Plex Mono", monospace';
+    ctx.lineWidth = 1;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+      const v = min + ((max - min) * i) / 4;
+      const yy = Math.round(y(v)) + 0.5;
+      ctx.strokeStyle = CHART.grid;
+      ctx.beginPath();
+      ctx.moveTo(box.left, yy);
+      ctx.lineTo(box.right, yy);
+      ctx.stroke();
+      ctx.fillStyle = CHART.text;
+      ctx.fillText(fmtBig(v), box.right + 10, yy);
+    }
+
+    ctx.textBaseline = 'top';
+    [0, 1 / 3, 2 / 3, 1].forEach(f => {
+      const i = Math.round(f * (n - 1));
+      ctx.textAlign = f === 0 ? 'left' : f === 1 ? 'right' : 'center';
+      ctx.fillStyle = CHART.text;
+      ctx.fillText(daysAgoLabel(n - 1 - i), x(i), box.bottom + 8);
+    });
+
+    // the market goes down first, in grey, so your own line reads on top of it
+    ctx.beginPath();
+    bench.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+    ctx.strokeStyle = CHART.text;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const ahead = mine[n - 1] >= bench[n - 1];
+    const color = ahead ? CHART.pos : CHART.neg;
+    const trace = () => mine.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+
+    const grad = ctx.createLinearGradient(0, box.top, 0, box.bottom);
+    grad.addColorStop(0, ahead ? 'rgba(76,195,138,0.26)' : 'rgba(255,111,94,0.20)');
+    grad.addColorStop(1, 'rgba(13,12,10,0)');
+    ctx.beginPath();
+    trace();
+    ctx.lineTo(x(n - 1), box.bottom);
+    ctx.lineTo(x(0), box.bottom);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    trace();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.25;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x(n - 1), y(mine[n - 1]), 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
   }
 
   // ---------- Trading ----------
@@ -1081,6 +1353,8 @@
       const rt = rtOf(s.id);
       const locked = !isUnlocked(s);
       r.row.classList.toggle('selected', s.id === ui.selected);
+      if (s.id === ui.selected) r.row.setAttribute('aria-current', 'true');
+      else r.row.removeAttribute('aria-current');
       r.row.classList.toggle('locked', locked || rt.delisted);
       r.price.textContent = rt.delisted ? '—' : fmt(rt.price);
       if (rt.delisted) {
@@ -1123,7 +1397,12 @@
     const rangePct = (range[range.length - 1] / range[0] - 1) * 100;
     $('dRange').textContent = `${fmtPct(rangePct)} past ${RANGE_LABELS[ui.range]}`;
     $('dRange').className = 'range-change ' + tone(rangePct);
-    document.querySelectorAll('#rangeSeg button').forEach(b => b.classList.toggle('active', Number(b.dataset.range) === ui.range));
+    document.querySelectorAll('#rangeSeg button').forEach(b => {
+      const on = Number(b.dataset.range) === ui.range;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    chart.setAttribute('aria-label', `${s.name} share price over the past ${RANGE_LABELS[ui.range]}: ${fmt(rt.price)}, ${fmtPct(rangePct)}.`);
 
     // key stats
     $('sCap').textContent = fmtBig(rt.price * s.sharesOut);
@@ -1166,19 +1445,25 @@
     }
 
     const buying = ui.side === 'buy';
-    document.querySelectorAll('#sideSeg button').forEach(b => b.classList.toggle('active', b.dataset.side === ui.side));
+    document.querySelectorAll('#sideSeg button').forEach(b => {
+      const on = b.dataset.side === ui.side;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
     const qty = orderQty();
-    const total = qty * rt.price;
-    const cashAfter = buying ? state.cash - total : state.cash + total;
+    const value = qty * rt.price;
+    const fee = qty > 0 ? commission(value) : 0;
+    const cashAfter = buying ? state.cash - value - fee : state.cash + value - fee;
 
     $('oPrice').textContent = fmt(rt.price);
-    $('oTotalLabel').textContent = buying ? 'Estimated cost' : 'Estimated proceeds';
-    $('oTotal').textContent = fmt(total);
+    $('oTotalLabel').textContent = buying ? 'Shares cost' : 'Shares sold for';
+    $('oTotal').textContent = fmt(value);
+    $('oFee').textContent = fmt(fee);
     setV($('oCashAfter'), fmt(cashAfter), cashAfter < 0 ? 'neg' : '');
 
     let problem = '';
     if (qty < 1) problem = 'Enter how many shares to trade.';
-    else if (buying && total > state.cash + 1e-9) problem = `Not enough cash. You can afford ${Math.floor(state.cash / rt.price)} shares.`;
+    else if (buying && value + fee > state.cash + 1e-9) problem = `Not enough cash. With the commission you can afford ${maxBuyQty(rt.price)} shares.`;
     else if (!buying && qty > rt.shares) problem = rt.shares ? `You only own ${rt.shares} shares of ${s.id}.` : `You don't own any ${s.id} yet.`;
 
     const btn = $('placeOrderBtn');
@@ -1186,7 +1471,7 @@
     btn.className = `btn btn-block ${buying ? 'btn-buy' : 'btn-sell'}`;
     btn.textContent = `${buying ? 'Buy' : 'Sell'} ${qty || ''} ${s.id}`.replace('  ', ' ');
     const hint = $('orderHint');
-    hint.textContent = problem || 'Market order: fills instantly at the current price.';
+    hint.textContent = problem || `Market order: fills instantly at the current price. The broker takes ${(COMMISSION_RATE * 100).toFixed(2)}% of every trade, at least ${fmt(COMMISSION_MIN)}.`;
     hint.classList.toggle('warn', !!problem);
   }
 
@@ -1492,13 +1777,22 @@
   function tick() {
     tickCount += 1;
 
-    // Background tabs get throttled, so pay staff for all the time that passed.
-    const now = Date.now();
-    const seconds = Math.min(OFFLINE_CAP_SEC, Math.max(1, Math.round((now - lastTickAt) / 1000)));
-    lastTickAt = now;
-    runPayroll(seconds);
+    // One trading day a second at 1x. The speed control multiplies that, or stops it.
+    const days = state.speed;
+    const events = [];
+    for (let i = 0; i < days; i++) events.push(...simulateDay(state));
 
-    const events = simulateDay(state);
+    // Staff are paid by the trading day, so the wage bill follows the days rather
+    // than the clock: run the market faster and the wages speed up with it, pause
+    // it and the payroll stops too. The one exception is time this tick did not
+    // cover, because a background tab had its timer throttled: the market stays
+    // closed for that stretch, but the staff draw wages through it the same way
+    // they do while the game is shut.
+    const now = Date.now();
+    const elapsed = Math.min(OFFLINE_CAP_SEC, Math.max(1, Math.round((now - lastTickAt) / 1000)));
+    lastTickAt = now;
+    runPayroll(days + elapsed - 1);
+
     if (events.length) {
       state.news.unshift(...events.slice().reverse());
       state.news.length = Math.min(state.news.length, NEWS_KEEP);
@@ -1566,7 +1860,7 @@
   $('qtyPlus').onclick = () => setQty(orderQty() + 1);
   $('qtyMax').onclick = () => {
     const rt = rtOf(ui.selected);
-    setQty(ui.side === 'buy' ? Math.floor(state.cash / rt.price) : rt.shares);
+    setQty(ui.side === 'buy' ? maxBuyQty(rt.price) : rt.shares);
   };
   $('qtyInput').addEventListener('input', render);
   $('qtyInput').addEventListener('keydown', e => { if (e.key === 'Enter') placeOrder(); });
@@ -1577,17 +1871,39 @@
   document.querySelectorAll('#rangeSeg button').forEach(b => {
     b.onclick = () => { ui.range = Number(b.dataset.range); chartHover = null; render(); };
   });
+  speedButtons.forEach(b => {
+    b.onclick = () => setSpeed(Number(b.dataset.speed));
+  });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && modalRoot.firstElementChild) closeModal();
+    if (e.key === 'Escape' && modalRoot.firstElementChild) return closeModal();
+
+    // a modal keeps the keyboard to itself while it is open
+    if (e.key === 'Tab' && modalRoot.firstElementChild) {
+      const stops = modalRoot.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!stops.length) return;
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      return;
+    }
+
+    // space stops and starts the market, unless you are typing or on a button
+    if (e.key === ' ' && !modalRoot.firstElementChild) {
+      const t = e.target;
+      const busy = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON' || t.isContentEditable);
+      if (!busy) { e.preventDefault(); togglePause(); }
+    }
   });
-  window.addEventListener('resize', sizeChart);
+  window.addEventListener('resize', () => { sizeChart(); sizeWorthChart(); });
   window.addEventListener('pagehide', saveState);
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
 
   buildWatchlist();
   buildUpgrades();
   showScreen('landing');
+  booted = true;
   updateTip();
   checkOfflineEarnings();
   lastTickAt = Date.now();
