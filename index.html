@@ -92,6 +92,7 @@
       <button data-screen="trade">Trading floor</button>
       <button data-screen="portfolio">Portfolio</button>
       <button data-screen="upgrades">Upgrades</button>
+      <button data-screen="achievements">Achievements</button>
       <button data-screen="tutorial">How to play</button>
     </div>
   </nav>
@@ -604,7 +605,10 @@
           <div>
             <p class="column-text">Upgrade your account to trade more companies, and hire staff who bring in money every trading day, even while you're away.</p>
             <p class="desk-caption" id="deskCaption"></p>
-            <button class="more" data-screen="upgrades">See upgrades</button>
+            <div class="firm-links">
+              <button class="more" data-screen="upgrades">See upgrades</button>
+              <button class="more" data-screen="achievements">Achievements · <span id="homeAchProgress">0/0</span></button>
+            </div>
           </div>
         </div>
       </section>
@@ -614,7 +618,6 @@
         <ul class="soon-list">
           <li><button data-soon="Real estate">Real estate</button> Buy property and collect rent.</li>
           <li><button data-soon="Businesses">Businesses</button> Start companies of your own.</li>
-          <li><button data-soon="Achievements">Achievements</button> Milestones worth bragging about.</li>
         </ul>
       </section>
     </div>
@@ -752,6 +755,19 @@
       <p class="section-note">Clients pay fees every trading day, and staff draw wages every day whether the fees arrive or not. They keep working while you're away, for up to two hours.</p>
       <p class="section-note" id="staffMood"></p>
       <div class="staff-list" id="staffList"></div>
+    </section>
+  </main>
+
+  <!-- ============================ ACHIEVEMENTS ============================ -->
+  <main class="screen" id="achievementsScreen" hidden>
+    <section class="upgrade-section">
+      <h2 class="column-head h-claret">Achievements</h2>
+      <p class="section-note">Milestones worth bragging about. A few are hidden until you stumble onto them.</p>
+      <div class="ach-progress">
+        <span class="progress-top"><span id="achProgress">0 of 0 unlocked</span></span>
+        <div class="progress" id="achProgressBar"><div></div></div>
+      </div>
+      <div id="achGrid"></div>
     </section>
   </main>
 

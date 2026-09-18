@@ -122,6 +122,150 @@
   ];
   const canFail = s => s.risk >= 3;
 
+  // ===========================================================
+  // ACHIEVEMENTS
+  // Most are a `check()` against the live game: the scanner below tests every
+  // locked one on every action and every simulated day, and whichever go true
+  // first get unlocked and stay that way. A few genuinely momentary ones
+  // (Phoenix, Perfect Quarter) are unlocked directly at the instant they
+  // happen instead, because there's no standing condition to check later.
+  // Hidden ones don't show their name or blurb until unlocked.
+  const ACHIEVEMENTS = [
+    // Getting started
+    { id: 'first_trade', category: 'Getting started', name: 'First Trade', blurb: 'Place your first order.',
+      check: () => state.stats.trades >= 1 },
+    { id: 'open_for_business', category: 'Getting started', name: 'Open for Business', blurb: 'Open a brokerage account.',
+      check: () => state.accountOpen },
+    { id: 'first_hire', category: 'Getting started', name: 'First Hire', blurb: 'Hire your first member of staff.',
+      check: () => staffCount() >= 1 },
+    { id: 'full_house', category: 'Getting started', name: 'Full House', blurb: 'Reach a Platinum account.',
+      check: () => state.tier === TIERS.length - 1 },
+
+    // Trading
+    { id: 'in_the_black', category: 'Trading', name: 'In the Black', blurb: 'Close a single sale for over $1,000 profit.',
+      check: () => state.stats.bestSaleProfit > 1000 },
+    { id: 'diamond_hands', category: 'Trading', name: 'Diamond Hands', blurb: 'Hold a position for a full year before selling out of it.',
+      check: () => state.stats.longestHoldDays >= DAYS_PER_YEAR },
+    { id: 'paper_hands', category: 'Trading', name: 'Paper Hands', blurb: 'Buy and fully sell a position on the same day.',
+      check: () => state.stats.sameDayFlip },
+    { id: 'buy_the_dip', category: 'Trading', name: 'Buy the Dip', blurb: 'Buy a stock the same day it drops more than 8%.',
+      check: () => state.stats.boughtBigDip },
+    { id: 'perfect_quarter', category: 'Trading', name: 'Perfect Quarter', blurb: 'End a quarter with every holding above what you paid for it.' },
+
+    // Risk & survival
+    { id: 'near_miss', category: 'Risk & survival', name: 'Near Miss', blurb: 'Sell out of a company the moment it warns of trouble.',
+      check: () => state.stats.soldWhileDistressed },
+    { id: 'burned', category: 'Risk & survival', name: 'Burned', blurb: 'Lose money when a company you hold fails outright.',
+      check: () => state.stats.wasBurned },
+    { id: 'phoenix', category: 'Risk & survival', name: 'Phoenix', blurb: 'Recover your net worth after a company you held failed.' },
+    { id: 'nerves_of_steel', category: 'Risk & survival', name: 'Nerves of Steel', blurb: 'Hold a rating-5 stock for 100 days straight.',
+      check: () => STOCKS.some(s => s.risk === 5 && (rtOf(s.id).riskStreak || 0) >= 100) },
+    { id: 'diversified', category: 'Risk & survival', name: 'Diversified', blurb: 'Go a full quarter without any one company topping 25% of your net worth.',
+      check: () => state.stats.concentrationStreak >= DAYS_PER_QUARTER },
+
+    // Building the firm
+    { id: 'full_team', category: 'Building the firm', name: 'Full Team', blurb: 'Have at least one of every staff role at once.',
+      check: () => STAFF.every(r => state.staff[r.id] > 0) },
+    { id: 'the_office', category: 'Building the firm', name: 'The Office', blurb: 'Have 10 staff on the payroll at once.',
+      check: () => staffCount() >= 10 },
+    { id: 'loyal_crew', category: 'Building the firm', name: 'Loyal Crew', blurb: 'Go 100 days without a layoff after your first hire.',
+      check: () => state.stats.firstHireDay != null && staffCount() > 0 && (state.day - state.stats.lastLayoffDay) >= 100 },
+    { id: 'rough_quarter', category: 'Building the firm', name: 'Rough Quarter', blurb: 'Survive a whole quarter of staff costing more than they bring in.',
+      check: () => state.stats.negIncomeStreak >= DAYS_PER_QUARTER },
+
+    // Milestones
+    { id: 'five_figures', category: 'Milestones', name: 'Five Figures', blurb: 'Reach a net worth of $10,000.',
+      check: () => netWorth() >= 10000 },
+    { id: 'six_figures', category: 'Milestones', name: 'Six Figures', blurb: 'Reach a net worth of $100,000.',
+      check: () => netWorth() >= 100000 },
+    { id: 'seven_figures', category: 'Milestones', name: 'Seven Figures', blurb: 'Reach a net worth of $1,000,000.',
+      check: () => netWorth() >= 1000000 },
+    { id: 'dividend_income', category: 'Milestones', name: 'Dividend Income', blurb: 'Earn $10,000 in dividends over the life of your account.',
+      check: () => state.totalDividends >= 10000 },
+    { id: 'a_year_on_the_floor', category: 'Milestones', name: 'A Year on the Floor', blurb: 'Play for a full trading year.',
+      check: () => state.day >= DAYS_PER_YEAR },
+    { id: 'whole_board', category: 'Milestones', name: 'The Whole Board', blurb: 'Own shares in every company open to your account at once.',
+      check: () => {
+        const list = boardStocks().filter(s => isUnlocked(s) && trading(s));
+        return state.accountOpen && list.length > 0 && list.every(s => rtOf(s.id).shares > 0);
+      } },
+    { id: 'beating_the_market', category: 'Milestones', name: 'Beating the Market', blurb: "Beat the index fund's return over a quarter.",
+      check: () => {
+        const mh = state.worth.history, bh = state.market.history;
+        if (mh.length < DAYS_PER_QUARTER || bh.length < DAYS_PER_QUARTER) return false;
+        const mine = mh[mh.length - 1] / mh[mh.length - DAYS_PER_QUARTER] - 1;
+        const bench = bh[bh.length - 1] / bh[bh.length - DAYS_PER_QUARTER] - 1;
+        return mine > bench && mine > 0;
+      } },
+
+    // Hidden
+    { id: 'coffee_break', category: 'Hidden', hidden: true, name: 'Coffee Break', blurb: 'Have a staff member on the books whose quirk mentions coffee.',
+      check: () => state.roster.some(p => /coffee|espresso/i.test(p.trait)) },
+    { id: 'rags_to_riches', category: 'Hidden', hidden: true, name: 'Rags to Riches', blurb: 'Go from under $50 in cash to a $50,000 net worth.',
+      check: () => state.stats.wasPoor && netWorth() >= 50000 },
+    { id: 'the_contrarian', category: 'Hidden', hidden: true, name: 'The Contrarian', blurb: 'Buy a rating-5 stock the same day bad news breaks about it.',
+      check: () => state.stats.contrarianBuy },
+  ];
+  const ACHIEVEMENT_BY_ID = Object.fromEntries(ACHIEVEMENTS.map(a => [a.id, a]));
+
+  // Records the unlock and shows it off, unless this is a quiet catch-up scan
+  // (run once after loading a save) or the game is on the title screen.
+  function unlockAchievement(id, silent = false) {
+    if (state.achieved[id]) return false;
+    state.achieved[id] = state.day;
+    if (!silent && ui.screen !== 'landing') {
+      const a = ACHIEVEMENT_BY_ID[id];
+      toast(`Achievement unlocked: ${a.name}`, a.blurb, 'accent');
+      playSound('achieve');
+    }
+    return true;
+  }
+
+  // Tests every achievement that isn't unlocked yet. Cheap enough to call
+  // after any action and once a day; most checks are simple comparisons.
+  function scanAchievements(silent = false) {
+    for (const a of ACHIEVEMENTS) {
+      if (a.check && !state.achieved[a.id] && a.check()) unlockAchievement(a.id, silent);
+    }
+  }
+
+  // The handful of stats that only make sense measured once a day: streaks,
+  // running peaks, and the moment-based Phoenix and Perfect Quarter checks.
+  function updateDailyStats() {
+    const worth = netWorth();
+    state.stats.peakNetWorth = Math.max(state.stats.peakNetWorth, worth);
+    if (state.stats.burnRecoveryTarget != null && worth >= state.stats.burnRecoveryTarget) {
+      unlockAchievement('phoenix');
+      state.stats.burnRecoveryTarget = null;
+    }
+    if (state.accountOpen && state.cash < 50) state.stats.wasPoor = true;
+
+    state.stats.negIncomeStreak = (staffCount() > 0 && staffIncome() < 0) ? state.stats.negIncomeStreak + 1 : 0;
+
+    let worstShare = 0;
+    if (worth > 0) {
+      for (const s of STOCKS) {
+        const v = rtOf(s.id).shares * rtOf(s.id).price;
+        if (v > 0) worstShare = Math.max(worstShare, v / worth);
+      }
+    }
+    // only counts once you're actually invested: an empty account isn't "diversified"
+    state.stats.concentrationStreak = (!state.accountOpen || worstShare > 0.25) ? 0 : state.stats.concentrationStreak + 1;
+
+    for (const s of STOCKS) {
+      if (s.risk !== 5) continue;
+      const rt = rtOf(s.id);
+      rt.riskStreak = (rt.shares > 0 && !rt.delisted) ? (rt.riskStreak || 0) + 1 : 0;
+    }
+
+    if (state.day > 0 && mod(state.day, DAYS_PER_QUARTER) === 0) {
+      const held = STOCKS.filter(s => rtOf(s.id).shares > 0);
+      if (held.length && held.every(s => rtOf(s.id).price >= avgCost(rtOf(s.id)))) unlockAchievement('perfect_quarter');
+    }
+
+    scanAchievements();
+  }
+
   // income is the fee clients pay per trading day; salary is paid out every day
   // whether the fees arrive or not.
   const SALARY_SHARE = 0.45;
@@ -487,6 +631,7 @@
       let worth = st.cash;
       for (const s of STOCKS) worth += st.stocks[s.id].shares * st.stocks[s.id].price;
       pushHistory(st.worth.history, worth);
+      if (gameReady) updateDailyStats();
     }
     return events;
   }
@@ -541,6 +686,8 @@
       distress: false,
       delisted: false,
       listed: !s.later,
+      firstBuyDay: null,
+      riskStreak: 0,
       earningsDay: (index * 7 + 20) % DAYS_PER_QUARTER,
     };
   }
@@ -596,6 +743,24 @@
       speed: 1,
       staff: Object.fromEntries(STAFF.map(s => [s.id, 0])),
       roster: [],
+      achieved: {},
+      stats: {
+        trades: 0,
+        bestSaleProfit: 0,
+        longestHoldDays: 0,
+        sameDayFlip: false,
+        boughtBigDip: false,
+        soldWhileDistressed: false,
+        wasBurned: false,
+        contrarianBuy: false,
+        wasPoor: false,
+        firstHireDay: null,
+        lastLayoffDay: null,
+        negIncomeStreak: 0,
+        concentrationStreak: 0,
+        peakNetWorth: 0,
+        burnRecoveryTarget: null,
+      },
       totalDividends: 0,
       totalFees: 0,
       market: { level: 1000, history: [] },
@@ -625,6 +790,17 @@
     if (!SPEEDS.includes(saved.speed)) saved.speed = 1;
     saved.version = 3;
 
+    // achievements arrived later; every save gets the tracking fields
+    if (!saved.achieved || typeof saved.achieved !== 'object') saved.achieved = {};
+    const statDefaults = {
+      trades: 0, bestSaleProfit: 0, longestHoldDays: 0, sameDayFlip: false, boughtBigDip: false,
+      soldWhileDistressed: false, wasBurned: false, contrarianBuy: false, wasPoor: false,
+      firstHireDay: null, lastLayoffDay: null, negIncomeStreak: 0, concentrationStreak: 0,
+      peakNetWorth: 0, burnRecoveryTarget: null,
+    };
+    if (!saved.stats || typeof saved.stats !== 'object') saved.stats = {};
+    Object.entries(statDefaults).forEach(([k, v]) => { if (saved.stats[k] === undefined) saved.stats[k] = v; });
+
     // staff gained names later on; anyone already hired gets one now
     if (!saved.staff || typeof saved.staff !== 'object') saved.staff = {};
     STAFF.forEach(s => { if (!Number.isInteger(saved.staff[s.id]) || saved.staff[s.id] < 0) saved.staff[s.id] = 0; });
@@ -637,6 +813,8 @@
         if (old.listed === undefined) old.listed = true;
         // failures from before new companies could replace them
         if (old.delisted && !old.retired && old.relistOn === undefined) old.relistOn = saved.day + RELIST_AFTER[0];
+        if (old.firstBuyDay === undefined) old.firstBuyDay = null;
+        if (old.riskStreak === undefined) old.riskStreak = 0;
         return;
       }
       const rt = blankStock(s, i);
@@ -662,7 +840,13 @@
     } catch (e) { /* storage unavailable */ }
   }
 
+  // `state` isn't assigned until loadState() returns, but loadState() can call
+  // simulateDay() on a state object of its own while priming a fresh save.
+  // This flag exists purely so that inner code can tell the two apart without
+  // touching `state` itself before it's ready, which would throw.
+  let gameReady = false;
   let state = loadState();
+  gameReady = true;
   const ui = { screen: 'landing', selected: 'TICK', range: 63, side: 'buy', staffFocus: {} };
   let tickCount = 0;
   let lastTickAt = Date.now();
@@ -801,6 +985,10 @@
       [1047, 1319, 1568].forEach(f => note(f, 0.46, 1.2, { gain: 0.06 }));
     },
     fail: () => { note(147, 0, 0.6, { type: 'sawtooth', gain: 0.05, slideTo: 73 }); note(110, 0.05, 0.7, { gain: 0.12, slideTo: 55 }); },
+    achieve: () => {
+      [659, 880, 1109].forEach((f, i) => note(f, i * 0.08, 0.3, { type: 'triangle', gain: 0.09 }));
+      note(1319, 0.28, 0.5, { gain: 0.07 });
+    },
   };
 
   // `gap` keeps a sound from stacking up when the market runs fast
@@ -1129,6 +1317,7 @@
 
   function afterAction() {
     updateTip();
+    scanAchievements();
     render();
     saveState();
   }
@@ -1168,8 +1357,15 @@
     const fee = commission(value);
     if (!isUnlocked(s) || rt.delisted || qty < 1) return;
 
+    state.stats.trades += 1;
     if (ui.side === 'buy') {
       if (value + fee > state.cash + 1e-9) return;
+      if (dayChangePct(rt.history) <= -8) state.stats.boughtBigDip = true;
+      const top = state.news[0];
+      if (top && top.ticker === s.id && top.kind === 'news' && top.mood === 'down' && top.day === state.day && s.risk === 5) {
+        state.stats.contrarianBuy = true;
+      }
+      if (rt.shares === 0) rt.firstBuyDay = state.day;
       state.cash -= value + fee;
       rt.shares += qty;
       rt.costBasis += value + fee; // the commission is part of what the shares cost you
@@ -1181,11 +1377,19 @@
       const paid = avgCost(rt) * qty;
       const proceeds = value - fee;
       const profit = proceeds - paid;
+      if (rt.distress) state.stats.soldWhileDistressed = true;
+      state.stats.bestSaleProfit = Math.max(state.stats.bestSaleProfit, profit);
       state.cash += proceeds;
       rt.shares -= qty;
       rt.costBasis = rt.shares ? rt.costBasis - paid : 0;
       rt.realized += profit;
       state.totalFees += fee;
+      if (rt.shares === 0) {
+        const held = state.day - (rt.firstBuyDay ?? state.day);
+        state.stats.longestHoldDays = Math.max(state.stats.longestHoldDays, held);
+        if (held <= 0) state.stats.sameDayFlip = true;
+        rt.firstBuyDay = null;
+      }
       const result = Math.abs(profit) < 0.005 ? 'at break-even' : `for a ${fmt(Math.abs(profit))} ${profit > 0 ? 'profit' : 'loss'}`;
       toast('Order filled', `Sold ${qty} ${s.id} at ${fmt(rt.price)} ${result}, after the ${fmt(fee)} commission.`, profit > -0.005 ? 'pos' : 'neg');
       if (!gainXp(profit > 0 ? sellProfitXp(profit) : XP.sellLoss)) playSound(profit > 0 ? 'cash' : 'loss');
@@ -1202,6 +1406,7 @@
       while (state.cash < 0 && state.staff[role.id] > 0) {
         state.staff[role.id] -= 1;
         state.cash += role.salary * 30; // a month of that salary back in the till
+        state.stats.lastLayoffDay = state.day;
         // last in, first out
         const gone = state.roster.splice(state.roster.map(p => p.role).lastIndexOf(role.id), 1)[0];
         toast('Payroll missed', `You couldn't cover the wages, so ${esc(gone.name)}, a ${role.name}, was let go.`, 'neg');
@@ -1216,6 +1421,8 @@
     if (state.tier < staff.tier || state.cash < cost) return;
     state.cash -= cost;
     state.staff[staff.id] += 1;
+    if (state.stats.firstHireDay == null) state.stats.firstHireDay = state.day;
+    if (state.stats.lastLayoffDay == null) state.stats.lastLayoffDay = state.day;
     const person = newHire(state, staff.id);
     state.roster.push(person);
     ui.staffFocus[staff.id] = null;
@@ -1277,8 +1484,8 @@
   // ===========================================================
   // SCREENS
   // ===========================================================
-  const SCREEN_TITLES = { landing: 'SimStock', home: 'Front page', trade: 'Trading floor', portfolio: 'Your portfolio', upgrades: 'Upgrades', tutorial: 'How to play' };
-  const OPEN_SCREENS = ['landing', 'home', 'portfolio', 'tutorial']; // viewable before a brokerage account exists
+  const SCREEN_TITLES = { landing: 'SimStock', home: 'Front page', trade: 'Trading floor', portfolio: 'Your portfolio', upgrades: 'Upgrades', achievements: 'Achievements', tutorial: 'How to play' };
+  const OPEN_SCREENS = ['landing', 'home', 'portfolio', 'achievements', 'tutorial']; // viewable before a brokerage account exists
 
   function showScreen(name) {
     if (!OPEN_SCREENS.includes(name) && !state.accountOpen) {
@@ -1291,6 +1498,7 @@
     $('tradeScreen').hidden = name !== 'trade';
     $('portfolioScreen').hidden = name !== 'portfolio';
     $('upgradesScreen').hidden = name !== 'upgrades';
+    $('achievementsScreen').hidden = name !== 'achievements';
     $('tutorialScreen').hidden = name !== 'tutorial';
     document.querySelectorAll('.task-switch [data-screen]').forEach(b => {
       if (b.dataset.screen === name) b.setAttribute('aria-current', 'page');
@@ -1324,6 +1532,7 @@
     if (ui.screen === 'trade') renderTrade();
     if (ui.screen === 'portfolio') renderPortfolio();
     if (ui.screen === 'upgrades') renderUpgrades();
+    if (ui.screen === 'achievements') renderAchievements();
   }
 
   const speedButtons = Array.from(document.querySelectorAll('#speedSeg button'));
@@ -1387,6 +1596,7 @@
     renderMovers();
     renderNews();
     renderDesk();
+    $('homeAchProgress').textContent = `${ACHIEVEMENTS.filter(a => state.achieved[a.id] != null).length}/${ACHIEVEMENTS.length}`;
   }
 
   // What sits on the desk, in the order the game hands it out.
@@ -2187,6 +2397,56 @@
       <p class="team-quote"><b>${esc(featured.name)}</b> ${esc(featured.trait)}.</p>`;
   }
 
+  // ---------- Achievements ----------
+  const achRefs = {};
+
+  function buildAchievements() {
+    const grid = $('achGrid');
+    const categories = [];
+    for (const a of ACHIEVEMENTS) if (!categories.includes(a.category)) categories.push(a.category);
+    for (const cat of categories) {
+      grid.appendChild(el(`<h3 class="ach-category">${cat}</h3>`));
+      const row = el('<div class="ach-row"></div>');
+      grid.appendChild(row);
+      for (const a of ACHIEVEMENTS.filter(x => x.category === cat)) {
+        const card = el(`<div class="ach-card">
+            <div class="ach-name"></div>
+            <p class="ach-blurb"></p>
+            <div class="ach-day"></div>
+          </div>`);
+        row.appendChild(card);
+        achRefs[a.id] = {
+          card,
+          name: card.querySelector('.ach-name'),
+          blurb: card.querySelector('.ach-blurb'),
+          day: card.querySelector('.ach-day'),
+          shown: null,
+        };
+      }
+    }
+  }
+
+  function renderAchievements() {
+    const total = ACHIEVEMENTS.length;
+    const got = ACHIEVEMENTS.filter(a => state.achieved[a.id] != null).length;
+    $('achProgress').textContent = `${got} of ${total} unlocked`;
+    $('achProgressBar').firstElementChild.style.width = `${(got / total) * 100}%`;
+
+    for (const a of ACHIEVEMENTS) {
+      const r = achRefs[a.id];
+      const unlockedOn = state.achieved[a.id];
+      const unlocked = unlockedOn != null;
+      const key = unlocked ? `u${unlockedOn}` : 'locked';
+      if (r.shown === key) continue;
+      r.shown = key;
+      r.card.classList.toggle('unlocked', unlocked);
+      const showText = unlocked || !a.hidden;
+      r.name.textContent = showText ? a.name : '???';
+      r.blurb.textContent = showText ? a.blurb : 'A hidden achievement. Keep playing to find it.';
+      r.day.textContent = unlocked ? `Year ${Math.floor(Math.max(0, unlockedOn) / DAYS_PER_YEAR) + 1}, Day ${Math.max(0, unlockedOn) + 1}` : '';
+    }
+  }
+
   // ===========================================================
   // GAME LOOP
   // Once a second: pay staff, simulate one trading day, report news.
@@ -2225,6 +2485,10 @@
         if (e.wiped) {
           toast('A company has failed', `${e.ticker} collapsed and your ${e.wiped} shares are now worthless.`, 'neg');
           playSound('fail');
+          state.stats.wasBurned = true;
+          // aim to recover to whatever your net worth was the day before this hit
+          const peakBefore = Math.max(0, ...state.worth.history.slice(0, -1));
+          state.stats.burnRecoveryTarget = Math.max(state.stats.burnRecoveryTarget ?? 0, peakBefore);
           continue;
         }
         if (e.kind === 'dividend') continue;
@@ -2331,6 +2595,8 @@
 
   buildWatchlist();
   buildUpgrades();
+  buildAchievements();
+  scanAchievements(true); // quietly catch up an existing save; no toast spam for old progress
   showScreen('landing');
   booted = true;
   updateTip();

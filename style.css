@@ -1327,3 +1327,27 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
 .risk-pips.risk-3 i:nth-child(-n+3) { background: var(--mustard); }
 .risk-pips.risk-4 i:nth-child(-n+4),
 .risk-pips.risk-5 i:nth-child(-n+5) { background: var(--loss); }
+
+/* ---------------- ACHIEVEMENTS ---------------- */
+.firm-links { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline; }
+.ach-progress { max-width: 360px; margin-bottom: 22px; }
+.ach-category { margin: 22px 0 10px; font-family: var(--serif); font-size: 16px; font-weight: 700; color: var(--text-2); }
+.ach-category:first-child { margin-top: 0; }
+.ach-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.ach-card {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-2);
+  opacity: 0.6;
+}
+.ach-card.unlocked { opacity: 1; border-color: color-mix(in srgb, var(--mustard) 45%, var(--line)); background: linear-gradient(160deg, rgba(240, 183, 61, 0.1), transparent 60%), var(--bg-2); }
+.ach-name { font-family: var(--serif); font-size: 16px; font-weight: 700; color: var(--text-3); }
+.ach-card.unlocked .ach-name { color: var(--mustard); }
+.ach-card.unlocked .ach-name::before { content: "✓ "; color: var(--gain); }
+.ach-blurb { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--text-2); }
+.ach-day { margin-top: 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-3); }
+
+@media (max-width: 760px) {
+  .ach-row { grid-template-columns: minmax(0, 1fr); }
+}
