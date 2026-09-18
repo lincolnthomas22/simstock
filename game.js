@@ -38,9 +38,9 @@
   // ===========================================================
   const TIERS = [
     { name: 'Starter',  cost: 0,     level: 1,  blurb: 'Your first brokerage account. Steady, well-known companies.' },
-    { name: 'Silver',   cost: 2500,  level: 3,  blurb: 'Adds a bank, a software firm, a builders merchant and an electric carmaker.' },
-    { name: 'Gold',     cost: 15000, level: 6,  blurb: 'Adds the rough end of the market: biotech, energy, mining and an airline.' },
-    { name: 'Platinum', cost: 75000, level: 10, blurb: 'Adds large, premium-priced companies with high share prices.' },
+    { name: 'Silver',   cost: 5000,   level: 3,  blurb: 'Adds a bank, a software firm, a builders merchant and an electric carmaker.' },
+    { name: 'Gold',     cost: 30000,  level: 6,  blurb: 'Adds the rough end of the market: biotech, energy, mining and an airline.' },
+    { name: 'Platinum', cost: 150000, level: 10, blurb: 'Adds large, premium-priced companies with high share prices.' },
   ];
 
   const STOCKS = [
@@ -898,6 +898,30 @@
     return (list[list.length - 1] / prevClose(list) - 1) * 100;
   }
 
+  // History holds at most a year of closes, so all of it is the 52-week window.
+  function yearStats(list) {
+    const last = list.length - 1;
+    let lo = 0, hi = 0, peak = list[0], worst = 0, moves = 0;
+    for (let i = 0; i <= last; i++) {
+      const p = list[i];
+      if (p <= list[lo]) lo = i;
+      if (p >= list[hi]) hi = i;
+      if (p > peak) peak = p;
+      worst = Math.min(worst, p / peak - 1);
+      if (i > 0) moves += Math.abs(p / list[i - 1] - 1);
+    }
+    return {
+      fullYear: list.length >= DAYS_PER_YEAR,
+      days: list.length,
+      low: list[lo], lowAgo: last - lo,
+      high: list[hi], highAgo: last - hi,
+      returnPct: (list[last] / list[0] - 1) * 100,
+      worstPct: worst * 100,
+      typicalDayPct: last ? (moves / last) * 100 : 0,
+    };
+  }
+  const daysAgo = n => (n === 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`);
+
   function tierReady(i) {
     const t = TIERS[i];
     return !!t && i === state.tier + 1 && state.level >= t.level && state.cash >= t.cost;
@@ -1729,8 +1753,17 @@
   function renderTape() {
     const items = [
       `<span class="tape-item"><b>INDEX</b>${state.market.level.toFixed(2)} ${chg(dayChangePct(state.market.history))}</span>`,
-      ...boardStocks().filter(trading)
-        .map(s => `<span class="tape-item"><b>${s.id}</b>${fmt(rtOf(s.id).price)} ${chg(dayChangePct(rtOf(s.id).history))}</span>`),
+      ...boardStocks().filter(trading).map(s => {
+        const rt = rtOf(s.id);
+        const ys = yearStats(rt.history);
+        // a brand-new listing sets a "high" or "low" almost every day, so wait a month
+        const flag = ys.days < 21 ? ''
+          : ys.highAgo === 0 ? '<span class="tape-flag pos">52W HIGH</span>'
+          : ys.lowAgo === 0 ? '<span class="tape-flag neg">52W LOW</span>'
+          : '';
+        return `<span class="tape-item"><b>${s.id}</b>${fmt(rt.price)} ${chg(dayChangePct(rt.history))}`
+          + `<span class="tape-range">52W ${ys.low.toFixed(2)}–${ys.high.toFixed(2)}</span>${flag}</span>`;
+      }),
     ].join('');
     $('tape').innerHTML = items + items;
   }
@@ -2163,8 +2196,30 @@
     // key stats
     $('sCap').textContent = fmtBig(rt.price * s.sharesOut);
     $('sPe').textContent = (rt.price / rt.eps).toFixed(1);
-    $('sDiv').textContent = s.divYield ? (s.divYield * 100).toFixed(1) + '%' : 'None';
-    $('sRange').textContent = `${fmt(Math.min(...rt.history))} – ${fmt(Math.max(...rt.history))}`;
+    $('sEps').textContent = fmt(rt.eps);
+    $('sDiv').textContent = s.divYield ? `${(s.divYield * 100).toFixed(1)}% · ${fmt(rt.price * s.divYield)} a share` : 'None';
+
+    const ys = yearStats(rt.history);
+    const span = ys.fullYear ? 'this year' : `in ${ys.days} days listed`;
+    $('r52Label').textContent = ys.fullYear ? '52-week range' : `Range since listing (${ys.days} days)`;
+    $('r52Lo').textContent = fmt(ys.low);
+    $('r52Hi').textContent = fmt(ys.high);
+    $('r52LoWhen').textContent = daysAgo(ys.lowAgo);
+    $('r52HiWhen').textContent = daysAgo(ys.highAgo);
+    const spread = ys.high - ys.low;
+    $('r52Dot').style.left = (spread > 0 ? ((rt.price - ys.low) / spread) * 100 : 50) + '%';
+    const aboveLow = (rt.price / ys.low - 1) * 100;
+    const belowHigh = (1 - rt.price / ys.high) * 100;
+    $('r52Note').innerHTML = ys.highAgo === 0 ? `<span class="pos">At its high for ${span}</span>`
+      : ys.lowAgo === 0 ? `<span class="neg">At its low for ${span}</span>`
+      : `${aboveLow.toFixed(1)}% above the low · ${belowHigh.toFixed(1)}% below the high`;
+    $('sReturnLabel').textContent = ys.fullYear ? '1-year return' : 'Since listing';
+    $('sReturn').textContent = fmtPct(ys.returnPct);
+    $('sReturn').className = tone(ys.returnPct);
+    $('sDayMove').textContent = `±${ys.typicalDayPct.toFixed(1)}%`;
+    $('sDrawLabel').textContent = ys.fullYear ? 'Worst fall this year' : 'Worst fall since listing';
+    $('sDraw').textContent = ys.worstPct < 0 ? fmtPct(ys.worstPct) : 'None';
+    $('sDraw').className = ys.worstPct < 0 ? 'neg' : '';
     $('sVol').textContent = `${s.risk} of 5 · swings ${Math.round(s.vol * 100)}%/yr`;
     $('sVolNote').textContent = canFail(s)
       ? `Grows faster on average, but ${s.risk === 5 ? 'can fail with little or no warning' : 'can fail if things go badly'}`

@@ -573,11 +573,13 @@ button:focus-visible, input:focus-visible {
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
 }
-.tape-track { display: inline-flex; padding: 7px 0; animation: tape 70s linear infinite; }
+.tape-track { display: inline-flex; padding: 7px 0; animation: tape 120s linear infinite; }
 .tape:hover .tape-track { animation-play-state: paused; }
 .tape-item { padding: 0 20px; border-right: 1px solid #2a2620; color: #d9d1c1; }
 .tape-item b { margin-right: 8px; color: var(--mustard); font-weight: 600; }
 .tape .chg { padding: 0 5px; }
+.tape-range { margin-left: 10px; font-size: 11px; color: var(--text-3); }
+.tape-flag { margin-left: 8px; padding: 1px 5px; border: 1px solid currentColor; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; }
 @keyframes tape { to { transform: translateX(-50%); } }
 
 .ledger-bar {
@@ -929,6 +931,40 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   transform: translate(-50%, calc(-100% - 10px));
 }
 .chart-tip strong { display: block; font-weight: 600; color: var(--text); }
+
+.range52 { margin-top: 18px; }
+.range52-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.range52-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.range52-note { font-family: var(--serif); font-size: 13.5px; font-style: italic; color: var(--text-2); }
+.range52-bar {
+  position: relative;
+  height: 6px;
+  margin: 10px 7px 8px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--loss-soft), rgba(240, 183, 61, 0.22), var(--gain-soft));
+}
+.range52-dot {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #0c0b09;
+  border-radius: 50%;
+  background: var(--mustard);
+  box-shadow: 0 0 0 1px var(--mustard-deep);
+  transform: translate(-50%, -50%);
+  transition: left 0.4s ease;
+}
+.range52-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); }
+.range52-ends b { margin-left: 4px; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); }
+.range52-ends small { font-family: var(--serif); font-style: italic; }
 
 .stat-grid {
   display: grid;

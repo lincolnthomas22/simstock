@@ -366,7 +366,7 @@
             <li><span class="pin">1</span> <b>The watchlist.</b> Every company, grouped by the account tier that unlocks it. Click one to look at it. Greyed-out names are ones you can watch but not yet trade.</li>
             <li><span class="pin">2</span> <b>Today's price</b> and how much it moved since yesterday. Green is up, red is down.</li>
             <li><span class="pin">3</span> <b>The chart.</b> Switch between one month, three months and a year. Hover it to see the price on any day. The gold dashed line is what you paid, so anything above it is profit.</li>
-            <li><span class="pin">4</span> <b>The facts about the company,</b> each with a plain-English note under it.</li>
+            <li><span class="pin">4</span> <b>The facts about the company,</b> each with a plain-English note under it. The <b>52-week range</b> bar above them shows where today's price sits between the year's lowest and highest. The price strip along the top of the screen shows the same range for every company, and flags any that hit a new high or low today.</li>
             <li><span class="pin">5</span> <b>The order ticket,</b> where you buy and sell.</li>
             <li><span class="pin">6</span> <b>Your shares</b> in this company, and whether you are up or down on them.</li>
           </ul>
@@ -664,13 +664,28 @@
           <div class="chart-tip" id="chartTip" hidden></div>
         </div>
 
+        <div class="range52">
+          <div class="range52-head">
+            <span class="range52-label" id="r52Label">52-week range</span>
+            <span class="range52-note" id="r52Note"></span>
+          </div>
+          <div class="range52-bar"><span class="range52-dot" id="r52Dot"></span></div>
+          <div class="range52-ends">
+            <span>Low <b id="r52Lo"></b> <small id="r52LoWhen"></small></span>
+            <span>High <b id="r52Hi"></b> <small id="r52HiWhen"></small></span>
+          </div>
+        </div>
+
         <dl class="stat-grid">
           <div class="stat"><dt>Market cap</dt><dd id="sCap"></dd><small>What all its shares are worth together</small></div>
           <div class="stat"><dt>P/E ratio</dt><dd id="sPe"></dd><small>Price divided by a year's profit per share</small></div>
+          <div class="stat"><dt>Earnings per share</dt><dd id="sEps"></dd><small>A year's profit, split across every share</small></div>
           <div class="stat"><dt>Dividend yield</dt><dd id="sDiv"></dd><small>Cash paid out each year, as a share of price</small></div>
-          <div class="stat"><dt>1-year range</dt><dd id="sRange"></dd><small>Lowest and highest price this year</small></div>
+          <div class="stat"><dt id="sReturnLabel">1-year return</dt><dd id="sReturn"></dd><small>How much the price has changed</small></div>
+          <div class="stat"><dt>Typical day</dt><dd id="sDayMove"></dd><small>How far the price usually moves in a day</small></div>
           <div class="stat"><dt>Risk</dt><dd id="sVol"></dd><small id="sVolNote"></small></div>
           <div class="stat"><dt>Beta</dt><dd id="sBeta"></dd><small>1.00 moves with the market; higher swings more</small></div>
+          <div class="stat"><dt id="sDrawLabel">Worst fall this year</dt><dd id="sDraw"></dd><small>Biggest drop from a high to the low after it</small></div>
         </dl>
 
         <div class="detail-lower">
