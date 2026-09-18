@@ -579,6 +579,7 @@ button:focus-visible, input:focus-visible {
 .tape-item b { margin-right: 8px; color: var(--mustard); font-weight: 600; }
 .tape .chg { padding: 0 5px; }
 .tape-range { margin-left: 10px; font-size: 11px; color: var(--text-3); }
+.tape-sep { font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tier-3); }
 .tape-flag { margin-left: 8px; padding: 1px 5px; border: 1px solid currentColor; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; }
 @keyframes tape { to { transform: translateX(-50%); } }
 
@@ -607,7 +608,7 @@ button:focus-visible, input:focus-visible {
 }
 body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .page-title { font-size: 30px; font-weight: 700; }
-.task-switch { display: flex; gap: 6px; margin-left: auto; }
+.task-switch { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-left: auto; }
 .task-switch button {
   padding: 5px 12px;
   border: 1px solid var(--line-strong);
@@ -619,15 +620,14 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
   cursor: pointer;
 }
 .task-switch button:hover { border-color: var(--text-3); color: var(--text); }
-body:has(#homeScreen:not([hidden])) .task-switch [data-screen="home"],
-body:has(#tutorialScreen:not([hidden])) .task-switch [data-screen="tutorial"],
-body:has(#tradeScreen:not([hidden])) .task-switch [data-screen="trade"],
-body:has(#portfolioScreen:not([hidden])) .task-switch [data-screen="portfolio"],
-body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
+.task-switch [aria-current="page"] {
   border-color: #0c4a37;
   background: linear-gradient(180deg, #1d8a68, #0f5a43);
   color: var(--text);
 }
+/* the two coin rooms wear their own colour, so it's clear which market you're in */
+.task-switch .nav-crypto[aria-current="page"] { border-color: #2d5876; background: linear-gradient(180deg, #3f82b0, #1f4e70); }
+.task-switch .nav-meme[aria-current="page"] { border-color: #5a3f86; background: linear-gradient(180deg, #8a64c9, #553a86); }
 
 /* ---------------- FRONT PAGE ---------------- */
 .column-head {
@@ -828,6 +828,10 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   background: linear-gradient(140deg, #22201b, #0f0e0c);
 }
 .market-summary .figure-label { width: 100%; color: var(--mustard); }
+#tradeScreen[data-market="crypto"] .market-summary { border-color: #2d5876; background: linear-gradient(140deg, #182631, #0f0e0c); }
+#tradeScreen[data-market="crypto"] .market-summary .figure-label { color: var(--blue); }
+#tradeScreen[data-market="meme"] .market-summary { border-color: #5a3f86; background: linear-gradient(140deg, #231a31, #0f0e0c); }
+#tradeScreen[data-market="meme"] .market-summary .figure-label { color: var(--tier-3); }
 .market-level { font-family: var(--mono); font-size: 17px; font-weight: 600; }
 .market-summary .change-sm { font-family: var(--mono); font-size: 12px; }
 
@@ -842,6 +846,19 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--tier);
+}
+.watch-group.phase-ascended { --tier: var(--green-bright); }
+.watch-group.phase-rising { --tier: var(--tier-3); }
+.watch-tag {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid var(--mustard);
+  border-radius: 2px;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mustard);
+  vertical-align: 1px;
 }
 .watch-row {
   display: flex;
@@ -890,6 +907,10 @@ body:has(#upgradesScreen:not([hidden])) .task-switch [data-screen="upgrades"] {
   color: var(--text-2);
 }
 
+.warn-note.hot-note {
+  border-left-color: var(--mustard);
+  background: linear-gradient(90deg, rgba(240, 183, 61, 0.18), rgba(240, 183, 61, 0.03));
+}
 .warn-note {
   display: block;
   margin-top: 10px;

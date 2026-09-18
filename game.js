@@ -37,76 +37,198 @@
   // growth: yearly profit growth · pe: typical price-to-earnings ratio
   // ===========================================================
   const TIERS = [
-    { name: 'Starter',  cost: 0,     level: 1,  blurb: 'Your first brokerage account. Steady, well-known companies.' },
-    { name: 'Silver',   cost: 5000,   level: 3,  blurb: 'Adds a bank, a software firm, a builders merchant and an electric carmaker.' },
-    { name: 'Gold',     cost: 30000,  level: 6,  blurb: 'Adds the rough end of the market: biotech, energy, mining and an airline.' },
-    { name: 'Platinum', cost: 150000, level: 10, blurb: 'Adds large, premium-priced companies with high share prices.' },
+    { name: 'Starter',  cost: 0,     level: 1,  blurb: 'Your first brokerage account. Steady, famous companies, the two biggest coins and the best-known memecoins.' },
+    { name: 'Silver',   cost: 5000,   level: 3,  blurb: 'Adds a big bank, a software giant, a DIY chain, an electric carmaker and more coins.' },
+    { name: 'Gold',     cost: 30000,  level: 6,  blurb: 'Adds the rough end of the market: biotech, oil, gold mining, an airline and riskier coins.' },
+    { name: 'Platinum', cost: 150000, level: 10, blurb: 'Adds giant, premium-priced companies and the wildest coins on the board.' },
   ];
 
+  // Every name is a light parody of a real company or coin, and each one is
+  // tuned to behave roughly like the real thing: its size (sharesOut or coin
+  // supply × price), how hard it swings, and how likely it is to blow up.
+  // market: 'stock' (the trading floor), 'crypto' or 'meme'.
   const STOCKS = [
-    { id: 'IDXF', name: 'Evergreen Total Market Fund', sector: 'Index fund', fund: true, tier: 0, risk: 1, start: 250, vol: 0.16, beta: 1.0, growth: 0.055, pe: 20, divYield: 0.015, sharesOut: 2.1e9, color: '#7f9cc4',
+    { id: 'VTMF', name: 'Vanguarde Total Market Fund', sector: 'Index fund', fund: true, tier: 0, risk: 1, start: 250, vol: 0.16, beta: 1.0, growth: 0.055, pe: 20, divYield: 0.015, sharesOut: 1.9e9,
       about: 'Owns a small slice of every company in the market. It moves with the market as a whole, so it swings less than most single stocks.' },
-    { id: 'TICK', name: 'Tickr Inc.', sector: 'Technology', tier: 0, risk: 3, start: 100, vol: 0.32, beta: 1.2, growth: 0.1, pe: 30, divYield: 0, sharesOut: 850e6, color: '#5b8def',
-      about: 'Builds trading software and cloud tools for banks. It is growing quickly and reinvests its profits instead of paying a dividend.' },
-    { id: 'BRWL', name: 'Brightwell Foods', sector: 'Consumer staples', tier: 0, risk: 1, start: 48, vol: 0.17, beta: 0.6, growth: 0.02, pe: 18, divYield: 0.032, sharesOut: 1.4e9, color: '#c9a45c',
-      about: 'Makes cereal, snacks and frozen meals. People buy groceries in good times and bad, so the stock is steady and pays a regular dividend.' },
-    { id: 'CIVC', name: 'Civic Power & Water', sector: 'Utilities', tier: 0, risk: 1, start: 62, vol: 0.14, beta: 0.45, growth: 0.01, pe: 16, divYield: 0.042, sharesOut: 900e6, color: '#6f9aa8',
-      about: 'Keeps the lights on and the taps running for millions of homes. Growth is slow and dull, but the bills get paid and so do its dividends.' },
-    { id: 'PARC', name: 'Parcelworks', sector: 'Logistics', tier: 0, risk: 2, start: 84, vol: 0.22, beta: 0.9, growth: 0.065, pe: 19, divYield: 0.012, sharesOut: 700e6, color: '#b08a6a',
-      about: 'Runs delivery vans and sorting depots. When shops and factories are busy it thrives, and when they slow down so does it.' },
-    { id: 'VOLT', name: 'Voltaic Motors', sector: 'Automotive', tier: 1, risk: 5, start: 64, vol: 0.55, beta: 1.6, growth: 0.18, pe: 45, divYield: 0, sharesOut: 1.1e9, color: '#4fb3a9',
-      about: 'An electric vehicle maker betting big on new factories. Investors expect a lot of growth, so the stock swings hard on any news.' },
-    { id: 'NRTH', name: 'Northgate Bank', sector: 'Financials', tier: 1, risk: 2, start: 72, vol: 0.25, beta: 1.15, growth: 0.04, pe: 11, divYield: 0.036, sharesOut: 2.6e9, color: '#8a93d6',
-      about: 'A large bank that earns money lending to families and businesses. It tends to rise and fall with the overall economy.' },
-    { id: 'NIMB', name: 'Nimbus Software', sector: 'Technology', tier: 1, risk: 3, start: 118, vol: 0.38, beta: 1.25, growth: 0.1, pe: 38, divYield: 0, sharesOut: 620e6, color: '#6f8fe0',
-      about: 'Sells office software that companies pay for by the month. Those payments are reliable, but investors expect fast growth and punish any slip.' },
-    { id: 'HRVS', name: 'Harvest Materials', sector: 'Materials', tier: 1, risk: 2, start: 57, vol: 0.28, beta: 1.05, growth: 0.045, pe: 13, divYield: 0.028, sharesOut: 1.1e9, color: '#a8925c',
-      about: 'Makes cement, glass and steel for building work. Its fortunes follow construction, which booms and stalls with the economy.' },
-    { id: 'HELX', name: 'Helix Therapeutics', sector: 'Biotech', tier: 2, risk: 5, start: 38, vol: 0.62, beta: 0.8, growth: 0.18, pe: 40, divYield: 0, sharesOut: 520e6, color: '#b98ac6',
-      about: 'Develops new medicines. A single drug trial result can send the stock sharply up or down, no matter what the market is doing.' },
-    { id: 'CRST', name: 'Crestline Energy', sector: 'Energy', tier: 2, risk: 3, start: 91, vol: 0.30, beta: 0.9, growth: 0.055, pe: 12, divYield: 0.045, sharesOut: 1.9e9, color: '#d08a57',
-      about: 'Produces oil and natural gas. Its price follows energy prices, and it returns much of its cash to investors as dividends.' },
-    { id: 'AURA', name: 'Aurora Mining', sector: 'Mining', tier: 2, risk: 4, start: 41, vol: 0.45, beta: 1.1, growth: 0.115, pe: 14, divYield: 0.02, sharesOut: 800e6, color: '#c98f4a',
-      about: 'Digs copper and gold out of the ground. Metal prices swing hard, and a single flooded mine can wipe out a year of profit.' },
-    { id: 'VELO', name: 'Velocity Airways', sector: 'Airlines', tier: 2, risk: 4, start: 33, vol: 0.50, beta: 1.5, growth: 0.135, pe: 10, divYield: 0, sharesOut: 540e6, color: '#7fa9c9',
-      about: 'Flies short-haul routes on thin margins. Cheap fuel and full planes make it soar; a downturn or a fuel spike can sink it entirely.' },
-    { id: 'ORBT', name: 'Orbital Systems', sector: 'Aerospace', tier: 3, risk: 4, start: 220, vol: 0.40, beta: 1.3, growth: 0.135, pe: 35, divYield: 0, sharesOut: 640e6, color: '#6aa6d6',
-      about: 'Launches satellites and builds spacecraft for governments. Big contracts can lift the stock, and launch failures can sink it.' },
-    { id: 'SUMT', name: 'Summit Global Holdings', sector: 'Conglomerate', tier: 3, risk: 1, start: 410, vol: 0.18, beta: 0.9, growth: 0.03, pe: 22, divYield: 0.022, sharesOut: 1.3e9, color: '#9aa7b8',
-      about: 'Owns dozens of businesses, from insurance to railroads. Pricey per share, but steady, diversified and a reliable dividend payer.' },
-    { id: 'MERD', name: 'Meridian Pharma', sector: 'Pharmaceuticals', tier: 3, risk: 2, start: 330, vol: 0.24, beta: 0.7, growth: 0.045, pe: 19, divYield: 0.031, sharesOut: 1.6e9, color: '#9ab8a0',
-      about: 'Sells medicines people take for years at a time. Far calmer than a young biotech, because it already has drugs earning money.' },
-    { id: 'QNTA', name: 'Quanta Robotics', sector: 'Robotics', tier: 3, risk: 4, start: 265, vol: 0.42, beta: 1.35, growth: 0.135, pe: 48, divYield: 0, sharesOut: 700e6, color: '#a58fd6',
-      about: 'Builds factory robots and the software that runs them. One of the fastest growers on the board, priced as though that will never stop.' },
+    { id: 'APPL', name: 'Appel Inc.', sector: 'Technology', tier: 0, risk: 2, start: 190, vol: 0.27, beta: 1.15, growth: 0.08, pe: 30, divYield: 0.005, sharesOut: 15.2e9,
+      about: 'Sells phones, laptops and watches to over a billion people, and takes a cut of every app sold on them. Huge, hugely profitable, and still growing.' },
+    { id: 'KOKA', name: 'Koka-Cola Company', sector: 'Consumer staples', tier: 0, risk: 1, start: 62, vol: 0.16, beta: 0.6, growth: 0.03, pe: 23, divYield: 0.031, sharesOut: 4.3e9,
+      about: 'Sells fizzy drinks in almost every country on earth. People keep buying them whatever the economy does, so the stock is steady and pays a rising dividend.' },
+    { id: 'DUKK', name: 'Duck Energy', sector: 'Utilities', tier: 0, risk: 1, start: 105, vol: 0.15, beta: 0.45, growth: 0.02, pe: 18, divYield: 0.039, sharesOut: 770e6,
+      about: 'Keeps the lights on for millions of homes. Growth is slow and dull, but the bills get paid and so do its dividends.' },
+    { id: 'FDUP', name: 'FedUp Corporation', sector: 'Logistics', tier: 0, risk: 2, start: 250, vol: 0.28, beta: 1.05, growth: 0.06, pe: 15, divYield: 0.02, sharesOut: 245e6,
+      about: 'Flies and trucks parcels around the world overnight. Busy when shops and factories are, and it feels every slowdown first.' },
+    { id: 'TSLO', name: 'Teslo Motors', sector: 'Automotive', tier: 1, risk: 4, start: 240, vol: 0.58, beta: 1.8, growth: 0.15, pe: 70, divYield: 0, sharesOut: 3.2e9,
+      about: "The world's most valuable carmaker, run by a founder who is never far from the headlines. Priced for enormous growth, so it swings hard on every rumour." },
+    { id: 'JPMG', name: 'J.P. Morgane Chase', sector: 'Financials', tier: 1, risk: 2, start: 200, vol: 0.24, beta: 1.1, growth: 0.05, pe: 12, divYield: 0.024, sharesOut: 2.85e9,
+      about: 'The biggest bank in the country, lending to families, companies and governments. It rises and falls with the economy, but it has come through every crisis so far.' },
+    { id: 'MCSF', name: 'Macrosoft Corporation', sector: 'Technology', tier: 1, risk: 2, start: 410, vol: 0.25, beta: 1.1, growth: 0.1, pe: 34, divYield: 0.008, sharesOut: 7.4e9,
+      about: "Sells the office software and cloud computing half the world's businesses run on, paid for by the month. Enormous, steady, and still growing fast." },
+    { id: 'HDPO', name: 'The Home Depo', sector: 'Home improvement', tier: 1, risk: 2, start: 350, vol: 0.24, beta: 1.0, growth: 0.06, pe: 23, divYield: 0.025, sharesOut: 990e6,
+      about: "Sells timber, tools and paint to builders and weekend DIYers. It booms when people are moving house and doing up homes, and slows when they aren't." },
+    { id: 'MDRO', name: 'Moderno', sector: 'Biotech', tier: 2, risk: 5, start: 38, vol: 0.65, beta: 0.8, growth: 0.15, pe: 40, divYield: 0, sharesOut: 385e6,
+      about: 'Made its name with a fast-built vaccine and is now betting everything on the next one. A single trial result can double the stock or halve it.' },
+    { id: 'XOMB', name: 'ExxonMobile', sector: 'Energy', tier: 2, risk: 2, start: 112, vol: 0.26, beta: 0.85, growth: 0.04, pe: 13, divYield: 0.034, sharesOut: 4.4e9,
+      about: 'Pumps, refines and sells oil and gas all over the world. Its price follows energy prices, and it pays out a big dividend.' },
+    { id: 'NMNT', name: 'Newmint Mining', sector: 'Mining', tier: 2, risk: 3, start: 45, vol: 0.38, beta: 0.6, growth: 0.07, pe: 14, divYield: 0.022, sharesOut: 1.15e9,
+      about: "The world's biggest gold miner. Gold prices swing on fear and interest rates, and a single flooded mine can wipe out a year of profit." },
+    { id: 'DLTA', name: 'Delto Air Lines', sector: 'Airlines', tier: 2, risk: 4, start: 48, vol: 0.42, beta: 1.4, growth: 0.08, pe: 8, divYield: 0.012, sharesOut: 645e6,
+      about: 'One of the biggest airlines in the world. Full planes and cheap fuel make it soar; a recession or a fuel spike can bring it down hard.' },
+    { id: 'LKMN', name: 'Lockheed Martian', sector: 'Aerospace', tier: 3, risk: 2, start: 470, vol: 0.22, beta: 0.5, growth: 0.05, pe: 17, divYield: 0.027, sharesOut: 237e6,
+      about: 'Builds fighter jets, missiles and spacecraft for governments. Its customers sign contracts years in advance, which keeps it steady.' },
+    { id: 'BRKH', name: 'Berkshire Hathaweigh', sector: 'Conglomerate', tier: 3, risk: 1, start: 460, vol: 0.17, beta: 0.85, growth: 0.06, pe: 22, divYield: 0, sharesOut: 2.16e9,
+      about: 'Owns an insurance empire, a railroad and dozens of other businesses, run by a famously patient investor. It never pays a dividend: it keeps the cash and buys more businesses.' },
+    { id: 'ELYL', name: 'Ely Lilly', sector: 'Pharmaceuticals', tier: 3, risk: 2, start: 780, vol: 0.28, beta: 0.5, growth: 0.12, pe: 55, divYield: 0.007, sharesOut: 950e6,
+      about: 'Sells weight-loss and diabetes drugs the whole world wants. Expensive per share, and priced for years more growth.' },
+    { id: 'NVDO', name: 'Nvidio Corporation', sector: 'Semiconductors', tier: 3, risk: 4, start: 880, vol: 0.52, beta: 1.7, growth: 0.2, pe: 60, divYield: 0, sharesOut: 2.46e9,
+      about: 'Makes the chips artificial intelligence runs on, and cannot build them fast enough. The fastest-growing giant on the board, and one of the wildest.' },
 
     // Waiting in the wings: each of these lists on the exchange when a company
     // fails, taking its place on the board. None of them trade before then.
-    { id: 'FRSH', name: 'Freshfield Grocers', sector: 'Consumer staples', later: true, tier: 0, risk: 1, start: 36, vol: 0.16, beta: 0.55, growth: 0.02, pe: 17, divYield: 0.033, sharesOut: 1.2e9, color: '#b5a86a',
-      about: 'Runs neighbourhood supermarkets. Nobody gets rich quick owning it, but people always need milk and bread.' },
-    { id: 'PNGW', name: 'Pingwire', sector: 'Technology', later: true, tier: 0, risk: 4, start: 22, vol: 0.47, beta: 1.4, growth: 0.135, pe: 50, divYield: 0, sharesOut: 900e6, color: '#5fa8e8',
-      about: 'A young messaging app signing up users fast and yet to make a profit. Exciting, and fragile.' },
-    { id: 'DSHL', name: 'Dashline Couriers', sector: 'Logistics', later: true, tier: 0, risk: 2, start: 44, vol: 0.24, beta: 0.95, growth: 0.06, pe: 17, divYield: 0.015, sharesOut: 600e6, color: '#b3906f',
-      about: 'Same-day delivery by bike and van in big cities. Busy when shoppers are, quieter when they are not.' },
-    { id: 'KEEL', name: 'Keel & Harbour Bank', sector: 'Financials', later: true, tier: 1, risk: 2, start: 54, vol: 0.26, beta: 1.1, growth: 0.04, pe: 10, divYield: 0.038, sharesOut: 1.8e9, color: '#8f8fd0',
-      about: 'A regional bank lending to shipyards, farms and small firms. Pays a solid dividend and follows the economy.' },
-    { id: 'SPRK', name: 'Sparkline EV', sector: 'Automotive', later: true, tier: 1, risk: 5, start: 18, vol: 0.60, beta: 1.7, growth: 0.18, pe: 60, divYield: 0, sharesOut: 800e6, color: '#45c2b0',
-      about: 'Makes electric scooters and vans, and spends money far faster than it earns it. It could be huge, or it could be gone.' },
-    { id: 'FORG', name: 'Forge Steelworks', sector: 'Materials', later: true, tier: 1, risk: 3, start: 39, vol: 0.33, beta: 1.2, growth: 0.075, pe: 12, divYield: 0.025, sharesOut: 900e6, color: '#a88a5a',
-      about: 'Melts scrap into new steel for bridges and buildings. Profits rise and fall sharply with construction.' },
-    { id: 'GNVA', name: 'Genova Bio', sector: 'Biotech', later: true, tier: 2, risk: 5, start: 27, vol: 0.64, beta: 0.8, growth: 0.18, pe: 45, divYield: 0, sharesOut: 450e6, color: '#c08fd0',
-      about: 'Has one promising drug in late trials and not much else. The result will make or break it.' },
-    { id: 'TDWR', name: 'Tidewater Offshore', sector: 'Energy', later: true, tier: 2, risk: 3, start: 58, vol: 0.34, beta: 1.0, growth: 0.06, pe: 11, divYield: 0.04, sharesOut: 1.2e9, color: '#d49a62',
-      about: 'Drills for oil and gas far out at sea. Big projects, big costs, and a price that follows energy markets.' },
-    { id: 'SKYL', name: 'Skylark Air', sector: 'Airlines', later: true, tier: 2, risk: 4, start: 26, vol: 0.48, beta: 1.5, growth: 0.135, pe: 11, divYield: 0, sharesOut: 480e6, color: '#86b0d0',
-      about: 'A budget airline growing route by route. Full planes make it fly; a fuel spike could ground it.' },
-    { id: 'NOVL', name: 'Nova Launch', sector: 'Aerospace', later: true, tier: 3, risk: 5, start: 180, vol: 0.58, beta: 1.4, growth: 0.18, pe: 60, divYield: 0, sharesOut: 500e6, color: '#74b0e0',
-      about: 'Builds reusable rockets on a shoestring. Every launch is a bet on the whole company.' },
-    { id: 'ATLS', name: 'Atlas Consolidated', sector: 'Conglomerate', later: true, tier: 3, risk: 1, start: 360, vol: 0.17, beta: 0.85, growth: 0.03, pe: 20, divYield: 0.024, sharesOut: 1.4e9, color: '#a0abbb',
-      about: 'Owns railways, insurers and a chain of hardware shops. Steady, sprawling and unexciting.' },
-    { id: 'CURW', name: 'Curewell Pharma', sector: 'Pharmaceuticals', later: true, tier: 3, risk: 2, start: 290, vol: 0.23, beta: 0.7, growth: 0.045, pe: 18, divYield: 0.03, sharesOut: 1.5e9, color: '#a2c0a8',
-      about: 'Makes everyday medicines sold in every chemist. Calm, profitable and a reliable dividend payer.' },
+    { id: 'WLMT', name: 'Wallmort Inc.', sector: 'Consumer staples', later: true, tier: 0, risk: 1, start: 68, vol: 0.18, beta: 0.55, growth: 0.05, pe: 30, divYield: 0.013, sharesOut: 8e9,
+      about: 'The biggest shop in the world, with a store near almost everyone. People buy groceries in good times and bad.' },
+    { id: 'SNPP', name: 'Snapp Inc.', sector: 'Technology', later: true, tier: 0, risk: 4, start: 11, vol: 0.6, beta: 1.5, growth: 0.15, pe: 60, divYield: 0, sharesOut: 1.65e9,
+      about: 'A disappearing-photo app loved by teenagers and yet to make a steady profit. Exciting, and fragile.' },
+    { id: 'OOBR', name: 'Oober Technologies', sector: 'Logistics', later: true, tier: 0, risk: 3, start: 70, vol: 0.4, beta: 1.3, growth: 0.12, pe: 35, divYield: 0, sharesOut: 2.1e9,
+      about: 'Rides and food delivery at the tap of a phone, in cities all over the world. Growing fast, and only lately making a profit.' },
+    { id: 'WFGO', name: 'Wells Fargone', sector: 'Financials', later: true, tier: 1, risk: 2, start: 60, vol: 0.27, beta: 1.15, growth: 0.04, pe: 11, divYield: 0.027, sharesOut: 3.4e9,
+      about: 'A giant high-street bank still repairing its name after a string of scandals. Pays a solid dividend and follows the economy.' },
+    { id: 'RVON', name: 'Rivion Automotive', sector: 'Automotive', later: true, tier: 1, risk: 5, start: 12, vol: 0.7, beta: 1.7, growth: 0.18, pe: 60, divYield: 0, sharesOut: 1e9,
+      about: 'Builds electric pickups and delivery vans, and spends money far faster than it earns it. It could be huge, or it could be gone.' },
+    { id: 'USTL', name: 'U.S. Steal', sector: 'Materials', later: true, tier: 1, risk: 3, start: 38, vol: 0.38, beta: 1.3, growth: 0.05, pe: 12, divYield: 0.005, sharesOut: 225e6,
+      about: 'Melts iron ore into steel for cars, bridges and buildings. Profits rise and fall sharply with construction.' },
+    { id: 'NVVX', name: 'Novavacks', sector: 'Biotech', later: true, tier: 2, risk: 5, start: 9, vol: 0.8, beta: 0.9, growth: 0.15, pe: 45, divYield: 0, sharesOut: 160e6,
+      about: 'Has one vaccine on the market and not much cash left. The next trial will make or break it.' },
+    { id: 'TSOC', name: 'Transoceano', sector: 'Energy', later: true, tier: 2, risk: 4, start: 5, vol: 0.6, beta: 1.2, growth: 0.1, pe: 20, divYield: 0, sharesOut: 870e6,
+      about: 'Rents out giant drilling rigs far out at sea. Buried in debt, and its price lurches with every move in oil.' },
+    { id: 'SPRT', name: 'Spirited Airlines', sector: 'Airlines', later: true, tier: 2, risk: 5, start: 4, vol: 0.75, beta: 1.6, growth: 0.15, pe: 10, divYield: 0, sharesOut: 110e6,
+      about: 'The yellow budget airline with the cheapest seats and the most complaints. Losing money and short of cash; a fuel spike could ground it for good.' },
+    { id: 'MSTG', name: 'MicroStratagem', sector: 'Technology', later: true, tier: 3, risk: 5, start: 340, vol: 0.9, beta: 1.4, cryptoBeta: 1.3, growth: 0.2, pe: 80, divYield: 0, sharesOut: 230e6,
+      about: 'A small software company that borrowed billions to buy Bitcoyn. Its shares move like the coin itself, only more so.' },
+    { id: 'CSTK', name: 'Costko Wholesale', sector: 'Consumer staples', later: true, tier: 3, risk: 1, start: 900, vol: 0.2, beta: 0.75, growth: 0.08, pe: 50, divYield: 0.005, sharesOut: 443e6,
+      about: 'Sells groceries and televisions in bulk to members who pay a yearly fee to shop there. Steady, loved, and expensive per share.' },
+    { id: 'JNJN', name: 'Johnsen & Johnsen', sector: 'Pharmaceuticals', later: true, tier: 3, risk: 1, start: 158, vol: 0.17, beta: 0.55, growth: 0.04, pe: 16, divYield: 0.031, sharesOut: 2.4e9,
+      about: 'Makes everyday medicines and medical devices found in every hospital and chemist. Calm, profitable and a reliable dividend payer.' },
+
+    // ---------- CRYPTO ----------
+    // beta here is sensitivity to the crypto market, not the stock market.
+    // solid: too big to fail outright, however far it falls.
+    { id: 'BTY', market: 'crypto', name: 'Bitcoyn', sector: 'Crypto', tier: 0, risk: 3, solid: true, start: 62000, vol: 0.55, beta: 1.0, growth: 0.12, sharesOut: 19.7e6,
+      about: 'The first and biggest cryptocurrency. Only 21 million will ever exist, which is the whole appeal. Big swings, but it has survived every crash so far.' },
+    { id: 'ETM', market: 'crypto', name: 'Etherium', sector: 'Crypto', tier: 0, risk: 3, solid: true, start: 3100, vol: 0.7, beta: 1.25, growth: 0.12, sharesOut: 120e6,
+      about: 'The network thousands of other apps and tokens run on. It swings harder than Bitcoyn and follows it closely.' },
+    { id: 'USDR', market: 'crypto', name: 'Tethur', sector: 'Stablecoin', stable: true, tier: 0, risk: 1, solid: true, start: 1, vol: 0.01, beta: 0, growth: 0, sharesOut: 115e9,
+      about: "A stablecoin: each one is meant to be worth exactly one dollar, backed by cash and bonds the issuer holds. Traders use it to park money without leaving crypto. It shouldn't grow, and it shouldn't fall." },
+    { id: 'SOLO', market: 'crypto', name: 'Solano', sector: 'Crypto', tier: 1, risk: 4, start: 150, vol: 0.95, beta: 1.5, growth: 0.12, sharesOut: 470e6,
+      about: 'A fast, cheap network that once crashed 95% and came roaring back. The favourite of memecoin traders.' },
+    { id: 'RPL', market: 'crypto', name: 'Rippel', sector: 'Crypto', tier: 1, risk: 4, start: 0.55, vol: 0.85, beta: 1.1, growth: 0.06, sharesOut: 56e9,
+      about: 'Built to move money between banks in seconds. Spent years fighting regulators in court, and its price jumps on every ruling.' },
+    { id: 'LTN', market: 'crypto', name: 'Lightcoin', sector: 'Crypto', tier: 1, risk: 3, start: 72, vol: 0.75, beta: 1.1, growth: 0.03, sharesOut: 75e6,
+      about: 'One of the oldest coins, a lighter, faster copy of Bitcoyn. Still around, but most of the excitement has moved elsewhere.' },
+    { id: 'ADO', market: 'crypto', name: 'Cardono', sector: 'Crypto', tier: 2, risk: 4, start: 0.45, vol: 0.9, beta: 1.3, growth: 0.06, sharesOut: 35e9,
+      about: "A carefully researched network that takes its time shipping anything. Fans love it; critics say it's mostly promises." },
+    { id: 'LNKK', market: 'crypto', name: 'Chainlynk', sector: 'Crypto', tier: 2, risk: 4, start: 14, vol: 0.9, beta: 1.3, growth: 0.08, sharesOut: 600e6,
+      about: 'Feeds real-world prices and data into crypto apps. Useful plumbing, with a price that swings like everything else in crypto.' },
+    { id: 'BNN', market: 'crypto', name: 'Binanse Coin', sector: 'Crypto', tier: 2, risk: 3, start: 560, vol: 0.6, beta: 1.0, growth: 0.08, sharesOut: 146e6,
+      about: "The coin of the world's biggest crypto exchange. It lives and dies by the exchange, and the exchange has had its share of run-ins with regulators." },
+    { id: 'AVLN', market: 'crypto', name: 'Avalanch', sector: 'Crypto', tier: 3, risk: 4, start: 28, vol: 1.0, beta: 1.5, growth: 0.1, sharesOut: 400e6,
+      about: 'A rival network that promised to be faster than Etherium. When crypto runs, it runs harder; when crypto falls, it falls harder.' },
+    { id: 'LUNH', market: 'crypto', name: 'Lunah', sector: 'Crypto', tier: 3, risk: 5, start: 80, vol: 1.2, beta: 1.6, growth: 0.2, sharesOut: 700e6,
+      about: 'Pays sky-high interest through its sister stablecoin, and nobody is quite sure where the money comes from. The fastest riser in crypto, and the likeliest to vanish overnight.' },
+    { id: 'TONN', market: 'crypto', name: 'Toncoyn', sector: 'Crypto', later: true, tier: 1, risk: 4, start: 5.5, vol: 1.0, beta: 1.2, growth: 0.1, sharesOut: 2.5e9,
+      about: 'Tied to a messaging app with a billion users. If they all start paying each other in it, it could be huge.' },
+    { id: 'POLG', market: 'crypto', name: 'Pollygon', sector: 'Crypto', later: true, tier: 1, risk: 4, start: 0.5, vol: 1.0, beta: 1.4, growth: 0.06, sharesOut: 9.3e9,
+      about: 'Makes Etherium cheaper and faster to use by bundling transactions together. Useful, crowded, and fighting a dozen copycats.' },
+    { id: 'APTS', market: 'crypto', name: 'Aptoss', sector: 'Crypto', later: true, tier: 2, risk: 5, start: 8, vol: 1.2, beta: 1.5, growth: 0.12, sharesOut: 450e6,
+      about: 'A young network built by engineers who left a social media giant. Plenty of money behind it, and not much yet built on it.' },
+    { id: 'SUEY', market: 'crypto', name: 'Suey', sector: 'Crypto', later: true, tier: 3, risk: 5, start: 1.2, vol: 1.3, beta: 1.6, growth: 0.15, sharesOut: 2.8e9,
+      about: 'A brand-new network, barely a year old and priced as if it has already won.' },
+
+    // ---------- MEMECOINS ----------
+    // phase 'ascended': already famous, and too big to vanish. 'rising': tiny,
+    // and on any day it might ascend, or be rugged by the people who made it.
+    // rug: yearly chance of the makers vanishing with the money.
+    { id: 'DOGG', market: 'meme', phase: 'ascended', name: 'Doggecoin', sector: 'Memecoin', tier: 0, risk: 4, solid: true, start: 0.12, vol: 1.0, beta: 1.4, growth: 0.05, sharesOut: 146e9,
+      about: 'Started as a joke with a dog on it and became one of the biggest coins in the world. A single post from the right billionaire can move it 20% in a day.' },
+    { id: 'SHBU', market: 'meme', phase: 'ascended', name: 'Shiba Inyu', sector: 'Memecoin', tier: 0, risk: 4, solid: true, start: 0.000018, vol: 1.1, beta: 1.5, growth: 0.05, sharesOut: 589e12,
+      about: "The self-styled Doggecoin killer, with nearly 600 trillion coins in circulation. A few dollars buys you millions of them." },
+    { id: 'PEPP', market: 'meme', phase: 'ascended', name: 'Peppe', sector: 'Memecoin', tier: 1, risk: 4, solid: true, start: 0.0000095, vol: 1.2, beta: 1.6, growth: 0.06, sharesOut: 420e12,
+      about: 'A cartoon frog that went from internet in-joke to a multi-billion-dollar coin in weeks. No roadmap, no purpose, no apologies.' },
+    { id: 'BONQ', market: 'meme', phase: 'ascended', name: 'Bonkk', sector: 'Memecoin', tier: 1, risk: 4, solid: true, start: 0.000022, vol: 1.3, beta: 1.7, growth: 0.06, sharesOut: 70e12,
+      about: 'The dog coin of the Solano network, handed out free to its early users. It rises and falls with Solano, only more so.' },
+    { id: 'WCAP', market: 'meme', phase: 'ascended', name: 'dogwifcap', sector: 'Memecoin', tier: 2, risk: 4, solid: true, start: 2.1, vol: 1.4, beta: 1.8, growth: 0.06, sharesOut: 1e9,
+      about: "A dog in a knitted cap. That's it. That's the whole thing, and at one point it was worth billions." },
+    { id: 'FLKK', market: 'meme', phase: 'ascended', name: 'Flokki', sector: 'Memecoin', tier: 2, risk: 4, solid: true, start: 0.00015, vol: 1.2, beta: 1.6, growth: 0.05, sharesOut: 9.7e12,
+      about: "Named after a famous billionaire's dog, with its own game and a marketing budget bigger than most startups'." },
+    { id: 'MDNG', market: 'meme', phase: 'rising', name: 'Moo Dang', sector: 'Memecoin', tier: 0, risk: 5, rug: 0.8, start: 0.00021, vol: 1.6, beta: 1.5, growth: 0.3, sharesOut: 1e9,
+      about: 'Named after a baby hippo who went viral for being grumpy. Tiny, brand new, and one video away from taking off. Or from nothing at all.' },
+    { id: 'TURB', market: 'meme', phase: 'rising', name: 'Turbbo', sector: 'Memecoin', tier: 0, risk: 5, rug: 0.8, start: 0.0000042, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 69e9,
+      about: 'A coin an AI chatbot designed for fun, from the name to the logo. It has a loud community and not much else.' },
+    { id: 'BRET', market: 'meme', phase: 'rising', name: 'Bret', sector: 'Memecoin', tier: 1, risk: 5, rug: 0.8, start: 0.000065, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 10e9,
+      about: 'The blue cartoon friend of a much more famous frog. Its holders are sure its moment is coming.' },
+    { id: 'MOGG', market: 'meme', phase: 'rising', name: 'Mogg', sector: 'Memecoin', tier: 2, risk: 5, rug: 0.8, start: 0.00000031, vol: 1.8, beta: 1.7, growth: 0.35, sharesOut: 420e9,
+      about: 'A cat in sunglasses whose whole pitch is that it is cooler than you. A third of a millionth of a dollar per coin.' },
+    { id: 'PCAT', market: 'meme', phase: 'rising', name: 'Popcatt', sector: 'Memecoin', tier: 3, risk: 5, rug: 0.8, start: 0.0008, vol: 1.6, beta: 1.5, growth: 0.3, sharesOut: 980e6,
+      about: 'A cat with its mouth open, looped forever. Millions of people have seen the video; a few thousand own the coin.' },
+    { id: 'BOMS', market: 'meme', phase: 'rising', name: 'Book of Memes', sector: 'Memecoin', tier: 3, risk: 5, rug: 0.8, start: 0.000011, vol: 1.8, beta: 1.7, growth: 0.35, sharesOut: 69e9,
+      about: 'Promises to store every meme ever made, forever, on the blockchain. Nobody has checked whether it does.' },
+    // new memecoins launch as others ascend or get rugged
+    { id: 'GGCH', market: 'meme', phase: 'rising', later: true, name: 'Gigachadd', sector: 'Memecoin', tier: 0, risk: 5, rug: 0.8, start: 0.00009, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 9.6e9,
+      about: 'A chiselled black-and-white face that stands for supreme confidence. Its holders have plenty of that.' },
+    { id: 'MEWW', market: 'meme', phase: 'rising', later: true, name: 'Meww', sector: 'Memecoin', tier: 0, risk: 5, rug: 0.8, start: 0.0000038, vol: 1.8, beta: 1.6, growth: 0.3, sharesOut: 88e9,
+      about: "Short for 'cat in a dogs world'. The underdog of underdogs. The undercat." },
+    { id: 'NEIR', market: 'meme', phase: 'rising', later: true, name: 'Neirro', sector: 'Memecoin', tier: 1, risk: 5, rug: 0.8, start: 0.0000014, vol: 1.8, beta: 1.7, growth: 0.3, sharesOut: 420e9,
+      about: 'Named after the new dog of the owner of the dog that started it all. Yes, really.' },
+    { id: 'SLRF', market: 'meme', phase: 'rising', later: true, name: 'Slurff', sector: 'Memecoin', tier: 1, risk: 5, rug: 0.8, start: 0.00005, vol: 1.9, beta: 1.7, growth: 0.3, sharesOut: 500e6,
+      about: 'Its maker accidentally destroyed the money raised to launch it on day one. People bought it anyway, as a joke.' },
+    { id: 'PNTT', market: 'meme', phase: 'rising', later: true, name: 'Peanutt the Squirrel', sector: 'Memecoin', tier: 2, risk: 5, rug: 0.8, start: 0.00033, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 1e9,
+      about: 'A tribute to a much-loved pet squirrel whose story went viral. Sentiment is its only asset.' },
+    { id: 'WENN', market: 'meme', phase: 'rising', later: true, name: 'Wenn', sector: 'Memecoin', tier: 2, risk: 5, rug: 0.8, start: 0.000024, vol: 1.8, beta: 1.7, growth: 0.3, sharesOut: 700e9,
+      about: 'Named after the question every holder asks: when? Handed out free to anyone who wanted it.' },
+    { id: 'PONK', market: 'meme', phase: 'rising', later: true, name: 'Ponkee', sector: 'Memecoin', tier: 3, risk: 5, rug: 0.8, start: 0.00012, vol: 1.8, beta: 1.7, growth: 0.35, sharesOut: 555e6,
+      about: 'A blue monkey with a bad attitude, favoured by the loudest corner of the internet.' },
+    { id: 'MYRH', market: 'meme', phase: 'rising', later: true, name: 'Myroh', sector: 'Memecoin', tier: 3, risk: 5, rug: 0.8, start: 0.00007, vol: 1.7, beta: 1.6, growth: 0.3, sharesOut: 1e9,
+      about: "The dog of a famous crypto founder. Its fans say it's the next Doggecoin; so do everyone else's." },
   ];
+  STOCKS.forEach(s => { if (!s.market) s.market = 'stock'; });
   const STOCK_BY_ID = Object.fromEntries(STOCKS.map(s => [s.id, s]));
+
+  // Tickers from before every company took a parody name, so old saves keep their holdings.
+  const RENAMED = {
+    IDXF: 'VTMF', TICK: 'APPL', BRWL: 'KOKA', CIVC: 'DUKK', PARC: 'FDUP', VOLT: 'TSLO', NRTH: 'JPMG',
+    NIMB: 'MCSF', HRVS: 'HDPO', HELX: 'MDRO', CRST: 'XOMB', AURA: 'NMNT', VELO: 'DLTA', ORBT: 'LKMN',
+    SUMT: 'BRKH', MERD: 'ELYL', QNTA: 'NVDO', FRSH: 'WLMT', PNGW: 'SNPP', DSHL: 'OOBR', KEEL: 'WFGO',
+    SPRK: 'RVON', FORG: 'USTL', GNVA: 'NVVX', TDWR: 'TSOC', SKYL: 'SPRT', NOVL: 'MSTG', ATLS: 'CSTK', CURW: 'JNJN',
+  };
+
+  const MARKETS = {
+    stock:  { screen: 'trade',  pick: 'VTMF', unit: 'share' },
+    crypto: { screen: 'crypto', pick: 'BTY',  unit: 'coin' },
+    meme:   { screen: 'meme',   pick: 'DOGG', unit: 'coin' },
+  };
+  const MARKET_OF_SCREEN = { trade: 'stock', crypto: 'crypto', meme: 'meme' };
+  const isCoin = s => s.market !== 'stock';
+  const units = (s, n = 2) => MARKETS[s.market].unit + (n === 1 ? '' : 's');
+
+  // The crypto market has a mood of its own: it leans on the stock market but
+  // swings far harder.
+  const CRYPTO_OWN_VOL = 0.5;
+  const CRYPTO_STOCK_BETA = 1.1;
+  const DAILY_CRYPTO_VOL = Math.sqrt((CRYPTO_STOCK_BETA * MARKET_VOL) ** 2 + CRYPTO_OWN_VOL ** 2) / Math.sqrt(DAYS_PER_YEAR);
+  const CRYPTO_NEWS_CHANCE = 1 / 90;
+
+  // A rising memecoin can take off: over a week or two its price multiplies
+  // somewhere between ASCEND_MIN and ASCEND_MAX times, and it joins the big
+  // ones. Most never do: about three in four are rugged or simply collapse
+  // first. The ones that do make it can still fade away later, which keeps
+  // the pit from filling up forever.
+  const ASCEND_CHANCE = 1 / 500;   // per day, for each rising memecoin
+  const ASCEND_MIN = 20;
+  const ASCEND_MAX = 400;
+  const ASCENDED_VOL = 0.75;       // an ascended coin still swings, just less
+  const NEW_MEME_AFTER = [15, 35]; // trading days before a new memecoin launches after one ascends
+  const FADE_CHANCE = 1.0;         // yearly chance a coin that ascended starts to fade
+  const FADE_DAYS = [30, 70];      // how long the fade takes, falling about 96% on the way
 
   // Risk, from 1 to 5, follows how hard a company's price swings. Riskier
   // companies grow faster on average, and from 3 upward they can fail outright.
@@ -120,7 +242,20 @@
     { label: 'Risky',      shock: 0.07, sudden: 0 },
     { label: 'Very risky', shock: 0.10, sudden: 0.025 },
   ];
-  const canFail = s => s.risk >= 3;
+  // A memecoin that started out rising and has since made it: no longer rug-able.
+  const ascendedNow = (s, rt) => s.phase === 'rising' && !!rt && (rt.phase === 'ascended' || rt.phase === 'ascending');
+  const graduated = (s, rt) => s.phase === 'rising' && !!rt && rt.phase === 'ascended';
+  // Nothing can fail mid-ascension; everything else rated 3+ can, unless it's too big.
+  const canFail = (s, rt) => s.risk >= 3 && !s.solid && !(rt && rt.phase === 'ascending');
+  // How far below its year's high a price must sink before failure is on the
+  // table, and how far it must climb back to be safe. Crypto shrugs off falls
+  // that would finish a company.
+  // shock scales the yearly chance of a sudden blow (RISK[n].shock).
+  const FAIL_RULES = {
+    stock: { distress: 0.35, recover: 0.55, shock: 1 },
+    crypto: { distress: 0.1, recover: 0.25, shock: 0.5 },
+    meme: { distress: 0.1, recover: 0.25, shock: 1 },
+  };
 
   // ===========================================================
   // ACHIEVEMENTS
@@ -159,7 +294,7 @@
       check: () => state.stats.wasBurned },
     { id: 'phoenix', category: 'Risk & survival', name: 'Phoenix', blurb: 'Recover your net worth after a company you held failed.' },
     { id: 'nerves_of_steel', category: 'Risk & survival', name: 'Nerves of Steel', blurb: 'Hold a rating-5 stock for 100 days straight.',
-      check: () => STOCKS.some(s => s.risk === 5 && (rtOf(s.id).riskStreak || 0) >= 100) },
+      check: () => STOCKS.some(s => s.market === 'stock' && s.risk === 5 && (rtOf(s.id).riskStreak || 0) >= 100) },
     { id: 'diversified', category: 'Risk & survival', name: 'Diversified', blurb: 'Go a full quarter without any one company topping 25% of your net worth.',
       check: () => state.stats.concentrationStreak >= DAYS_PER_QUARTER },
 
@@ -186,7 +321,7 @@
       check: () => state.day >= DAYS_PER_YEAR },
     { id: 'whole_board', category: 'Milestones', name: 'The Whole Board', blurb: 'Own shares in every company open to your account at once.',
       check: () => {
-        const list = boardStocks().filter(s => isUnlocked(s) && trading(s));
+        const list = boardStocks().filter(s => s.market === 'stock' && isUnlocked(s) && trading(s));
         return state.accountOpen && list.length > 0 && list.every(s => rtOf(s.id).shares > 0);
       } },
     { id: 'beating_the_market', category: 'Milestones', name: 'Beating the Market', blurb: "Beat the index fund's return over a quarter.",
@@ -198,6 +333,26 @@
         return mine > bench && mine > 0;
       } },
 
+    // Crypto & memecoins
+    { id: 'crypto_curious', category: 'Crypto & memecoins', name: 'Crypto Curious', blurb: 'Buy your first cryptocurrency.',
+      check: () => state.stats.boughtCrypto },
+    { id: 'whole_coin', category: 'Crypto & memecoins', name: 'A Whole Coin', blurb: 'Own one entire Bitcoyn.',
+      check: () => rtOf('BTY').shares >= 1 },
+    { id: 'hodl', category: 'Crypto & memecoins', name: 'HODL', blurb: 'Hold a cryptocurrency for 100 days without selling out of it.',
+      check: () => STOCKS.some(s => s.market === 'crypto' && rtOf(s.id).shares > 0 && state.day - rtOf(s.id).firstBuyDay >= 100) },
+    { id: 'meme_million', category: 'Crypto & memecoins', name: 'Millionaire, Sort Of', blurb: 'Hold 1,000,000 coins of a single memecoin.',
+      check: () => memeHeldAtLeast(1e6) },
+    { id: 'meme_billion', category: 'Crypto & memecoins', name: 'Billionaire, Technically', blurb: 'Hold 1,000,000,000 coins of a single memecoin.',
+      check: () => memeHeldAtLeast(1e9) },
+    { id: 'meme_trillion', category: 'Crypto & memecoins', name: 'Trillionaire', blurb: 'Hold 1,000,000,000,000 coins of a single memecoin.',
+      check: () => memeHeldAtLeast(1e12) },
+    { id: 'meme_whale', category: 'Crypto & memecoins', name: 'Whale', blurb: 'Own 1% of every coin in existence of a single memecoin.',
+      check: () => STOCKS.some(s => s.market === 'meme' && rtOf(s.id).shares >= s.sharesOut * 0.01) },
+    { id: 'to_the_moon', category: 'Crypto & memecoins', name: 'To the Moon', blurb: 'Be holding a memecoin on the day it ascends.' },
+    { id: 'ten_bagger', category: 'Crypto & memecoins', name: 'Ten-Bagger', blurb: 'Sell memecoins for ten times what you paid for them.',
+      check: () => state.stats.memeTenBagger },
+    { id: 'rugged', category: 'Crypto & memecoins', name: 'Rugged', blurb: 'Lose your coins when the makers of a memecoin vanish.' },
+
     // Hidden
     { id: 'coffee_break', category: 'Hidden', hidden: true, name: 'Coffee Break', blurb: 'Have a staff member on the books whose quirk mentions coffee.',
       check: () => state.roster.some(p => /coffee|espresso/i.test(p.trait)) },
@@ -205,7 +360,10 @@
       check: () => state.stats.wasPoor && netWorth() >= 50000 },
     { id: 'the_contrarian', category: 'Hidden', hidden: true, name: 'The Contrarian', blurb: 'Buy a rating-5 stock the same day bad news breaks about it.',
       check: () => state.stats.contrarianBuy },
+    { id: 'stable_genius', category: 'Hidden', hidden: true, name: 'Stable Genius', blurb: 'Park $10,000 in a stablecoin.',
+      check: () => STOCKS.some(s => s.stable && rtOf(s.id).shares * rtOf(s.id).price >= 10000) },
   ];
+  const memeHeldAtLeast = n => STOCKS.some(s => s.market === 'meme' && rtOf(s.id).shares >= n);
   const ACHIEVEMENT_BY_ID = Object.fromEntries(ACHIEVEMENTS.map(a => [a.id, a]));
 
   // Records the unlock and shows it off, unless this is a quiet catch-up scan
@@ -329,10 +487,8 @@
     ],
   };
 
-  // A company that has lost most of its value can fail outright. Only the
-  // wildest companies can, and only after a real collapse.
-  const DISTRESS_LEVEL = 0.35;   // below this share of its year's high, it is in trouble
-  const RECOVERY_LEVEL = 0.55;   // above this, the trouble is over
+  // A company or coin that has lost most of its value can fail outright (see
+  // FAIL_RULES for how far is "most"). Only the wildest can.
   const DELIST_CHANCE = 1 / 150; // per day, while in trouble
   const RELIST_AFTER = [15, 35];  // trading days before a failed company's place is filled
 
@@ -393,9 +549,25 @@
       good: ['{n} wins approval for a long-awaited treatment', '{n} reports strong sales of its main drug'],
       bad: ['A patent on a {n} blockbuster expires', 'Regulators question {n} pricing'],
     },
-    'Robotics': {
-      good: ['{n} lands a huge factory automation order', '{n} unveils a faster assembly robot'],
-      bad: ['{n} recalls robots after a software fault', 'A key customer delays its {n} rollout'],
+    'Semiconductors': {
+      good: ['{n} sells out a whole year of AI chips in advance', 'A cloud giant places a record chip order with {n}'],
+      bad: ['Export limits cut {n} off from a big market', 'A rival unveils a faster chip than anything {n} makes'],
+    },
+    'Home improvement': {
+      good: ['Spring DIY season lifts sales at {n}', 'House moves pick up, filling {n} stores'],
+      bad: ['A slow housing market weighs on {n}', 'Shoppers put off kitchen refits, hurting {n}'],
+    },
+    'Crypto': {
+      good: ['A big fund starts buying {n} for its clients', '{n} network upgrade goes live without a hitch', 'A major payments firm adds support for {n}'],
+      bad: ['The {n} network halts for several hours', 'Regulators open an investigation into {n}', 'A large holder dumps {n} on the market'],
+    },
+    'Stablecoin': {
+      good: ['{n} publishes a clean audit of its reserves'],
+      bad: ['Questions are raised over the reserves behind {n}'],
+    },
+    'Memecoin': {
+      good: ['A celebrity posts about {n}', '{n} is listed on a big exchange', '{n} trends on social media all day'],
+      bad: ['A big early holder sells a pile of {n}', '{n} slides as traders chase a newer coin', 'An exchange drops {n}'],
     },
   };
   // Blows that put a risky company's survival in doubt.
@@ -407,8 +579,10 @@
     'Mining': ["Flooding shuts {n}'s biggest mine", "{n} loses its licence to dig at its main site"],
     'Airlines': ["{n} grounds its fleet after a fuel spike", "{n} cancels a month of flights amid a strike"],
     'Aerospace': ["{n}'s rocket explodes on the launch pad", "{n} loses its government contract"],
-    'Robotics': ["{n}'s biggest order is cancelled", "{n} admits its new robot does not work yet"],
+    'Semiconductors': ["{n} is banned from selling its best chips abroad", "{n}'s biggest customer starts making its own chips"],
     'Materials': ["{n} closes two plants as orders dry up", "{n} is fined heavily over pollution"],
+    'Crypto': ["{n} is drained by a hack on its main bridge", "Regulators sue the founders of {n}"],
+    'Memecoin': ["The team behind {n} goes silent and its website disappears", "A wallet holding half of all {n} starts selling"],
     default: ["{n} reports a shock loss", "{n} misses a payment to its lenders"],
   };
 
@@ -416,6 +590,12 @@
     good: ['Central bank signals interest rate cuts', 'Jobs report shows strong hiring', 'Inflation cools more than expected'],
     bad: ['Central bank hints at more rate hikes', 'Recession worries hit global markets', 'Inflation comes in hotter than expected'],
   };
+  const CRYPTO_NEWS = {
+    good: ['Regulators approve new crypto funds for ordinary investors', 'A big bank says it will hold crypto for its clients', 'A country makes Bitcoyn legal tender'],
+    bad: ['A major crypto exchange collapses', 'Regulators announce a crackdown on crypto trading', 'A giant crypto lender freezes withdrawals'],
+  };
+  // news that is about a whole market rather than one company or coin
+  const MARKET_TICKERS = { MKT: 'Economy', CRYPTO: 'Crypto market' };
 
   const LESSONS = [
     {
@@ -497,6 +677,24 @@
     return fmt(n);
   }
 
+  // Prices under a dollar keep four significant figures, so a memecoin at
+  // $0.00001834 doesn't show up as $0.00.
+  function fmtPrice(p, bare = false) {
+    let text;
+    if (p >= 1 || p === 0) text = moneyFmt.format(p).slice(1);
+    else text = p.toFixed(Math.min(12, 3 - Math.floor(Math.log10(p))));
+    return (bare ? '' : '$') + text;
+  }
+  const fmtPriceSigned = n => (n > 0 ? '+' : n < 0 ? '−' : '') + fmtPrice(Math.abs(n));
+
+  function fmtCount(n) {
+    if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    return n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  }
+  const fmtQty = (s, n) => (s.market === 'meme' && n >= 1e9 ? fmtCount(n) : n.toLocaleString('en-US', { maximumFractionDigits: 4 }));
+
   function icon(name, size = 18) {
     return `<svg class="icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
   }
@@ -511,8 +709,11 @@
   const chg = pct => `<span class="chg ${tone(pct)}">${fmtPct(pct)}</span>`;
   const tkrList = stocks => stocks.map(tkr).join(stocks.length === 2 ? ' and ' : ', ');
 
+  // significant figures rather than decimal places, so the tiniest memecoin price survives
+  const roundPrice = v => Number(v.toPrecision(8));
+
   function pushHistory(list, value) {
-    list.push(Math.round(value * 10000) / 10000);
+    list.push(roundPrice(value));
     if (list.length > DAYS_PER_YEAR) list.shift();
   }
 
@@ -540,25 +741,55 @@
     pushHistory(st.market.history, st.market.level);
     const marketSurprise = market - MARKET_DRIFT / DAYS_PER_YEAR;
 
+    // the crypto market's own mood for the day; each coin's growth is its own
+    let cryptoSurprise = CRYPTO_STOCK_BETA * marketSurprise + gauss() * CRYPTO_OWN_VOL / Math.sqrt(DAYS_PER_YEAR);
+    if (Math.random() < CRYPTO_NEWS_CHANCE) {
+      const good = Math.random() < 0.5;
+      cryptoSurprise += (good ? 1 : -1) * (0.04 + Math.random() * 0.06);
+      add('CRYPTO', good ? 'up' : 'down', 'market', pick(CRYPTO_NEWS[good ? 'good' : 'bad']));
+    }
+
     fillEmptyPlaces(st, add);
 
     for (const s of STOCKS) {
       const rt = st.stocks[s.id];
       if (rt.delisted || !rt.listed) continue;
-      const dailyVol = s.vol / Math.sqrt(DAYS_PER_YEAR);
-      const ownVol = Math.sqrt(Math.max(0, dailyVol ** 2 - (s.beta * DAILY_MARKET_VOL) ** 2));
+      const coin = isCoin(s);
       const quarterDay = mod(day, DAYS_PER_QUARTER);
 
-      // profits grow slowly and partly follow the economy
-      rt.eps *= Math.exp(s.growth / DAYS_PER_YEAR + s.beta * marketSurprise * 0.6);
-      const fairValue = rt.eps * s.pe;
+      // a stablecoin is pinned to the dollar: wobbles get pulled straight back, and now and then it slips
+      if (s.stable) {
+        let p = 1 + (rt.price - 1) * 0.5 + gauss() * 0.0008;
+        if (Math.random() < 1 / 600) {
+          p = 0.94 + Math.random() * 0.04;
+          add(s.id, 'down', 'news', `${s.name} briefly slips below its dollar peg as nervous holders cash out`);
+        }
+        rt.price = roundPrice(Math.max(0.5, p));
+        pushHistory(rt.history, rt.price);
+        continue;
+      }
 
-      let move = s.growth / DAYS_PER_YEAR
-        + s.beta * marketSurprise
-        + ownVol * gauss()
-        + REVERSION * Math.log(fairValue / rt.price);
+      let move;
+      if (coin) {
+        const vol = rt.phase === 'ascended' && s.phase === 'rising' ? s.vol * ASCENDED_VOL : s.vol;
+        const dailyVol = vol / Math.sqrt(DAYS_PER_YEAR);
+        const ownVol = Math.sqrt(Math.max(0, dailyVol ** 2 - (s.beta * DAILY_CRYPTO_VOL) ** 2));
+        move = s.growth / DAYS_PER_YEAR + s.beta * cryptoSurprise + ownVol * gauss();
+      } else {
+        const dailyVol = s.vol / Math.sqrt(DAYS_PER_YEAR);
+        const cryptoBeta = s.cryptoBeta || 0;
+        const ownVol = Math.sqrt(Math.max(0, dailyVol ** 2 - (s.beta * DAILY_MARKET_VOL) ** 2 - (cryptoBeta * DAILY_CRYPTO_VOL) ** 2));
+        // profits grow slowly and partly follow the economy
+        rt.eps *= Math.exp(s.growth / DAYS_PER_YEAR + s.beta * marketSurprise * 0.6);
+        const fairValue = rt.eps * s.pe;
+        move = s.growth / DAYS_PER_YEAR
+          + s.beta * marketSurprise
+          + cryptoBeta * cryptoSurprise
+          + ownVol * gauss()
+          + REVERSION * Math.log(fairValue / rt.price);
+      }
 
-      if (!s.fund && quarterDay === rt.earningsDay) {
+      if (!coin && !s.fund && quarterDay === rt.earningsDay) {
         const surprise = gauss();
         const jump = surprise * s.vol * 0.12;
         move += jump;
@@ -573,40 +804,91 @@
         const good = Math.random() < 0.5;
         const jump = (good ? 1 : -1) * (0.5 + Math.random()) * s.vol * 0.12;
         move += jump;
-        rt.eps *= Math.exp(jump * 0.5);
+        if (!coin) rt.eps *= Math.exp(jump * 0.5);
         add(s.id, good ? 'up' : 'down', 'news', pick(lines[good ? 'good' : 'bad']).replace('{n}', s.name));
       }
 
-      // the blow that can start a risky company's slide into failure
-      const risk = RISK[s.risk];
-      if (risk.shock && !rt.distress && Math.random() < risk.shock / DAYS_PER_YEAR) {
-        const hit = 0.4 + Math.random() * 0.25;
-        move += Math.log(1 - hit);
-        rt.eps *= 1 - hit;
-        rt.distress = true;
-        add(s.id, 'down', 'news', `${pick(SHOCKS[s.sector] || SHOCKS.default).replace('{n}', s.name)}. It warns it may not be able to pay its debts`);
+      // a rising memecoin can catch fire: days of runaway buying, then it has ascended
+      if (s.phase === 'rising') {
+        if (rt.phase === 'rising' && Math.random() < ASCEND_CHANCE) {
+          rt.phase = 'ascending';
+          rt.ascendLeft = 6 + Math.floor(Math.random() * 9);
+          rt.ascendRate = Math.log(ASCEND_MIN * (ASCEND_MAX / ASCEND_MIN) ** Math.random()) / rt.ascendLeft;
+          rt.distress = false;
+          add(s.id, 'up', 'news', `${s.name} is trending everywhere, and buyers are piling in`);
+        }
+        if (rt.phase === 'ascending') {
+          move += rt.ascendRate;
+          rt.ascendLeft -= 1;
+          if (rt.ascendLeft <= 0) {
+            rt.phase = 'ascended';
+            delete rt.ascendLeft;
+            delete rt.ascendRate;
+            rt.spawnOn = day + NEW_MEME_AFTER[0] + Math.floor(Math.random() * (NEW_MEME_AFTER[1] - NEW_MEME_AFTER[0]));
+            events.push({ day, ticker: s.id, mood: 'up', kind: 'ascend', text: `${s.name} has ascended. It now trades alongside the big memecoins`, held: rt.shares > 0 });
+          }
+        }
       }
 
-      rt.price = Math.max(0.5, rt.price * Math.exp(move));
+      // the crowd moves on sooner or later: a slow bleed over a month or two, then it's gone
+      if (graduated(s, rt)) {
+        if (!rt.fadeLeft && Math.random() < FADE_CHANCE / DAYS_PER_YEAR) {
+          rt.fadeLeft = FADE_DAYS[0] + Math.floor(Math.random() * (FADE_DAYS[1] - FADE_DAYS[0]));
+          rt.fadeRate = Math.log(0.04) / rt.fadeLeft;
+          add(s.id, 'down', 'news', `Interest in ${s.name} is drying up as traders chase newer coins`);
+        }
+        if (rt.fadeLeft) {
+          move += rt.fadeRate;
+          rt.fadeLeft -= 1;
+          if (rt.fadeLeft <= 0) {
+            fail(st, s, events, `${s.name} fades away. The crowd has moved on, exchanges drop it, and the coins are worthless.`);
+            continue;
+          }
+        }
+      }
+
+      // the blow that can start a risky company's slide into failure
+      const risk = RISK[graduated(s, rt) ? 4 : s.risk];
+      if (risk.shock && canFail(s, rt) && !rt.distress && Math.random() < (risk.shock * FAIL_RULES[s.market].shock) / DAYS_PER_YEAR) {
+        const hit = 0.4 + Math.random() * 0.25;
+        move += Math.log(1 - hit);
+        if (!coin) rt.eps *= 1 - hit;
+        rt.distress = true;
+        const tail = coin ? 'Holders rush for the exits' : 'It warns it may not be able to pay its debts';
+        add(s.id, 'down', 'news', `${pick(SHOCKS[s.sector] || SHOCKS.default).replace('{n}', s.name)}. ${tail}`);
+      }
+
+      rt.price = Math.max(coin ? 1e-10 : 0.5, rt.price * Math.exp(move));
       pushHistory(rt.history, rt.price);
 
       // a collapse can turn into outright failure, and the shares become worthless
-      if (canFail(s)) {
+      if (canFail(s, rt)) {
         const high = Math.max(...rt.history);
-        if (!rt.distress && rt.price < high * DISTRESS_LEVEL) {
+        const rules = FAIL_RULES[s.market];
+        if (!rt.distress && rt.price < high * rules.distress) {
           rt.distress = true;
-          add(s.id, 'down', 'news', `${s.name} warns it may not be able to pay its debts`);
-        } else if (rt.distress && rt.price > high * RECOVERY_LEVEL) {
+          add(s.id, 'down', 'news', coin ? `${s.name} has lost almost all its value, and holders are heading for the exits` : `${s.name} warns it may not be able to pay its debts`);
+        } else if (rt.distress && rt.price > high * rules.recover) {
           rt.distress = false;
-          add(s.id, 'up', 'news', `${s.name} steadies itself and calls off the alarm`);
+          add(s.id, 'up', 'news', coin ? `${s.name} bounces back from the brink` : `${s.name} steadies itself and calls off the alarm`);
         }
         if (rt.distress && Math.random() < DELIST_CHANCE) {
-          fail(st, s, events, `${s.name} collapses. Trading is halted and the shares are worthless.`);
+          fail(st, s, events, graduated(s, rt)
+            ? `${s.name} fades away. The crowd has moved on, exchanges drop it, and the coins are worthless.`
+            : coin ? `${s.name} collapses to nothing. Exchanges stop trading it and the coins are worthless.`
+            : `${s.name} collapses. Trading is halted and the shares are worthless.`);
+          continue;
+        }
+        // the makers of a young memecoin can simply walk off with the money
+        if (s.rug && rt.phase === 'rising' && Math.random() < s.rug / DAYS_PER_YEAR) {
+          fail(st, s, events, `The makers of ${s.name} pull the plug and vanish with the money. The coins are worthless.`, true);
           continue;
         }
         // the very riskiest can go without any warning at all
         if (!rt.distress && risk.sudden && Math.random() < risk.sudden / DAYS_PER_YEAR) {
-          fail(st, s, events, `${s.name} collapses overnight after its accounts turn out to be fiction. The shares are worthless.`);
+          fail(st, s, events, coin
+            ? `${s.name} collapses overnight as its backers' promises turn out to be empty. The coins are worthless.`
+            : `${s.name} collapses overnight after its accounts turn out to be fiction. The shares are worthless.`);
           continue;
         }
       }
@@ -636,7 +918,7 @@
     return events;
   }
 
-  function fail(st, s, events, text) {
+  function fail(st, s, events, text, rug = false) {
     const rt = st.stocks[s.id];
     rt.delisted = true;
     rt.distress = false;
@@ -649,26 +931,63 @@
     }
     const event = { day: st.day, ticker: s.id, mood: 'down', kind: 'news', text };
     if (lost > 0) event.wiped = lost;
+    if (rug) event.rug = true;
     events.push(event);
   }
 
-  // A few weeks after a failure, a new company lists and takes the empty place,
-  // from the same account tier if one is waiting, from any tier if not. Once
-  // nobody is left waiting, the place stays empty.
+  // A few weeks after a failure, something new lists in the same market and
+  // takes the empty place, from the same account tier if one is waiting. A
+  // memecoin that ascends makes room for a new one too. Once nothing is left
+  // waiting, the place stays empty.
   function fillEmptyPlaces(st, add) {
     for (const s of STOCKS) {
       const rt = st.stocks[s.id];
-      if (!rt.delisted || rt.retired || rt.relistOn == null || st.day < rt.relistOn) continue;
-      const waiting = STOCKS.filter(c => c.later && !st.stocks[c.id].listed);
+      const failed = rt.delisted && !rt.retired && rt.relistOn != null && st.day >= rt.relistOn;
+      const spawned = rt.spawnOn != null && st.day >= rt.spawnOn;
+      if (!failed && !spawned) continue;
+      if (failed) rt.relistOn = null;
+      else rt.spawnOn = null;
+      // a memecoin that ascended and later faded made room for a new one the day it ascended
+      if (failed && graduated(s, rt)) {
+        rt.retired = true;
+        continue;
+      }
+      const waiting = STOCKS.filter(c => c.later && c.market === s.market && !st.stocks[c.id].listed);
       const next = waiting.find(c => c.tier === s.tier) || waiting[0];
-      rt.relistOn = null;
-      if (!next) continue;
-      const nt = st.stocks[next.id];
-      inventHistory(nt, next);
-      nt.listed = true;
-      rt.retired = true;
-      add(next.id, 'up', 'listing', `${next.name} lists on the exchange, taking the place ${s.name} left behind`);
+      if (next) {
+        const nt = st.stocks[next.id];
+        inventHistory(nt, next, next.market === 'meme' ? 20 : DAYS_PER_YEAR);
+        nt.listed = true;
+        if (failed) rt.retired = true;
+        add(next.id, 'up', 'listing',
+          next.market === 'meme' ? `${next.name} launches, hoping to be the next ${s.name}`
+            : next.market === 'crypto' ? `${next.name} starts trading, taking the place ${s.name} left behind`
+            : `${next.name} lists on the exchange, taking the place ${s.name} left behind`);
+        continue;
+      }
+      if (s.market === 'meme') relaunchMeme(st, s, rt, failed, add);
     }
+  }
+
+  // New memecoins never stop coming. Once every name has had its turn, a coin
+  // that died a while ago comes back under a new team, at a new price.
+  function relaunchMeme(st, s, rt, failed, add) {
+    const gone = STOCKS.filter(c => c.phase === 'rising' && c.id !== s.id && st.stocks[c.id].retired);
+    const next = gone.find(c => c.tier === s.tier) || gone[0];
+    if (!next) {
+      // nothing free yet: try again in a few weeks
+      if (failed) rt.relistOn = st.day + RELIST_AFTER[0];
+      else rt.spawnOn = st.day + RELIST_AFTER[0];
+      return;
+    }
+    const old = st.stocks[next.id];
+    const nt = blankStock(next, STOCKS.indexOf(next));
+    nt.realized = old.realized; // what you made or lost on it the first time still counts
+    inventHistory(nt, next, 20, next.start * Math.exp(gauss() * 0.8));
+    nt.listed = true;
+    st.stocks[next.id] = nt;
+    if (failed) rt.retired = true;
+    add(next.id, 'up', 'listing', `A new team relaunches ${next.name}, and traders pile back in`);
   }
 
   // ===========================================================
@@ -676,8 +995,9 @@
   // ===========================================================
   function blankStock(s, index) {
     return {
+      ...(s.phase ? { phase: s.phase } : {}),
       price: s.start,
-      eps: s.start / s.pe,
+      eps: s.pe ? s.start / s.pe : 0,
       history: [],
       shares: 0,
       costBasis: 0,
@@ -692,18 +1012,18 @@
     };
   }
 
-  // A company added to the game after a save was made needs a year of
-  // history of its own, so its chart isn't empty when it appears.
-  function inventHistory(rt, s) {
+  // A company added to the game after a save was made needs some history of
+  // its own, so its chart isn't empty when it appears.
+  function inventHistory(rt, s, days = DAYS_PER_YEAR, end = s.start) {
     const walk = [];
-    let price = s.start;
-    for (let i = 0; i < DAYS_PER_YEAR; i++) {
+    let price = end;
+    for (let i = 0; i < days; i++) {
       price *= Math.exp(s.growth / DAYS_PER_YEAR + (s.vol / Math.sqrt(DAYS_PER_YEAR)) * gauss());
       walk.push(price);
     }
-    const scale = s.start / price; // finish at today's listed price
-    rt.history = walk.map(v => Math.round(v * scale * 10000) / 10000);
-    rt.price = s.start;
+    const scale = end / price; // finish at today's listed price
+    rt.history = walk.map(v => roundPrice(v * scale));
+    rt.price = rt.history[rt.history.length - 1];
   }
 
   // A new face for a role, avoiding names and quirks already in the office.
@@ -760,6 +1080,8 @@
         concentrationStreak: 0,
         peakNetWorth: 0,
         burnRecoveryTarget: null,
+        boughtCrypto: false,
+        memeTenBagger: false,
       },
       totalDividends: 0,
       totalFees: 0,
@@ -796,7 +1118,7 @@
       trades: 0, bestSaleProfit: 0, longestHoldDays: 0, sameDayFlip: false, boughtBigDip: false,
       soldWhileDistressed: false, wasBurned: false, contrarianBuy: false, wasPoor: false,
       firstHireDay: null, lastLayoffDay: null, negIncomeStreak: 0, concentrationStreak: 0,
-      peakNetWorth: 0, burnRecoveryTarget: null,
+      peakNetWorth: 0, burnRecoveryTarget: null, boughtCrypto: false, memeTenBagger: false,
     };
     if (!saved.stats || typeof saved.stats !== 'object') saved.stats = {};
     Object.entries(statDefaults).forEach(([k, v]) => { if (saved.stats[k] === undefined) saved.stats[k] = v; });
@@ -806,7 +1128,21 @@
     STAFF.forEach(s => { if (!Number.isInteger(saved.staff[s.id]) || saved.staff[s.id] < 0) saved.staff[s.id] = 0; });
     syncRoster(saved);
 
-    // companies added since this save was written join the board today
+    // every company took a parody name: holdings move to the new ticker as they stand,
+    // with profits reset so fair value is today's price and nothing lurches
+    for (const [oldId, newId] of Object.entries(RENAMED)) {
+      const rt = saved.stocks[oldId];
+      if (!rt) continue;
+      delete saved.stocks[oldId];
+      if (saved.stocks[newId]) continue;
+      rt.eps = rt.price / STOCK_BY_ID[newId].pe;
+      saved.stocks[newId] = rt;
+    }
+    // headlines under the old names would no longer match anything on the board
+    if (Array.isArray(saved.news)) saved.news = saved.news.filter(n => n && (MARKET_TICKERS[n.ticker] || STOCK_BY_ID[n.ticker]));
+    else saved.news = [];
+
+    // companies and coins added since this save was written join the board today
     STOCKS.forEach((s, i) => {
       const old = saved.stocks[s.id];
       if (old) {
@@ -847,7 +1183,10 @@
   let gameReady = false;
   let state = loadState();
   gameReady = true;
-  const ui = { screen: 'landing', selected: 'TICK', range: 63, side: 'buy', staffFocus: {} };
+  const defaultPicks = () => Object.fromEntries(Object.entries(MARKETS).map(([m, v]) => [m, v.pick]));
+  // `selected` is the asset open on whichever trading room is showing; `picks`
+  // remembers the last one opened in each room.
+  const ui = { screen: 'landing', market: 'stock', selected: MARKETS.stock.pick, picks: defaultPicks(), range: 63, side: 'buy', staffFocus: {} };
   let tickCount = 0;
   let lastTickAt = Date.now();
   let lastRunningSpeed = SPEEDS.includes(state.speed) && state.speed > 0 ? state.speed : 1;
@@ -867,7 +1206,15 @@
   const trading = s => onBoard(s) && !rtOf(s.id).delisted;
   const boardStocks = () => STOCKS.filter(onBoard).sort((a, b) => a.tier - b.tier);
   const boardKey = () => boardStocks().map(s => s.id).join();
-  const riskPips = s => `<span class="risk-pips risk-${s.risk}" title="Risk ${s.risk} of 5: ${RISK[s.risk].label}">${'<i></i>'.repeat(5)}</span>`;
+  // an ascended memecoin can no longer be rugged, so it rates a notch safer
+  const riskOf = s => (ascendedNow(s, rtOf(s.id)) ? 4 : s.risk);
+  const riskPips = s => `<span class="risk-pips risk-${riskOf(s)}" title="Risk ${riskOf(s)} of 5: ${RISK[riskOf(s)].label}">${'<i></i>'.repeat(5)}</span>`;
+  const onTradeFloor = () => ui.screen in MARKET_OF_SCREEN;
+  const MEME_PHASES = {
+    rising: { group: 'About to ascend', label: 'About to ascend' },
+    ascending: { group: 'About to ascend', label: 'Ascending now' },
+    ascended: { group: 'Already ascended', label: 'Ascended' },
+  };
   const avgCost = rt => (rt.shares ? rt.costBasis / rt.shares : 0);
 
   // What the broker charges to put a trade through, rounded to the cent.
@@ -1268,7 +1615,7 @@
       <div class="modal-kicker">The basics, part ${step + 1} of ${LESSONS.length}</div>
       <h3>${lesson.title}</h3>
       <p>${lesson.text}</p>
-      ${last && opening ? '<p class="fine-print">All companies and prices in SimStock are fictional. No real money is involved.</p>' : ''}
+      ${last && opening ? '<p class="fine-print">Company and coin names in SimStock are parodies, and every price is simulated. No real money is involved.</p>' : ''}
       <div class="modal-actions">
         <div class="steps">${LESSONS.map((_, i) => `<span class="step${i <= step ? ' active' : ''}"></span>`).join('')}</div>
         <span class="spacer"></span>
@@ -1331,12 +1678,15 @@
     const tier = TIERS[i];
     const stocks = boardStocks().filter(s => s.tier === i && trading(s));
     const staff = STAFF.filter(s => s.tier === i);
+    const companies = stocks.filter(s => !isCoin(s)).length;
+    const coins = stocks.length - companies;
+    const what = [companies && `${companies} more ${companies === 1 ? 'company' : 'companies'}`, coins && `${coins} more ${coins === 1 ? 'coin' : 'coins'}`].filter(Boolean).join(' and ');
     const modal = openModal(`
       <div class="modal-kicker">Account upgraded</div>
       <h3>Welcome to ${tier.name}</h3>
-      <p>You can now trade ${stocks.length} more companies:</p>
+      <p>You can now trade ${what}:</p>
       <ul class="new-stocks">
-        ${stocks.map(s => `<li>${tkr(s)}<span>${s.name}</span><span class="muted">${RISK[s.risk].label}</span></li>`).join('')}
+        ${stocks.map(s => `<li>${tkr(s)}<span>${s.name}</span><span class="muted">${RISK[riskOf(s)].label}</span></li>`).join('')}
       </ul>
       ${staff.length ? `<p>You can also hire a new role: ${staff.map(s => s.name).join(', ')}.</p>` : ''}
       <div class="modal-actions">
@@ -1345,9 +1695,9 @@
       </div>`);
     modal.querySelector('[data-act="close"]').onclick = closeModal;
     modal.querySelector('[data-act="trade"]').onclick = () => {
-      if (stocks.length) ui.selected = stocks[0].id;
       closeModal();
-      showScreen('trade');
+      if (stocks.length) openAsset(stocks[0].id);
+      else showScreen('trade');
     };
   }
 
@@ -1402,7 +1752,8 @@
       }
       modalQueue.length = 0;
       state = freshState();
-      ui.selected = 'TICK';
+      ui.picks = defaultPicks();
+      ui.selected = ui.picks[ui.market];
       ui.staffFocus = {};
       lastTip = '';
       renderedNewsKey = '';
@@ -1452,7 +1803,8 @@
       }
       modalQueue.length = 0;
       state = loaded;
-      ui.selected = 'TICK';
+      ui.picks = defaultPicks();
+      ui.selected = ui.picks[ui.market];
       chartHover = null;
       lastTip = '';
       renderedNewsKey = '';
@@ -1515,27 +1867,51 @@
     gainXp(XP.openAccount);
     showScreen('trade');
     afterAction();
-    toast('Account opened', `+${XP.openAccount} XP. Pick a stock from the list to get started.`, 'accent');
+    toast('Account opened', `+${XP.openAccount} XP. Pick a stock from the list to get started, or try the Crypto and Memecoins rooms.`, 'accent');
   }
 
-  // The most shares your cash can cover once the commission is paid too.
-  function maxBuyQty(price) {
-    let n = Math.max(0, Math.floor(state.cash / (price * (1 + COMMISSION_RATE))));
-    while (n > 0 && n * price + commission(n * price) > state.cash + 1e-9) n -= 1;
-    // below the flat minimum the rate-based guess is too cautious, so creep back up
-    while ((n + 1) * price + commission((n + 1) * price) <= state.cash + 1e-9) n += 1;
+  // Crypto trades in fractions of a coin; shares and memecoins come whole.
+  const qtyDecimals = s => (s.market === 'crypto' ? 4 : 0);
+  function roundQty(s, q) {
+    const f = 10 ** qtyDecimals(s);
+    return Math.floor(q * f + 1e-6) / f;
+  }
+  // what the − and + buttons move by: one share, or roughly $100 worth of a coin
+  function nudgeOf(s, price) {
+    if (!isCoin(s)) return 1;
+    const step = 10 ** Math.floor(Math.log10(100 / price));
+    return Math.max(10 ** -qtyDecimals(s), step);
+  }
+  const defaultQty = s => (isCoin(s) ? nudgeOf(s, rtOf(s.id).price) : 1);
+
+  // The most your cash can cover once the commission is paid too. Worked out
+  // directly rather than counted up one at a time, since a memecoin order can
+  // run to billions of coins.
+  function maxBuyQty(s, price) {
+    const cash = state.cash;
+    const cost = n => n * price + commission(n * price);
+    const fit = v => roundQty(s, Math.max(0, v));
+    let n = fit((cash - COMMISSION_MIN) / price);
+    if (n * price * COMMISSION_RATE > COMMISSION_MIN) n = fit(cash / (price * (1 + COMMISSION_RATE)));
+    // the commission is rounded to the cent, so step back a cent or two's worth if needed
+    const back = Math.max(10 ** -qtyDecimals(s), fit(0.02 / price));
+    while (n > 0 && cost(n) > cash + 1e-9) n = fit(n - back);
     return n;
   }
 
   function orderQty() {
-    const n = Math.floor(Number($('qtyInput').value));
+    const n = roundQty(STOCK_BY_ID[ui.selected], Number($('qtyInput').value));
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
 
   function setQty(n) {
-    $('qtyInput').value = Math.max(1, Math.floor(n));
+    const s = STOCK_BY_ID[ui.selected];
+    $('qtyInput').value = String(Math.max(10 ** -qtyDecimals(s), roundQty(s, n)));
     render();
   }
+
+  // quantities are kept to eight decimal places so repeated crypto trades don't drift
+  const tidyQty = q => (q < 1e-9 ? 0 : Number(q.toFixed(8)));
 
   function placeOrder() {
     const s = STOCK_BY_ID[ui.selected];
@@ -1543,32 +1919,36 @@
     const qty = orderQty();
     const value = qty * rt.price;
     const fee = commission(value);
-    if (!isUnlocked(s) || rt.delisted || qty < 1) return;
+    if (!isUnlocked(s) || rt.delisted || qty <= 0) return;
+    const qtyText = `${fmtQty(s, qty)} ${s.id}`;
 
-    state.stats.trades += 1;
     if (ui.side === 'buy') {
       if (value + fee > state.cash + 1e-9) return;
-      if (dayChangePct(rt.history) <= -8) state.stats.boughtBigDip = true;
+      state.stats.trades += 1;
+      if (s.market === 'stock' && dayChangePct(rt.history) <= -8) state.stats.boughtBigDip = true;
       const top = state.news[0];
-      if (top && top.ticker === s.id && top.kind === 'news' && top.mood === 'down' && top.day === state.day && s.risk === 5) {
+      if (s.market === 'stock' && top && top.ticker === s.id && top.kind === 'news' && top.mood === 'down' && top.day === state.day && s.risk === 5) {
         state.stats.contrarianBuy = true;
       }
+      if (s.market === 'crypto') state.stats.boughtCrypto = true;
       if (rt.shares === 0) rt.firstBuyDay = state.day;
       state.cash -= value + fee;
-      rt.shares += qty;
+      rt.shares = tidyQty(rt.shares + qty);
       rt.costBasis += value + fee; // the commission is part of what the shares cost you
       state.totalFees += fee;
-      toast('Order filled', `Bought ${qty} ${s.id} at ${fmt(rt.price)}: ${fmt(value + fee)} with the ${fmt(fee)} commission.`, 'pos');
+      toast('Order filled', `Bought ${qtyText} at ${fmtPrice(rt.price)}: ${fmt(value + fee)} with the ${fmt(fee)} commission.`, 'pos');
       if (!gainXp(XP.buy)) playSound('buy');
     } else {
-      if (qty > rt.shares) return;
+      if (qty > rt.shares + 1e-9) return;
+      state.stats.trades += 1;
       const paid = avgCost(rt) * qty;
       const proceeds = value - fee;
       const profit = proceeds - paid;
       if (rt.distress) state.stats.soldWhileDistressed = true;
+      if (s.market === 'meme' && paid > 0 && proceeds >= paid * 10) state.stats.memeTenBagger = true;
       state.stats.bestSaleProfit = Math.max(state.stats.bestSaleProfit, profit);
       state.cash += proceeds;
-      rt.shares -= qty;
+      rt.shares = tidyQty(rt.shares - qty);
       rt.costBasis = rt.shares ? rt.costBasis - paid : 0;
       rt.realized += profit;
       state.totalFees += fee;
@@ -1579,7 +1959,7 @@
         rt.firstBuyDay = null;
       }
       const result = Math.abs(profit) < 0.005 ? 'at break-even' : `for a ${fmt(Math.abs(profit))} ${profit > 0 ? 'profit' : 'loss'}`;
-      toast('Order filled', `Sold ${qty} ${s.id} at ${fmt(rt.price)} ${result}, after the ${fmt(fee)} commission.`, profit > -0.005 ? 'pos' : 'neg');
+      toast('Order filled', `Sold ${qtyText} at ${fmtPrice(rt.price)} ${result}, after the ${fmt(fee)} commission.`, profit > -0.005 ? 'pos' : 'neg');
       if (!gainXp(profit > 0 ? sellProfitXp(profit) : XP.sellLoss)) playSound(profit > 0 ? 'cash' : 'loss');
     }
     afterAction();
@@ -1638,10 +2018,22 @@
     const s = STOCK_BY_ID[ui.selected];
     const rt = rtOf(s.id);
     if (!isUnlocked(s)) {
-      return `${s.id} needs a ${TIERS[s.tier].name} account. Watching a stock before you can buy it is a good way to learn how it behaves.`;
+      return `${s.id} needs a ${TIERS[s.tier].name} account. Watching ${isCoin(s) ? 'a coin' : 'a stock'} before you can buy it is a good way to learn how it behaves.`;
+    }
+    if (s.stable) {
+      return `${s.id} is pegged to one dollar. It is somewhere to park cash inside crypto, not something that grows.`;
+    }
+    if (s.market === 'meme' && rt.phase === 'rising') {
+      return `${s.id} hasn't ascended yet. A few memecoins take off and multiply many times over; plenty more get rugged and go to zero. Only put in what you could lose.`;
+    }
+    if (s.market === 'meme' && rt.shares === 0) {
+      return `A memecoin has no profits, no products and no dividends. Its price is whatever the crowd feels like today, so ${s.id} can halve or double in a week.`;
+    }
+    if (s.id === 'BTY' && rt.shares === 0) {
+      return "You don't need a whole Bitcoyn. Coins split into tiny pieces, so you can buy a thousandth of one, or type in any amount.";
     }
     if (holdingsValue() === 0) {
-      return 'Not sure where to start? The index fund, IDXF, spreads your money across the whole market, so no single company can sink you.';
+      return 'Not sure where to start? The index fund, VTMF, spreads your money across the whole market, so no single company can sink you.';
     }
     if (rt.shares > 0) {
       const pct = (rt.price / avgCost(rt) - 1) * 100;
@@ -1651,6 +2043,9 @@
     if (s.vol >= 0.5) {
       const typical = (s.vol / Math.sqrt(DAYS_PER_YEAR)) * 200;
       return `${s.id} is highly volatile: daily moves of ${typical.toFixed(0)}% or more are common. Many investors keep positions like this small.`;
+    }
+    if (isCoin(s)) {
+      return 'Coins earn nothing while you hold them: no profits and no dividends. The only way to make money is for someone to pay more for them later.';
     }
     if (state.staff.analyst === 0 && state.cash >= staffCost(STAFF[0])) {
       return 'Staff earn income every trading day, even while you are away. A Research Analyst pays for itself in about 50 days.';
@@ -1672,18 +2067,31 @@
   // ===========================================================
   // SCREENS
   // ===========================================================
-  const SCREEN_TITLES = { landing: 'SimStock', home: 'Front page', trade: 'Trading floor', portfolio: 'Your portfolio', upgrades: 'Upgrades', achievements: 'Achievements', tutorial: 'How to play' };
+  const SCREEN_TITLES = {
+    landing: 'SimStock', home: 'Front page', trade: 'Trading floor', crypto: 'Crypto exchange', meme: 'Memecoin pit',
+    portfolio: 'Your portfolio', upgrades: 'Upgrades', achievements: 'Achievements', tutorial: 'How to play',
+  };
   const OPEN_SCREENS = ['landing', 'home', 'portfolio', 'achievements', 'tutorial']; // viewable before a brokerage account exists
 
+  // The trading floor, the crypto exchange and the memecoin pit are one room
+  // showing a different market.
   function showScreen(name) {
     if (!OPEN_SCREENS.includes(name) && !state.accountOpen) {
       showLessons(0);
       return;
     }
+    const market = MARKET_OF_SCREEN[name];
+    if (market) {
+      ui.market = market;
+      const pick = STOCK_BY_ID[ui.picks[market]];
+      ui.selected = pick && trading(pick) ? pick.id : boardStocks().find(s => s.market === market && trading(s)).id;
+      resetOrder();
+    }
     ui.screen = name;
     $('landingScreen').hidden = name !== 'landing';
     $('homeScreen').hidden = name !== 'home';
-    $('tradeScreen').hidden = name !== 'trade';
+    $('tradeScreen').hidden = !market;
+    $('tradeScreen').dataset.market = ui.market;
     $('portfolioScreen').hidden = name !== 'portfolio';
     $('upgradesScreen').hidden = name !== 'upgrades';
     $('achievementsScreen').hidden = name !== 'achievements';
@@ -1694,7 +2102,7 @@
     });
     window.scrollTo(0, 0);
     render();
-    if (name === 'trade') {
+    if (market) {
       sizeChart();
       updateTip();
     }
@@ -1703,11 +2111,25 @@
     if (booted && name !== 'landing') $('pageTitle').focus();
   }
 
+  // a fresh order ticket for whatever is selected: one share, or about $100 of a coin
+  function resetOrder() {
+    $('qtyInput').value = String(defaultQty(STOCK_BY_ID[ui.selected]));
+  }
+
   function selectStock(id) {
     ui.selected = id;
+    ui.picks[STOCK_BY_ID[id].market] = id;
     chartHover = null;
+    resetOrder();
     updateTip();
     render();
+  }
+
+  // Opens any company or coin in whichever room trades it.
+  function openAsset(id) {
+    const s = STOCK_BY_ID[id];
+    ui.picks[s.market] = id;
+    showScreen(MARKETS[s.market].screen);
   }
 
   // ===========================================================
@@ -1717,7 +2139,7 @@
     renderChrome();
     renderTape();
     if (ui.screen === 'home') renderHome();
-    if (ui.screen === 'trade') renderTrade();
+    if (onTradeFloor()) renderTrade();
     if (ui.screen === 'portfolio') renderPortfolio();
     if (ui.screen === 'upgrades') renderUpgrades();
     if (ui.screen === 'achievements') renderAchievements();
@@ -1750,22 +2172,32 @@
 
   // The scrolling price strip under the masthead. Its contents are listed twice
   // so the CSS scroll can loop without a gap.
+  const TAPE_SECTIONS = { crypto: 'Crypto', meme: 'Memecoins' };
+  let tapeCount = 0;
+
   function renderTape() {
-    const items = [
-      `<span class="tape-item"><b>INDEX</b>${state.market.level.toFixed(2)} ${chg(dayChangePct(state.market.history))}</span>`,
-      ...boardStocks().filter(trading).map(s => {
+    const items = [`<span class="tape-item"><b>INDEX</b>${state.market.level.toFixed(2)} ${chg(dayChangePct(state.market.history))}</span>`];
+    for (const market of Object.keys(MARKETS)) {
+      if (TAPE_SECTIONS[market]) items.push(`<span class="tape-item tape-sep">${TAPE_SECTIONS[market]}</span>`);
+      for (const s of boardStocks().filter(x => x.market === market && trading(x))) {
         const rt = rtOf(s.id);
         const ys = yearStats(rt.history);
         // a brand-new listing sets a "high" or "low" almost every day, so wait a month
-        const flag = ys.days < 21 ? ''
+        const flag = ys.days < 21 || s.stable ? ''
           : ys.highAgo === 0 ? '<span class="tape-flag pos">52W HIGH</span>'
           : ys.lowAgo === 0 ? '<span class="tape-flag neg">52W LOW</span>'
           : '';
-        return `<span class="tape-item"><b>${s.id}</b>${fmt(rt.price)} ${chg(dayChangePct(rt.history))}`
-          + `<span class="tape-range">52W ${ys.low.toFixed(2)}–${ys.high.toFixed(2)}</span>${flag}</span>`;
-      }),
-    ].join('');
-    $('tape').innerHTML = items + items;
+        items.push(`<span class="tape-item"><b>${s.id}</b>${fmtPrice(rt.price)} ${chg(dayChangePct(rt.history))}`
+          + `<span class="tape-range">52W ${fmtPrice(ys.low, true)}–${fmtPrice(ys.high, true)}</span>${flag}</span>`);
+      }
+    }
+    // keep the reading speed steady however long the strip gets
+    if (items.length !== tapeCount) {
+      tapeCount = items.length;
+      $('tape').style.animationDuration = `${items.length * 6}s`;
+    }
+    const html = items.join('');
+    $('tape').innerHTML = html + html;
   }
 
   // ---------- Overview ----------
@@ -1865,14 +2297,14 @@
       const day = dayChangePct(rt.history);
       return `<tr data-stock="${s.id}">
         <td>${tkr(s)}</td>
-        <td class="num">${rt.shares.toLocaleString('en-US')}</td>
-        <td class="num">${fmt(rt.price)}<span class="sub">${chg(day)}</span></td>
+        <td class="num">${fmtQty(s, rt.shares)}</td>
+        <td class="num">${fmtPrice(rt.price)}<span class="sub">${chg(day)}</span></td>
         <td class="num">${fmt(value)}</td>
         <td class="num ${tone(ret)}">${fmtSigned(ret)}<span class="sub">${fmtPct((ret / rt.costBasis) * 100)}</span></td>
       </tr>`;
     }).join('');
     $('holdingsTable').innerHTML = `<table class="table">
-      <thead><tr><th>Stock</th><th class="num">Shares</th><th class="num">Price</th><th class="num">Value</th><th class="num">Return</th></tr></thead>
+      <thead><tr><th>Holding</th><th class="num">Owned</th><th class="num">Price</th><th class="num">Value</th><th class="num">Return</th></tr></thead>
       <tbody>${rows}</tbody></table>`;
   }
 
@@ -1882,12 +2314,12 @@
     marketEl.textContent = `Index ${fmtPct(marketDay)}`;
     marketEl.className = tone(marketDay);
 
-    const rows = boardStocks().filter(s => isUnlocked(s) && trading(s))
+    const rows = boardStocks().filter(s => s.market === 'stock' && isUnlocked(s) && trading(s))
       .map(s => ({ s, rt: rtOf(s.id), change: dayChangePct(rtOf(s.id).history) }))
       .sort((a, b) => b.change - a.change)
       .map(({ s, rt, change }) => `<tr data-stock="${s.id}">
           <td>${tkr(s)}<span class="n">${s.name}</span></td>
-          <td class="num">${fmt(rt.price)}</td>
+          <td class="num">${fmtPrice(rt.price)}</td>
           <td class="num">${chg(change)}</td>
         </tr>`)
       .join('');
@@ -1925,16 +2357,16 @@
         const gain = value - rt.costBasis;
         return `<tr data-stock="${s.id}">
           <td>${tkr(s)}<span class="n">${s.name}</span></td>
-          <td class="num">${rt.shares.toLocaleString('en-US')}</td>
-          <td class="num">${fmt(avgCost(rt))}</td>
-          <td class="num">${fmt(rt.price)}<span class="sub">${chg(dayChangePct(rt.history))}</span></td>
+          <td class="num">${fmtQty(s, rt.shares)}</td>
+          <td class="num">${fmtPrice(avgCost(rt))}</td>
+          <td class="num">${fmtPrice(rt.price)}<span class="sub">${chg(dayChangePct(rt.history))}</span></td>
           <td class="num">${fmt(value)}</td>
           <td class="num ${tone(gain)}">${fmtSigned(gain)}<span class="sub">${fmtPct((gain / rt.costBasis) * 100)}</span></td>
-          <td class="num">${fmt(rt.dividends)}</td>
+          <td class="num">${isCoin(s) ? '—' : fmt(rt.dividends)}</td>
         </tr>`;
       }).join('');
       $('pfTable').innerHTML = `<table class="table">
-        <thead><tr><th>Stock</th><th class="num">Shares</th><th class="num">Avg cost</th><th class="num">Price</th><th class="num">Value</th><th class="num">Gain or loss</th><th class="num">Dividends</th></tr></thead>
+        <thead><tr><th>Holding</th><th class="num">Owned</th><th class="num">Avg cost</th><th class="num">Price</th><th class="num">Value</th><th class="num">Gain or loss</th><th class="num">Dividends</th></tr></thead>
         <tbody>${rows}</tbody></table>`;
     }
 
@@ -2083,23 +2515,50 @@
   }
 
   // ---------- Trading ----------
+  // One room, three markets: the trading floor, the crypto exchange and the
+  // memecoin pit all draw from here, showing whatever `ui.market` is.
   let watchRefs = {};
   let watchKey = '';
 
-  // Built again whenever a company leaves the board or a new one joins it.
+  const cap1 = t => t[0].toUpperCase() + t.slice(1);
+  const volNow = s => (s.phase === 'rising' && rtOf(s.id).phase === 'ascended' ? s.vol * ASCENDED_VOL : s.vol);
+  // a memecoin's price can move a long way either side of a dollar in its life
+  const fmtMove = (n, price) => (price >= 1 ? fmtSigned(n) : fmtPriceSigned(n));
+
+  // memecoins are grouped by whether they've made it yet; everything else by account tier
+  function watchGroup(s) {
+    if (s.market === 'meme') {
+      const label = MEME_PHASES[rtOf(s.id).phase].group;
+      return { label, rank: label === 'Already ascended' ? 0 : 1, cls: label === 'Already ascended' ? 'phase-ascended' : 'phase-rising' };
+    }
+    return { label: `${TIERS[s.tier].name} account`, rank: s.tier, cls: `tier-${s.tier}` };
+  }
+
+  function marketBoard() {
+    return boardStocks()
+      .filter(s => s.market === ui.market)
+      .sort((a, b) => watchGroup(a).rank - watchGroup(b).rank || a.tier - b.tier);
+  }
+
+  const watchlistKey = () => ui.market + ':' + marketBoard().map(s => s.id + (rtOf(s.id).phase || '')).join();
+
+  // Built again whenever something leaves the board or joins it, a memecoin
+  // changes group, or the room switches market.
   function buildWatchlist() {
     const list = $('watchList');
     list.innerHTML = '';
     watchRefs = {};
-    watchKey = boardKey();
-    let group = -1;
-    for (const s of boardStocks()) {
-      if (s.tier !== group) {
-        group = s.tier;
-        list.appendChild(el(`<div class="watch-group tier-${group}">${TIERS[group].name} account</div>`));
+    watchKey = watchlistKey();
+    let group = '';
+    for (const s of marketBoard()) {
+      const g = watchGroup(s);
+      if (g.label !== group) {
+        group = g.label;
+        list.appendChild(el(`<div class="watch-group ${g.cls}">${g.label}</div>`));
       }
+      const hot = rtOf(s.id).phase === 'ascending' ? '<span class="watch-tag">Ascending</span>' : '';
       const row = el(`<button class="watch-row">
-          <span class="watch-id"><span class="watch-ticker">${s.id} ${riskPips(s)}</span><span class="watch-name">${s.name}</span></span>
+          <span class="watch-id"><span class="watch-ticker">${s.id} ${riskPips(s)}${hot}</span><span class="watch-name">${s.name}</span></span>
           <svg class="spark" viewBox="0 0 44 20" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke-width="1.5" stroke-linejoin="round"/></svg>
           <span class="watch-quote"><span class="watch-price"></span><span class="watch-change"></span></span>
         </button>`);
@@ -2128,16 +2587,90 @@
 
   const RANGE_LABELS = { 21: 'month', 63: '3 months', 252: 'year' };
 
-  function renderTrade() {
-    // market + watchlist
-    $('marketLevel').textContent = state.market.level.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const marketDay = dayChangePct(state.market.history);
-    $('marketChange').textContent = `${fmtPct(marketDay)} today`;
-    $('marketChange').className = 'change-sm ' + tone(marketDay);
+  // where a coin stands by size among the others in its market
+  function sizeRank(s) {
+    const list = boardStocks().filter(x => x.market === s.market && trading(x))
+      .sort((a, b) => rtOf(b.id).price * b.sharesOut - rtOf(a.id).price * a.sharesOut);
+    return { n: list.indexOf(s) + 1, of: list.length };
+  }
 
-    if (watchKey !== boardKey()) buildWatchlist();
-    if (!onBoard(STOCK_BY_ID[ui.selected])) ui.selected = boardStocks().find(trading).id;
-    for (const s of boardStocks()) {
+  function riskNote(s) {
+    const rt = rtOf(s.id);
+    if (s.stable) return 'Pegged to one dollar, so it should barely move';
+    if (canFail(s, rt)) {
+      if (graduated(s, rt)) return "Can't be rugged any more, but it could still fade away";
+      if (s.rug) return 'Can take off, or be rugged and go to zero';
+      return `Grows faster on average, but ${s.risk === 5 ? 'can fail with little or no warning' : 'can fail if things go badly'}`;
+    }
+    return riskOf(s) >= 3 ? 'Swings hard, but too big to vanish outright' : 'Grows slowly, and too solid to fail outright';
+  }
+
+  // The key numbers under the chart. Coins have no profits or dividends to
+  // show, so they get their supply, their size and their status instead.
+  function statCells(s, rt, ys) {
+    const coin = isCoin(s);
+    const capCell = { label: 'Market cap', value: fmtBig(rt.price * s.sharesOut), note: coin ? 'What every coin in existence is worth together' : 'What all its shares are worth together' };
+    const ret = { label: ys.fullYear ? '1-year return' : 'Since listing', value: fmtPct(ys.returnPct), tone: tone(ys.returnPct), note: 'How much the price has changed' };
+    const day = { label: 'Typical day', value: `±${ys.typicalDayPct.toFixed(1)}%`, note: 'How far the price usually moves in a day' };
+    const draw = { label: ys.fullYear ? 'Worst fall this year' : 'Worst fall since listing', value: ys.worstPct < 0 ? fmtPct(ys.worstPct) : 'None', tone: ys.worstPct < 0 ? 'neg' : '', note: 'Biggest drop from a high to the low after it' };
+    const riskCell = { label: 'Risk', value: `${riskOf(s)} of 5 · swings ${Math.round(volNow(s) * 100)}%/yr`, note: riskNote(s) };
+    if (!coin) {
+      return [
+        capCell,
+        { label: 'P/E ratio', value: (rt.price / rt.eps).toFixed(1), note: "Price divided by a year's profit per share" },
+        { label: 'Earnings per share', value: fmt(rt.eps), note: "A year's profit, split across every share" },
+        { label: 'Dividend yield', value: s.divYield ? `${(s.divYield * 100).toFixed(1)}% · ${fmt(rt.price * s.divYield)} a share` : 'None', note: 'Cash paid out each year, as a share of price' },
+        ret, day, riskCell,
+        { label: 'Beta', value: s.beta.toFixed(2), note: '1.00 moves with the market; higher swings more' },
+        draw,
+      ];
+    }
+    const rank = sizeRank(s);
+    const supply = { label: 'Coins in existence', value: fmtCount(s.sharesOut), note: s.market === 'meme' ? 'Why each coin is worth so little' : 'Every coin there is so far' };
+    const hundred = { label: '$100 buys', value: `${fmtCount(roundQty(s, 100 / rt.price))} ${units(s)}`, note: "At today's price, before the commission" };
+    const rankCell = { label: 'Size rank', value: `#${rank.n} of ${rank.of}`, note: `By market cap, among the ${s.market === 'meme' ? 'memecoins' : 'coins'} on the board` };
+    if (s.market === 'crypto') {
+      return [capCell, supply, rankCell, ret, day, draw, riskCell,
+        { label: 'Crypto beta', value: s.beta.toFixed(2), note: '1.00 moves with the crypto market; higher swings more' }, hundred];
+    }
+    const status = {
+      label: 'Status',
+      value: MEME_PHASES[rt.phase].label,
+      tone: rt.phase === 'ascending' ? 'pos' : '',
+      note: rt.phase === 'rising' ? 'Could take off any day, or be rugged'
+        : rt.phase === 'ascending' ? 'Buyers are piling in right now'
+        : graduated(s, rt) ? "Made it, so it won't be rugged. It could still fade"
+        : "Big and famous, so it won't be rugged",
+    };
+    return [capCell, supply, status, hundred, ret, day, draw, riskCell, rankCell];
+  }
+
+  function renderTrade() {
+    // the market box above the watchlist: the index for stocks, total value for coins
+    if (ui.market === 'stock') {
+      $('marketLabel').textContent = 'Market index';
+      $('marketLevel').textContent = state.market.level.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const marketDay = dayChangePct(state.market.history);
+      $('marketChange').textContent = `${fmtPct(marketDay)} today`;
+      $('marketChange').className = 'change-sm ' + tone(marketDay);
+    } else {
+      const coins = boardStocks().filter(s => s.market === ui.market && trading(s));
+      const now = coins.reduce((sum, s) => sum + rtOf(s.id).price * s.sharesOut, 0);
+      const before = coins.reduce((sum, s) => sum + prevClose(rtOf(s.id).history) * s.sharesOut, 0);
+      const pct = before ? (now / before - 1) * 100 : 0;
+      $('marketLabel').textContent = ui.market === 'crypto' ? 'All crypto, by value' : 'All memecoins, by value';
+      $('marketLevel').textContent = fmtBig(now);
+      $('marketChange').textContent = `${fmtPct(pct)} today`;
+      $('marketChange').className = 'change-sm ' + tone(pct);
+    }
+
+    if (watchKey !== watchlistKey()) buildWatchlist();
+    const picked = STOCK_BY_ID[ui.selected];
+    if (!onBoard(picked) || picked.market !== ui.market) {
+      ui.selected = marketBoard().find(trading).id;
+      resetOrder();
+    }
+    for (const s of marketBoard()) {
       const r = watchRefs[s.id];
       const rt = rtOf(s.id);
       const locked = !isUnlocked(s);
@@ -2145,9 +2678,9 @@
       if (s.id === ui.selected) r.row.setAttribute('aria-current', 'true');
       else r.row.removeAttribute('aria-current');
       r.row.classList.toggle('locked', locked || rt.delisted);
-      r.price.textContent = rt.delisted ? '—' : fmt(rt.price);
+      r.price.textContent = rt.delisted ? '—' : fmtPrice(rt.price);
       if (rt.delisted) {
-        r.change.textContent = 'Delisted';
+        r.change.textContent = isCoin(s) ? 'Collapsed' : 'Delisted';
         r.change.className = 'watch-change locked-label';
       } else if (locked) {
         r.change.textContent = TIERS[s.tier].name;
@@ -2165,22 +2698,30 @@
     const s = STOCK_BY_ID[ui.selected];
     const rt = rtOf(s.id);
     const locked = !isUnlocked(s);
+    const coin = isCoin(s);
 
     // header + price
     $('dName').textContent = s.name;
-    $('dMeta').innerHTML = `${s.id} · ${s.sector} · ${riskPips(s)} ${RISK[s.risk].label}`;
+    const phase = s.market === 'meme' ? ` · ${MEME_PHASES[rt.phase].label}` : '';
+    $('dMeta').innerHTML = `${s.id} · ${s.sector}${phase} · ${riskPips(s)} ${RISK[riskOf(s)].label}`;
     $('dLock').hidden = !locked || rt.delisted;
     $('dLockText').textContent = TIERS[s.tier].name;
     const warn = $('dWarn');
-    warn.hidden = !(rt.distress || rt.delisted);
+    const hot = rt.phase === 'ascending' && !rt.delisted;
+    const fading = rt.fadeLeft > 0 && !rt.delisted;
+    warn.hidden = !(rt.distress || rt.delisted || hot || fading);
+    warn.classList.toggle('hot-note', hot);
     warn.textContent = rt.delisted
-      ? `${s.name} has failed. These shares are worthless and trading is closed.`
+      ? (coin ? `${s.name} has collapsed. These coins are worthless and trading is closed.` : `${s.name} has failed. These shares are worthless and trading is closed.`)
+      : hot ? `${s.name} is ascending right now. A price this hot can turn around as fast as it rose.`
+      : fading ? `${s.name} is fading. Traders are moving on to newer coins, and once it's gone the coins are worthless.`
+      : coin ? `${s.name} has lost two-thirds of its value from its high. If it collapses, the coins become worthless.`
       : `${s.name} has warned it may not be able to pay its debts. If it fails, shares in it become worthless.`;
-    $('dPrice').textContent = fmt(rt.price);
+    $('dPrice').textContent = fmtPrice(rt.price);
 
     const dayPct = dayChangePct(rt.history);
     const dayAbs = rt.price - prevClose(rt.history);
-    $('dChange').textContent = `${fmtSigned(dayAbs)} (${fmtPct(dayPct)}) today`;
+    $('dChange').textContent = `${fmtMove(dayAbs, rt.price)} (${fmtPct(dayPct)}) today`;
     $('dChange').className = 'change chg ' + tone(dayPct);
     const range = rt.history.slice(-ui.range);
     const rangePct = (range[range.length - 1] / range[0] - 1) * 100;
@@ -2191,19 +2732,14 @@
       b.classList.toggle('active', on);
       b.setAttribute('aria-pressed', String(on));
     });
-    chart.setAttribute('aria-label', `${s.name} share price over the past ${RANGE_LABELS[ui.range]}: ${fmt(rt.price)}, ${fmtPct(rangePct)}.`);
+    chart.setAttribute('aria-label', `${s.name} price per ${units(s, 1)} over the past ${RANGE_LABELS[ui.range]}: ${fmtPrice(rt.price)}, ${fmtPct(rangePct)}.`);
 
-    // key stats
-    $('sCap').textContent = fmtBig(rt.price * s.sharesOut);
-    $('sPe').textContent = (rt.price / rt.eps).toFixed(1);
-    $('sEps').textContent = fmt(rt.eps);
-    $('sDiv').textContent = s.divYield ? `${(s.divYield * 100).toFixed(1)}% · ${fmt(rt.price * s.divYield)} a share` : 'None';
-
+    // 52-week range
     const ys = yearStats(rt.history);
     const span = ys.fullYear ? 'this year' : `in ${ys.days} days listed`;
     $('r52Label').textContent = ys.fullYear ? '52-week range' : `Range since listing (${ys.days} days)`;
-    $('r52Lo').textContent = fmt(ys.low);
-    $('r52Hi').textContent = fmt(ys.high);
+    $('r52Lo').textContent = fmtPrice(ys.low);
+    $('r52Hi').textContent = fmtPrice(ys.high);
     $('r52LoWhen').textContent = daysAgo(ys.lowAgo);
     $('r52HiWhen').textContent = daysAgo(ys.highAgo);
     const spread = ys.high - ys.low;
@@ -2213,22 +2749,15 @@
     $('r52Note').innerHTML = ys.highAgo === 0 ? `<span class="pos">At its high for ${span}</span>`
       : ys.lowAgo === 0 ? `<span class="neg">At its low for ${span}</span>`
       : `${aboveLow.toFixed(1)}% above the low · ${belowHigh.toFixed(1)}% below the high`;
-    $('sReturnLabel').textContent = ys.fullYear ? '1-year return' : 'Since listing';
-    $('sReturn').textContent = fmtPct(ys.returnPct);
-    $('sReturn').className = tone(ys.returnPct);
-    $('sDayMove').textContent = `±${ys.typicalDayPct.toFixed(1)}%`;
-    $('sDrawLabel').textContent = ys.fullYear ? 'Worst fall this year' : 'Worst fall since listing';
-    $('sDraw').textContent = ys.worstPct < 0 ? fmtPct(ys.worstPct) : 'None';
-    $('sDraw').className = ys.worstPct < 0 ? 'neg' : '';
-    $('sVol').textContent = `${s.risk} of 5 · swings ${Math.round(s.vol * 100)}%/yr`;
-    $('sVolNote').textContent = canFail(s)
-      ? `Grows faster on average, but ${s.risk === 5 ? 'can fail with little or no warning' : 'can fail if things go badly'}`
-      : 'Grows slowly, and too solid to fail outright';
-    $('sBeta').textContent = s.beta.toFixed(2);
+
+    $('statGrid').innerHTML = statCells(s, rt, ys)
+      .map(c => `<div class="stat"><dt>${c.label}</dt><dd class="${c.tone || ''}">${c.value}</dd><small>${c.note}</small></div>`)
+      .join('');
 
     // about + calendar
+    $('aboutHead').textContent = coin ? 'About the coin' : s.fund ? 'About the fund' : 'About the company';
     $('dAbout').textContent = s.about;
-    $('calEarningsRow').hidden = !!s.fund;
+    $('calEarningsRow').hidden = !!s.fund || coin;
     const toEarnings = mod(rt.earningsDay - state.day, DAYS_PER_QUARTER) || DAYS_PER_QUARTER;
     $('calEarnings').textContent = `in ${toEarnings} day${toEarnings === 1 ? '' : 's'}`;
     $('calDividendRow').hidden = !s.divYield;
@@ -2248,8 +2777,8 @@
     $('orderForm').hidden = closed;
     $('orderLocked').hidden = !closed;
     if (rt.delisted) {
-      $('lockedTitle').textContent = `${s.id} has been delisted`;
-      $('lockedText').textContent = `${s.name} failed, and its shares are worth nothing. Trading in it is closed for good.`;
+      $('lockedTitle').textContent = `${s.id} has ${isCoin(s) ? 'collapsed' : 'been delisted'}`;
+      $('lockedText').textContent = `${s.name} failed, and its ${units(s)} are worth nothing. Trading in it is closed for good.`;
       return;
     }
     if (locked) {
@@ -2264,68 +2793,90 @@
       b.classList.toggle('active', on);
       b.setAttribute('aria-pressed', String(on));
     });
+    const input = $('qtyInput');
+    const decimals = qtyDecimals(s);
+    input.step = decimals ? 'any' : '1';
+    input.min = String(10 ** -decimals);
+    input.inputMode = decimals ? 'decimal' : 'numeric';
+    $('qtyLabel').textContent = `Number of ${units(s)}`;
+    $('qtyMinus').setAttribute('aria-label', `Fewer ${units(s)}`);
+    $('qtyPlus').setAttribute('aria-label', `More ${units(s)}`);
+
     const qty = orderQty();
     const value = qty * rt.price;
     const fee = qty > 0 ? commission(value) : 0;
     const cashAfter = buying ? state.cash - value - fee : state.cash + value - fee;
 
-    $('oPrice').textContent = fmt(rt.price);
-    $('oTotalLabel').textContent = buying ? 'Shares cost' : 'Shares sold for';
+    $('oPriceLabel').textContent = `Price per ${units(s, 1)}`;
+    $('oPrice').textContent = fmtPrice(rt.price);
+    $('oTotalLabel').textContent = `${cap1(units(s))} ${buying ? 'cost' : 'sold for'}`;
     $('oTotal').textContent = fmt(value);
     $('oFee').textContent = fmt(fee);
     setV($('oCashAfter'), fmt(cashAfter), cashAfter < 0 ? 'neg' : '');
 
     let problem = '';
-    if (qty < 1) problem = 'Enter how many shares to trade.';
-    else if (buying && value + fee > state.cash + 1e-9) problem = `Not enough cash. With the commission you can afford ${maxBuyQty(rt.price)} shares.`;
-    else if (!buying && qty > rt.shares) problem = rt.shares ? `You only own ${rt.shares} shares of ${s.id}.` : `You don't own any ${s.id} yet.`;
+    if (qty <= 0) problem = `Enter how many ${units(s)} to trade.`;
+    else if (buying && value + fee > state.cash + 1e-9) problem = `Not enough cash. With the commission you can afford ${fmtQty(s, maxBuyQty(s, rt.price))} ${units(s)}.`;
+    else if (!buying && qty > rt.shares + 1e-9) problem = rt.shares ? `You only own ${fmtQty(s, rt.shares)} ${units(s)} of ${s.id}.` : `You don't own any ${s.id} yet.`;
 
     const btn = $('placeOrderBtn');
     btn.disabled = !!problem;
     btn.className = `btn btn-block ${buying ? 'btn-buy' : 'btn-sell'}`;
-    btn.textContent = `${buying ? 'Buy' : 'Sell'} ${qty || ''} ${s.id}`.replace('  ', ' ');
+    btn.textContent = `${buying ? 'Buy' : 'Sell'}${qty > 0 ? ' ' + fmtQty(s, qty) : ''} ${s.id}`;
     const hint = $('orderHint');
     hint.textContent = problem || `Market order: fills instantly at the current price. The broker takes ${(COMMISSION_RATE * 100).toFixed(2)}% of every trade, at least ${fmt(COMMISSION_MIN)}.`;
     hint.classList.toggle('warn', !!problem);
   }
 
   function renderPosition(s, rt) {
-    $('positionTitle').textContent = `Your ${s.id} shares`;
+    $('positionTitle').textContent = `Your ${s.id} ${units(s)}`;
+    $('pSharesLabel').textContent = `${cap1(units(s))} owned`;
     const value = rt.shares * rt.price;
     const unrealized = value - rt.costBasis;
-    setV($('pShares'), rt.shares.toLocaleString('en-US'));
-    setV($('pAvg'), rt.shares ? fmt(avgCost(rt)) : '—');
+    setV($('pShares'), fmtQty(s, rt.shares));
+    setV($('pAvg'), rt.shares ? fmtPrice(avgCost(rt)) : '—');
     setV($('pValue'), fmt(value));
     if (rt.shares) setV($('pReturn'), `${fmtSigned(unrealized)} (${fmtPct((unrealized / rt.costBasis) * 100)})`, tone(unrealized));
     else setV($('pReturn'), '—');
     const realized = Math.abs(rt.realized) < 0.005 ? 0 : rt.realized;
     setV($('pRealized'), fmtSigned(realized), realized ? tone(realized) : '');
+    $('pDivsRow').hidden = isCoin(s);
     setV($('pDivs'), fmt(rt.dividends), rt.dividends ? 'pos' : '');
   }
 
-  const NEWS_KINDS = { market: 'Economy', earnings: 'Earnings', news: 'Company news', dividend: 'Dividend', listing: 'New listing' };
+  const NEWS_KINDS = { market: 'Economy', earnings: 'Earnings', news: 'Company news', dividend: 'Dividend', listing: 'New listing', ascend: 'Ascension' };
+  // the label over a headline: whole-market news, or the ticker and what kind of story it is
+  const newsLabel = n => MARKET_TICKERS[n.ticker]
+    || `${n.ticker} · ${n.kind === 'news' && isCoin(STOCK_BY_ID[n.ticker]) ? 'News' : NEWS_KINDS[n.kind]}`;
 
+  function newsHtml(list) {
+    return list.map(n => `<li class="news-item ${n.mood}">
+        <div class="news-meta">${newsLabel(n)} · Day ${Math.max(0, n.day) + 1}</div>
+        <div class="news-text">${n.text}</div>
+      </li>`).join('') || '<li class="empty">Quiet so far.</li>';
+  }
+
+  // The front page carries every headline; each trading room only its own market's.
   function renderNews() {
     const top = state.news[0];
-    const key = `${state.tier}:${state.news.length}:${top ? top.day + top.text : ''}`;
+    const key = `${state.tier}:${ui.market}:${state.news.length}:${top ? top.day + top.text : ''}`;
     if (key === renderedNewsKey) return;
     renderedNewsKey = key;
 
-    const visible = state.news
-      .filter(n => n.ticker === 'MKT' || isUnlocked(STOCK_BY_ID[n.ticker]))
-      .slice(0, 20);
-    const html = visible.map(n => `<li class="news-item ${n.mood}">
-        <div class="news-meta">${n.ticker === 'MKT' ? 'Economy' : `${n.ticker} · ${NEWS_KINDS[n.kind]}`} · Day ${Math.max(0, n.day) + 1}</div>
-        <div class="news-text">${n.text}</div>
-      </li>`).join('') || '<li class="empty">Quiet so far.</li>';
-    // the same headlines appear on the front page and the trading floor
-    ['newsList', 'homeNews'].forEach(id => { if ($(id)) $(id).innerHTML = html; });
+    const visible = state.news.filter(n => MARKET_TICKERS[n.ticker] || (STOCK_BY_ID[n.ticker] && isUnlocked(STOCK_BY_ID[n.ticker])));
+    const inMarket = n => {
+      const s = STOCK_BY_ID[n.ticker];
+      return s ? s.market === ui.market : (n.ticker === 'MKT') === (ui.market === 'stock');
+    };
+    $('homeNews').innerHTML = newsHtml(visible.slice(0, 20));
+    $('newsList').innerHTML = newsHtml(visible.filter(inMarket).slice(0, 20));
   }
 
   // ---------- Chart ----------
   const chart = $('chart');
   const chartCtx = chart.getContext('2d');
   const CHART = { pos: '#4cc38a', neg: '#ff6f5e', accent: '#f0b73d', ink: '#efe8d8', text: '#857c6c', grid: 'rgba(239,232,216,0.07)' };
+  let chartRoom = 70; // room on the right for the price labels, which grow with the price
 
   function sizeChart() {
     const dpr = window.devicePixelRatio || 1;
@@ -2340,7 +2891,7 @@
     const dpr = window.devicePixelRatio || 1;
     const w = chart.width / dpr;
     const h = chart.height / dpr;
-    return { dpr, w, h, left: 4, right: w - 70, top: 12, bottom: h - 26 };
+    return { dpr, w, h, left: 4, right: w - chartRoom, top: 12, bottom: h - 26 };
   }
 
   function daysAgoLabel(days) {
@@ -2349,15 +2900,21 @@
     return `${days} days ago`;
   }
 
+  // Axis labels carry just enough decimals to tell neighbouring lines apart,
+  // which for a stablecoin hugging $1.00 means more than two.
+  function fmtAxis(v, step) {
+    if (v < 1) return fmtPrice(v);
+    const d = Math.min(6, Math.max(2, 1 - Math.floor(Math.log10(step))));
+    return '$' + v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+
   function drawChart() {
-    if (ui.screen !== 'trade' || !chart.width) return;
-    const rt = rtOf(ui.selected);
+    if (!onTradeFloor() || !chart.width) return;
+    const s = STOCK_BY_ID[ui.selected];
+    const rt = rtOf(s.id);
     const data = rt.history.slice(-ui.range);
     const n = data.length;
-    const box = chartBox();
     const ctx = chartCtx;
-    ctx.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
-    ctx.clearRect(0, 0, box.w, box.h);
 
     const values = rt.shares ? data.concat(avgCost(rt)) : data;
     let min = Math.min(...values);
@@ -2365,6 +2922,14 @@
     const pad = (max - min) * 0.08 || max * 0.02;
     min -= pad;
     max += pad;
+
+    ctx.font = '11px "IBM Plex Mono", monospace';
+    const labels = [0, 1, 2, 3, 4].map(i => fmtAxis(min + ((max - min) * i) / 4, (max - min) / 4));
+    chartRoom = Math.max(70, Math.ceil(Math.max(...labels.map(t => ctx.measureText(t).width))) + 18);
+
+    const box = chartBox();
+    ctx.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
+    ctx.clearRect(0, 0, box.w, box.h);
     const x = i => box.left + (i / (n - 1)) * (box.right - box.left);
     const y = v => box.bottom - ((v - min) / (max - min)) * (box.bottom - box.top);
 
@@ -2382,7 +2947,7 @@
       ctx.lineTo(box.right, yy);
       ctx.stroke();
       ctx.fillStyle = CHART.text;
-      ctx.fillText(fmt(v), box.right + 10, yy);
+      ctx.fillText(labels[i], box.right + 10, yy);
     }
 
     // time labels
@@ -2434,7 +2999,7 @@
       ctx.textAlign = 'left';
       const above = yy > box.top + 16;
       ctx.textBaseline = above ? 'bottom' : 'top';
-      ctx.fillText(`you paid ${fmt(avgCost(rt))} a share`, box.left + 6, above ? yy - 4 : yy + 4);
+      ctx.fillText(`you paid ${fmtPrice(avgCost(rt))} a ${units(s, 1)}`, box.left + 6, above ? yy - 4 : yy + 4);
     }
 
     // latest price marker
@@ -2464,7 +3029,7 @@
     ctx.fill();
 
     tip.hidden = false;
-    tip.innerHTML = `<strong>${fmt(data[i])}</strong>${daysAgoLabel(n - 1 - i)}`;
+    tip.innerHTML = `<strong>${fmtPrice(data[i])}</strong>${daysAgoLabel(n - 1 - i)}`;
     tip.style.left = Math.max(50, Math.min(box.right - 40, hx)) + 'px';
     tip.style.top = hy + 'px';
   }
@@ -2701,9 +3266,23 @@
           if (!gainXp(XP.dividend) && ui.screen !== 'landing') playSound('coin', 1500);
           continue;
         }
+        // the memecoin pit churns constantly, so its comings and goings only
+        // pop up for someone in the pit or holding the coin
+        const memeNoise = STOCK_BY_ID[e.ticker] && STOCK_BY_ID[e.ticker].market === 'meme' && ui.screen !== 'meme' && !e.held;
+        if (e.kind === 'ascend') {
+          if (e.held) unlockAchievement('to_the_moon');
+          if (!memeNoise && isUnlocked(STOCK_BY_ID[e.ticker]) && shown++ < 2) {
+            toast(`${e.ticker} has ascended`, e.held ? `${e.text}, and you were holding it.` : `${e.text}.`, 'accent');
+            if (e.held) confetti(90, ['#f0b73d', '#ad93e8', '#4cc38a']);
+          }
+          continue;
+        }
         if (e.wiped) {
-          toast('A company has failed', `${e.ticker} collapsed and your ${e.wiped} shares are now worthless.`, 'neg');
+          const s = STOCK_BY_ID[e.ticker];
+          const title = e.rug ? 'Rugged' : isCoin(s) ? 'A coin has collapsed' : 'A company has failed';
+          toast(title, `${e.ticker} ${e.rug ? 'was pulled by its makers' : 'collapsed'}, and your ${fmtQty(s, e.wiped)} ${units(s, e.wiped)} are now worthless.`, 'neg');
           playSound('fail');
+          if (e.rug) unlockAchievement('rugged');
           state.stats.wasBurned = true;
           // aim to recover to whatever your net worth was the day before this hit
           const peakBefore = Math.max(0, ...state.worth.history.slice(0, -1));
@@ -2711,13 +3290,18 @@
           continue;
         }
         if (e.kind === 'dividend') continue;
-        if (e.kind === 'listing' && isUnlocked(STOCK_BY_ID[e.ticker]) && shown++ < 2) {
-          toast('New on the exchange', e.text, 'accent');
+        if (e.kind === 'listing') {
+          if (!memeNoise && isUnlocked(STOCK_BY_ID[e.ticker]) && shown++ < 2) {
+            toast(STOCK_BY_ID[e.ticker].market === 'meme' ? 'New memecoin' : 'New on the exchange', e.text, 'accent');
+          }
           continue;
         }
-        const affectsYou = e.ticker === 'MKT' ? holdingsValue() > 0 : rtOf(e.ticker).shares > 0;
+        const holds = test => STOCKS.some(s => test(s) && rtOf(s.id).shares > 0);
+        const affectsYou = e.ticker === 'MKT' ? holds(s => !isCoin(s))
+          : e.ticker === 'CRYPTO' ? holds(isCoin)
+          : rtOf(e.ticker).shares > 0;
         if (affectsYou && shown++ < 2) {
-          const title = e.ticker === 'MKT' ? 'Market news' : `${e.ticker} · ${NEWS_KINDS[e.kind]}`;
+          const title = MARKET_TICKERS[e.ticker] ? `${MARKET_TICKERS[e.ticker]} news` : newsLabel(e);
           toast(title, e.text, e.mood === 'up' ? 'pos' : e.mood === 'down' ? 'neg' : '');
         }
       }
@@ -2750,8 +3334,7 @@
     const row = e.target.closest('[data-stock]');
     if (!row) return;
     if (!state.accountOpen) return showLessons(0);
-    ui.selected = row.dataset.stock;
-    showScreen('trade');
+    openAsset(row.dataset.stock);
   }
   $('moversList').addEventListener('pointerdown', openStockRow);
   $('holdingsTable').addEventListener('pointerdown', openStockRow);
@@ -2768,11 +3351,13 @@
   $('settingsBtn').onclick = showSettings;
   $('tierUpgradeBtn').onclick = () => upgradeTier(state.tier + 1);
   $('placeOrderBtn').onclick = placeOrder;
-  $('qtyMinus').onclick = () => setQty(orderQty() - 1);
-  $('qtyPlus').onclick = () => setQty(orderQty() + 1);
+  const nudge = () => nudgeOf(STOCK_BY_ID[ui.selected], rtOf(ui.selected).price);
+  $('qtyMinus').onclick = () => setQty(orderQty() - nudge());
+  $('qtyPlus').onclick = () => setQty(orderQty() + nudge());
   $('qtyMax').onclick = () => {
-    const rt = rtOf(ui.selected);
-    setQty(ui.side === 'buy' ? maxBuyQty(rt.price) : rt.shares);
+    const s = STOCK_BY_ID[ui.selected];
+    const rt = rtOf(s.id);
+    setQty(ui.side === 'buy' ? maxBuyQty(s, rt.price) : rt.shares);
   };
   $('qtyInput').addEventListener('input', render);
   $('qtyInput').addEventListener('keydown', e => { if (e.key === 'Enter') placeOrder(); });

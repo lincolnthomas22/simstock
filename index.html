@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0d0c0a">
 <title>SimStock · Stock Market Simulator Game</title>
-<meta name="description" content="SimStock is a free stock market simulator game. Learn how investing works by trading fictional companies, earning dividends, hiring staff and growing your account. No real money involved.">
+<meta name="description" content="SimStock is a free stock market simulator game. Learn how investing works by trading parody companies, crypto and memecoins, earning dividends, hiring staff and growing your account. No real money involved.">
 <meta name="google-site-verification" content="WDu5WplugBYn8DmKLCe3rg__5Ec3Yt39WZDysgTtlH8">
 <link rel="canonical" href="https://lincolnthomas22.github.io/simstock/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -90,6 +90,8 @@
     <div class="task-switch">
       <button data-screen="home">Front page</button>
       <button data-screen="trade">Trading floor</button>
+      <button data-screen="crypto" class="nav-crypto">Crypto</button>
+      <button data-screen="meme" class="nav-meme">Memecoins</button>
       <button data-screen="portfolio">Portfolio</button>
       <button data-screen="upgrades">Upgrades</button>
       <button data-screen="achievements">Achievements</button>
@@ -175,7 +177,7 @@
       <div class="landing-copy">
         <p class="landing-kicker">The market game</p>
         <h1 class="landing-name">Sim<span>Stock</span></h1>
-        <p class="landing-tagline">Build a firm from $1,000. One second is one trading day, every company is made up, and nothing here costs real money.</p>
+        <p class="landing-tagline">Build a firm from $1,000 in stocks, crypto and memecoins. One second is one trading day, every name is a parody, and nothing here costs real money.</p>
         <div class="landing-buttons">
           <button class="btn btn-mustard btn-xl" data-screen="home">Step onto the floor</button>
           <button class="btn btn-green btn-xl" data-screen="portfolio">Your portfolio</button>
@@ -197,7 +199,7 @@
       </div>
       <dl class="figures-row">
         <div><dt>Cash</dt><dd id="pfCash"></dd></div>
-        <div><dt>In shares</dt><dd id="pfInvested"></dd></div>
+        <div><dt>Invested</dt><dd id="pfInvested"></dd></div>
         <div><dt>Profit from sales</dt><dd id="pfRealized"></dd></div>
         <div><dt>Dividends earned</dt><dd id="pfDividends"></dd></div>
         <div><dt>Commission paid</dt><dd id="pfFees"></dd></div>
@@ -220,7 +222,7 @@
       <h2 class="column-head h-green">Your investments</h2>
       <div id="pfTable"></div>
       <div class="empty-state" id="pfEmpty">
-        <p>You don't own any shares yet. Everything you buy will be listed here.</p>
+        <p>You don't own anything yet. Every share and coin you buy will be listed here.</p>
         <button class="more" data-screen="trade">Go to the trading floor</button>
       </div>
     </section>
@@ -236,7 +238,7 @@
 
     <section class="tut-intro">
       <h2 class="column-head h-mustard">How to play</h2>
-      <p class="section-note">Everything in SimStock is made up: the companies, the prices and the money. Nothing here can cost you anything, so the worst that can happen is you learn something.</p>
+      <p class="section-note">Everything in SimStock is pretend. The companies and coins are parodies of real ones, named and tuned to act roughly like them, but every price is simulated and so is the money. Nothing here can cost you anything, so the worst that can happen is you learn something.</p>
       <div class="tut-facts">
         <div><dt>One second</dt><dd>is one trading day</dd></div>
         <div><dt>One minute</dt><dd>is about three months</dd></div>
@@ -251,7 +253,7 @@
         <div class="tut-num">1</div>
         <div class="tut-body">
           <h3>Find your way around</h3>
-          <p>The bar across the top of every room is how you move about. <b>Home</b> takes you back to Mr. Sim, and the buttons on the right jump straight to any room. The room you're in is the green one.</p>
+          <p>The bar across the top of every room is how you move about. <b>Home</b> takes you back to Mr. Sim, and the buttons on the right jump straight to any room, including <b>Crypto</b> and <b>Memecoins</b> beside the trading floor. The room you're in is the green one.</p>
           <figure class="tut-figure">
             <svg viewBox="0 0 600 84" role="img" aria-label="The navigation bar, with Home on the left and room buttons on the right">
               <rect x="0" y="0" width="600" height="84" fill="#15130f"/>
@@ -283,7 +285,7 @@
               <rect x="0" y="0" width="600" height="34" fill="#0f5a43"/>
               <text class="d-title" x="252" y="23" fill="#efe8d8">Sim<tspan fill="#f0b73d">Stock</tspan></text>
               <rect x="0" y="34" width="600" height="18" fill="#070605"/>
-              <text class="d-xs" x="14" y="47" fill="#f0b73d">INDEX<tspan fill="#bdb4a3" dx="8">1,004.21</tspan><tspan fill="#4cc38a" dx="8">+0.31%</tspan><tspan fill="#f0b73d" dx="26">TICK</tspan><tspan fill="#bdb4a3" dx="8">$104.60</tspan><tspan fill="#ff6f5e" dx="8">−0.42%</tspan></text>
+              <text class="d-xs" x="14" y="47" fill="#f0b73d">INDEX<tspan fill="#bdb4a3" dx="8">1,004.21</tspan><tspan fill="#4cc38a" dx="8">+0.31%</tspan><tspan fill="#f0b73d" dx="26">APPL</tspan><tspan fill="#bdb4a3" dx="8">$104.60</tspan><tspan fill="#ff6f5e" dx="8">−0.42%</tspan></text>
               <text class="d-xs" x="16" y="78">YOUR FIRM</text>
               <text class="d-big" x="16" y="122">$1,000.00</text>
               <line x1="16" y1="146" x2="330" y2="146" stroke="#2b2721"/>
@@ -318,14 +320,14 @@
               <text class="d-sm" x="22" y="45">1,004.21</text>
               <text class="d-xs" x="10" y="72" fill="#4cbf8c">STARTER ACCOUNT</text>
               <line x1="10" y1="78" x2="138" y2="78" stroke="#4cbf8c" stroke-width="2"/>
-              <text class="d-sm" x="10" y="98">IDXF</text><text class="d-sm" x="92" y="98" fill="#4cc38a">+0.3%</text>
-              <text class="d-sm" x="10" y="124">TICK</text><text class="d-sm" x="92" y="124" fill="#ff6f5e">−0.4%</text>
-              <text class="d-sm" x="10" y="150">BRWL</text><text class="d-sm" x="92" y="150" fill="#4cc38a">+0.9%</text>
+              <text class="d-sm" x="10" y="98">VTMF</text><text class="d-sm" x="92" y="98" fill="#4cc38a">+0.3%</text>
+              <text class="d-sm" x="10" y="124">APPL</text><text class="d-sm" x="92" y="124" fill="#ff6f5e">−0.4%</text>
+              <text class="d-sm" x="10" y="150">KOKA</text><text class="d-sm" x="92" y="150" fill="#4cc38a">+0.9%</text>
               <text class="d-xs" x="10" y="182" fill="#9fb4c8">SILVER ACCOUNT</text>
               <line x1="10" y1="188" x2="138" y2="188" stroke="#9fb4c8" stroke-width="2"/>
-              <text class="d-sm" x="10" y="208" opacity="0.5">VOLT</text><text class="d-xs" x="92" y="208" opacity="0.6">Silver</text>
-              <text class="d-xs" x="160" y="26" fill="#4cbf8c">TICK · TECHNOLOGY</text>
-              <text class="d-title" x="160" y="52">Tickr Inc.</text>
+              <text class="d-sm" x="10" y="208" opacity="0.5">TSLO</text><text class="d-xs" x="92" y="208" opacity="0.6">Silver</text>
+              <text class="d-xs" x="160" y="26" fill="#4cbf8c">APPL · TECHNOLOGY</text>
+              <text class="d-title" x="160" y="52">Appel Inc.</text>
               <rect x="352" y="30" width="72" height="22" rx="3" fill="none" stroke="#4a4339"/>
               <text class="d-xs" x="364" y="45">1M 3M 1Y</text>
               <text class="d-big" x="160" y="86">$104.60</text>
@@ -349,9 +351,9 @@
               <rect x="456" y="84" width="122" height="24" rx="3" fill="#0a0908" stroke="#4a4339"/>
               <text class="d-sm" x="510" y="101">3</text>
               <rect x="456" y="120" width="122" height="28" rx="3" fill="#2e9866"/>
-              <text class="d-sm" x="482" y="139" fill="#04170d">Buy 3 TICK</text>
+              <text class="d-sm" x="482" y="139" fill="#04170d">Buy 3 APPL</text>
               <rect x="444" y="176" width="146" height="90" rx="4" fill="none" stroke="#2b2721"/>
-              <text class="d-xs" x="456" y="196" fill="#4cbf8c">YOUR TICK SHARES</text>
+              <text class="d-xs" x="456" y="196" fill="#4cbf8c">YOUR APPL SHARES</text>
               <text class="d-xs" x="456" y="218">Shares owned</text><text class="d-sm" x="560" y="218">3</text>
               <text class="d-xs" x="456" y="240">Gain or loss</text><text class="d-sm" x="540" y="240" fill="#4cc38a">+$10</text>
               <circle class="pin-dot" cx="14" cy="100" r="13"/><text class="pin-num" x="14" y="105">1</text>
@@ -396,7 +398,7 @@
               <line x1="26" y1="226" x2="392" y2="226" stroke="#4a4339"/>
               <text class="d-sm" x="26" y="244">Cash afterwards</text><text class="d-sm" x="392" y="244" text-anchor="end">$685.20</text>
               <rect x="26" y="252" width="366" height="20" rx="3" fill="#2e9866"/>
-              <text class="d-sm" x="176" y="267" fill="#04170d">Buy 3 TICK</text>
+              <text class="d-sm" x="176" y="267" fill="#04170d">Buy 3 APPL</text>
               <circle class="pin-dot" cx="30" cy="62" r="13"/><text class="pin-num" x="30" y="67">1</text>
               <circle class="pin-dot" cx="70" cy="124" r="13"/><text class="pin-num" x="70" y="129">2</text>
               <circle class="pin-dot" cx="326" cy="124" r="13"/><text class="pin-num" x="326" y="129">3</text>
@@ -432,8 +434,56 @@
       <li class="tut-step">
         <div class="tut-num">6</div>
         <div class="tut-body">
+          <h3>Try crypto and memecoins</h3>
+          <p>The <b>Crypto</b> and <b>Memecoins</b> rooms work just like the trading floor: a list on the left, the coin in the middle, the order ticket on the right. The same account tiers unlock them, and buying and selling earns the same XP. What changes is how they behave.</p>
+          <ul class="tut-list">
+            <li><b>Coins are not companies.</b> There are no profits behind them and no dividends. A coin is worth whatever the next buyer will pay, which is why the whole crypto market can rise or fall a tenth in a day on one piece of news.</li>
+            <li><b>You can buy a slice of a coin.</b> A whole Bitcoyn costs tens of thousands of dollars, but you can buy 0.001 of one, or type in any amount. The minus and plus buttons move by about $100 at a time.</li>
+            <li><b>Tethur is a stablecoin.</b> It is meant to stay at exactly $1, so it is somewhere to park cash, not something that grows. Now and then it slips for a day.</li>
+            <li><b>Memecoins cost a tiny fraction of a cent,</b> so you buy them by the million. Some achievements are for simply holding a million, a billion or a trillion coins of one memecoin.</li>
+            <li><b>Some memecoins have already ascended.</b> Doggecoin and the other big names swing wildly, but they are too famous to disappear. Newer coins that ascend can't be rugged either, but sooner or later the crowd moves on and they fade away, so watch for the warning.</li>
+            <li><b>The rest are about to ascend, or so their holders hope.</b> On any day one might catch fire and multiply 20 to 400 times over a week or two, then join the ascended coins, and a new one launches in its place. Many never make it: the people who made them pull the plug and vanish with the money, and the coins are worth nothing. That is called being rugged.</li>
+          </ul>
+          <figure class="tut-figure">
+            <svg viewBox="0 0 600 210" role="img" aria-label="The memecoin room, with ascended coins listed above the ones about to ascend, and an order for five million coins">
+              <rect x="0" y="0" width="600" height="210" fill="#15130f"/>
+              <text class="d-xs" x="14" y="26" fill="#4cbf8c">ALREADY ASCENDED</text>
+              <line x1="14" y1="32" x2="250" y2="32" stroke="#4cbf8c" stroke-width="2"/>
+              <text class="d-sm" x="14" y="54">DOGG</text><text class="d-sm" x="92" y="54">$0.1203</text><text class="d-sm" x="196" y="54" fill="#4cc38a">+2.1%</text>
+              <text class="d-sm" x="14" y="78">SHBU</text><text class="d-sm" x="92" y="78">$0.00001834</text><text class="d-sm" x="196" y="78" fill="#ff6f5e">−3.4%</text>
+              <text class="d-xs" x="14" y="112" fill="#ad93e8">ABOUT TO ASCEND</text>
+              <line x1="14" y1="118" x2="250" y2="118" stroke="#ad93e8" stroke-width="2"/>
+              <text class="d-sm" x="14" y="140">MDNG</text><text class="d-sm" x="92" y="140">$0.0002104</text><text class="d-sm" x="196" y="140" fill="#4cc38a">+12.6%</text>
+              <text class="d-sm" x="14" y="164">TURB</text><text class="d-sm" x="92" y="164">$0.00009135</text>
+              <rect x="190" y="152" width="60" height="16" rx="2" fill="none" stroke="#f0b73d"/><text class="d-xs" x="196" y="164" fill="#f0b73d">ASCENDING</text>
+              <rect x="300" y="14" width="286" height="182" rx="4" fill="#1b1814" stroke="#4a4339"/>
+              <rect x="300" y="14" width="286" height="28" fill="#0f5a43"/>
+              <text class="d-sm" x="314" y="33" fill="#efe8d8">Order ticket</text>
+              <text class="d-xs" x="314" y="62">NUMBER OF COINS</text>
+              <rect x="314" y="68" width="258" height="26" rx="3" fill="#0a0908" stroke="#4a4339"/><text class="d-sm" x="408" y="86">5,000,000</text>
+              <text class="d-sm" x="314" y="118">Price per coin</text><text class="d-sm" x="572" y="118" text-anchor="end">$0.00001834</text>
+              <text class="d-sm" x="314" y="140">Coins cost</text><text class="d-sm" x="572" y="140" text-anchor="end">$91.70</text>
+              <rect x="314" y="158" width="258" height="24" rx="3" fill="#2e9866"/>
+              <text class="d-sm" x="384" y="175" fill="#04170d">Buy 5,000,000 SHBU</text>
+              <circle class="pin-dot" cx="252" cy="24" r="12"/><text class="pin-num" x="252" y="29">1</text>
+              <circle class="pin-dot" cx="252" cy="110" r="12"/><text class="pin-num" x="252" y="115">2</text>
+              <circle class="pin-dot" cx="318" cy="72" r="12"/><text class="pin-num" x="318" y="77">3</text>
+            </svg>
+          </figure>
+          <ul class="tut-legend">
+            <li><span class="pin">1</span> <b>Already ascended:</b> big, famous and still wild, but they won't be rugged.</li>
+            <li><span class="pin">2</span> <b>About to ascend:</b> tiny, new, and either on their way up or on their way to nothing. A coin that is taking off right now says so.</li>
+            <li><span class="pin">3</span> Buy by the million. <b>Max</b> works out exactly how many your cash covers.</li>
+          </ul>
+          <p class="tut-note">Keep memecoins to money you could lose entirely. The big wins are real, and so are the rug pulls.</p>
+        </div>
+      </li>
+
+      <li class="tut-step">
+        <div class="tut-num">7</div>
+        <div class="tut-body">
           <h3>Check your portfolio</h3>
-          <p>The <b>Portfolio</b> room adds everything up: your net worth, how much of it is cash and how much is in shares, every company you hold, and a set of bars showing how your money is split. If one bar is much longer than the rest, most of your fortune is riding on one company.</p>
+          <p>The <b>Portfolio</b> room adds everything up: your net worth, how much of it is cash and how much is invested, every company and coin you hold, and a set of bars showing how your money is split. If one bar is much longer than the rest, most of your fortune is riding on one thing.</p>
           <p>At the top of the room is the chart that matters most, <b>You against the market</b>. The solid line is your net worth. The grey dashed line beside it is what the same money would have done sitting in the whole market, untouched. Your line goes green when you are ahead of it and red when you are behind. Beating that dashed line is harder than it looks, and it is the honest test of whether your trading is doing anything for you.</p>
           <figure class="tut-figure">
             <svg viewBox="0 0 600 190" role="img" aria-label="The portfolio screen, with the holdings table and a breakdown of where the money sits">
@@ -443,24 +493,24 @@
               <text class="d-sm" x="16" y="80" fill="#4cc38a">+$284.30 (+28.43%) since you started</text>
               <line x1="16" y1="96" x2="584" y2="96" stroke="#2b2721"/>
               <text class="d-xs" x="16" y="116">STOCK</text><text class="d-xs" x="200" y="116">SHARES</text><text class="d-xs" x="300" y="116">VALUE</text><text class="d-xs" x="430" y="116">GAIN OR LOSS</text>
-              <text class="d-sm" x="16" y="138">TICK</text><text class="d-sm" x="200" y="138">3</text><text class="d-sm" x="300" y="138">$313.80</text><text class="d-sm" x="430" y="138" fill="#4cc38a">+$38.40</text>
-              <text class="d-sm" x="16" y="160">BRWL</text><text class="d-sm" x="200" y="160">6</text><text class="d-sm" x="300" y="160">$246.90</text><text class="d-sm" x="430" y="160" fill="#ff6f5e">−$12.10</text>
+              <text class="d-sm" x="16" y="138">APPL</text><text class="d-sm" x="200" y="138">3</text><text class="d-sm" x="300" y="138">$313.80</text><text class="d-sm" x="430" y="138" fill="#4cc38a">+$38.40</text>
+              <text class="d-sm" x="16" y="160">KOKA</text><text class="d-sm" x="200" y="160">6</text><text class="d-sm" x="300" y="160">$246.90</text><text class="d-sm" x="430" y="160" fill="#ff6f5e">−$12.10</text>
               <circle class="pin-dot" cx="20" cy="120" r="13"/><text class="pin-num" x="20" y="125">1</text>
             </svg>
           </figure>
           <ul class="tut-legend">
-            <li><span class="pin">1</span> Click any row to open that company on the trading floor.</li>
+            <li><span class="pin">1</span> Click any row to open that company or coin in the room that trades it.</li>
           </ul>
         </div>
       </li>
 
       <li class="tut-step">
-        <div class="tut-num">7</div>
+        <div class="tut-num">8</div>
         <div class="tut-body">
           <h3>Grow the firm in Upgrades</h3>
           <p>The <b>Upgrades</b> room has the two things that make your desk bigger.</p>
           <ul class="tut-list">
-            <li><b>Account tiers.</b> Starter, Silver, Gold and Platinum. Each one needs a level and a one-off fee, and each unlocks more companies, from a water utility up to mining, airlines and robotics.</li>
+            <li><b>Account tiers.</b> Starter, Silver, Gold and Platinum. Each one needs a level and a one-off fee, and each unlocks more companies and coins, from a power company up to gold mining, airlines and AI chips, and from Bitcoyn up to the wildest memecoins.</li>
             <li><b>Staff.</b> A Research Analyst costs $50 to hire, brings in $1 a day in fees and draws $0.45 a day in wages. Each hire costs a little more than the last, and better roles unlock with better accounts. The page tells you how clients are feeling, which is what decides the fees. Everyone you hire arrives with a name and a quirk, listed under their role; press a name to read theirs. The quirks are just for fun and don't change what anyone earns.</li>
           </ul>
           <p>Keep an eye on <b>The firm</b> at the bottom of the front page, too: your desk picks up a pile of research notes, a plant, a second screen and a framed first dollar as the firm grows.</p>
@@ -469,13 +519,13 @@
       </li>
 
       <li class="tut-step">
-        <div class="tut-num">8</div>
+        <div class="tut-num">9</div>
         <div class="tut-body">
           <h3>Things worth knowing</h3>
           <ul class="tut-list">
             <li><b>Your progress saves by itself,</b> in this browser. Another device, or a clearing of your browsing data, would otherwise start you over, so <b>Settings</b> at the top right has <b>Save to a file</b>: it puts your whole game in your downloads as a small file. <b>Load a file</b> on any browser picks it back up where you left off. Settings can also turn the sound effects and the music off or back on, turn the music down, and reset the game on purpose.</li>
             <li><b>Prices move on their own</b> every second, and every company reports earnings each quarter. Good news usually lifts a price and bad news drops it, but not always.</li>
-            <li><b>Spread your money out.</b> Owning several companies means one bad earnings report cannot wipe you out. The index fund, IDXF, holds a slice of the whole market and is the calmest place to start.</li>
+            <li><b>Spread your money out.</b> Owning several companies means one bad earnings report cannot wipe you out. The index fund, VTMF, holds a slice of the whole market and is the calmest place to start.</li>
             <li><b>Every company has a risk rating</b> from 1 to 5, shown as a row of pips beside its ticker and spelled out on its page. Green pips (1 and 2) are steady companies that grow slowly. Gold (3) is in between. Red (4 and 5) swing hard, and can jump or fall by a tenth in a day. Riskier companies grow faster on average, which is the reward for putting up with the swings. Keep those positions small until you are comfortable.</li>
             <li><b>Companies rated 3 or higher can fail completely,</b> and the higher the rating, the likelier it is. Usually there is a warning first: bad news knocks the price down and the company says it may not be able to pay its debts. From then on it might collapse on any day, unless the price recovers. A company rated 5 can occasionally collapse overnight with no warning at all. When a company fails, the shares are worthless and the money does not come back. That is the price of the faster growth, and it is why nobody sensible puts everything into one wild company. A few weeks later a new company lists on the exchange and takes the empty place, with its own risk rating.</li>
           </ul>
@@ -509,7 +559,7 @@
         <div class="section-label">Before you trade</div>
         <h2>You'll need a brokerage account</h2>
         <p>It takes a minute to open, and you'll get a short rundown of how stocks work on the way in.</p>
-        <p>You start with five companies to choose from. Bigger accounts unlock twelve more.</p>
+        <p>You start with five companies, three cryptocurrencies and a handful of memecoins. Bigger accounts unlock plenty more.</p>
         <button class="btn btn-mustard" id="openAccountBtn">Open an account</button>
       </aside>
 
@@ -528,7 +578,7 @@
           </div>
           <button class="btn btn-green btn-block" id="tierUpgradeBtn">Upgrade</button>
         </div>
-        <p id="tierMaxed" hidden>You have a Platinum account, so every stock is open to you.</p>
+        <p id="tierMaxed" hidden>You have a Platinum account, so every stock and coin is open to you.</p>
       </aside>
     </div>
 
@@ -622,7 +672,7 @@
       </section>
     </div>
 
-    <footer class="colophon">SimStock is a game. Every company and price in it is made up, and no real money changes hands.</footer>
+    <footer class="colophon">SimStock is a game. Company and coin names are parodies, every price is simulated, and no real money changes hands.</footer>
   </main>
 
   <!-- ============================ TRADING FLOOR ============================ -->
@@ -631,7 +681,7 @@
 
       <aside class="watchlist">
         <div class="market-summary">
-          <span class="figure-label">Market index</span>
+          <span class="figure-label" id="marketLabel">Market index</span>
           <span class="market-level" id="marketLevel">1,000.00</span>
           <span class="change-sm" id="marketChange"></span>
         </div>
@@ -676,21 +726,11 @@
           </div>
         </div>
 
-        <dl class="stat-grid">
-          <div class="stat"><dt>Market cap</dt><dd id="sCap"></dd><small>What all its shares are worth together</small></div>
-          <div class="stat"><dt>P/E ratio</dt><dd id="sPe"></dd><small>Price divided by a year's profit per share</small></div>
-          <div class="stat"><dt>Earnings per share</dt><dd id="sEps"></dd><small>A year's profit, split across every share</small></div>
-          <div class="stat"><dt>Dividend yield</dt><dd id="sDiv"></dd><small>Cash paid out each year, as a share of price</small></div>
-          <div class="stat"><dt id="sReturnLabel">1-year return</dt><dd id="sReturn"></dd><small>How much the price has changed</small></div>
-          <div class="stat"><dt>Typical day</dt><dd id="sDayMove"></dd><small>How far the price usually moves in a day</small></div>
-          <div class="stat"><dt>Risk</dt><dd id="sVol"></dd><small id="sVolNote"></small></div>
-          <div class="stat"><dt>Beta</dt><dd id="sBeta"></dd><small>1.00 moves with the market; higher swings more</small></div>
-          <div class="stat"><dt id="sDrawLabel">Worst fall this year</dt><dd id="sDraw"></dd><small>Biggest drop from a high to the low after it</small></div>
-        </dl>
+        <dl class="stat-grid" id="statGrid"></dl>
 
         <div class="detail-lower">
           <section class="about">
-            <h3 class="column-head h-blue">About the company</h3>
+            <h3 class="column-head h-blue" id="aboutHead">About the company</h3>
             <p id="dAbout"></p>
             <dl class="calendar">
               <div id="calEarningsRow"><dt>Next earnings report</dt><dd id="calEarnings"></dd></div>
@@ -712,7 +752,7 @@
               <button data-side="buy" class="buy">Buy</button>
               <button data-side="sell" class="sell">Sell</button>
             </div>
-            <label class="field-label" for="qtyInput">Number of shares</label>
+            <label class="field-label" for="qtyInput" id="qtyLabel">Number of shares</label>
             <div class="qty-field">
               <button class="step-btn" id="qtyMinus" aria-label="One fewer share">−</button>
               <input id="qtyInput" type="number" min="1" step="1" value="1" inputmode="numeric">
@@ -720,7 +760,7 @@
               <button class="step-btn max-btn" id="qtyMax">Max</button>
             </div>
             <div class="lines order-lines">
-              <div><span>Price per share</span><span class="v" id="oPrice"></span></div>
+              <div><span id="oPriceLabel">Price per share</span><span class="v" id="oPrice"></span></div>
               <div><span id="oTotalLabel">Shares cost</span><span class="v" id="oTotal"></span></div>
               <div><span>Commission</span><span class="v" id="oFee"></span></div>
               <div class="total"><span>Cash afterwards</span><span class="v" id="oCashAfter"></span></div>
@@ -740,12 +780,12 @@
         <section class="position">
           <h3 class="column-head h-green" id="positionTitle">Your shares</h3>
           <div class="lines">
-            <div><span>Shares owned</span><span class="v" id="pShares"></span></div>
+            <div><span id="pSharesLabel">Shares owned</span><span class="v" id="pShares"></span></div>
             <div><span>Average cost</span><span class="v" id="pAvg"></span></div>
             <div><span>Worth now</span><span class="v" id="pValue"></span></div>
             <div><span>Gain or loss</span><span class="v" id="pReturn"></span></div>
             <div><span>Profit from sales</span><span class="v" id="pRealized"></span></div>
-            <div><span>Dividends received</span><span class="v" id="pDivs"></span></div>
+            <div id="pDivsRow"><span>Dividends received</span><span class="v" id="pDivs"></span></div>
           </div>
         </section>
 
