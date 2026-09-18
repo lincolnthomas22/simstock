@@ -1338,7 +1338,7 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
   .stat:not(:nth-child(3n+1)) { padding-left: 0; border-left: 0; }
   .stat:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--line); }
   .crumbs { flex-wrap: wrap; row-gap: 8px; }
-  .trade-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "watch" "detail" "order"; }
+  .trade-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "watch" "detail" "order"; } /* phones re-order this column — see the block at the end of this file */
   .watchlist { position: static; padding-right: 0; }
   .watch-list { max-height: 260px; }
   .detail { margin-top: 22px; padding: 0; border-left: 0; }
@@ -1431,4 +1431,42 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 
 @media (max-width: 760px) {
   .ach-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------------- PHONE: ORDER TICKET UNDER THE CHART ---------------- */
+/* Phones only. On a phone the order ticket used to sit at the very bottom,
+   below the 52-week range, the stats and the headlines, so you lost sight of
+   the price while you decided. Here the column is lifted directly under the
+   chart: the trade grid becomes a single flex column, .detail is flattened
+   with display: contents so its children become siblings of .order-col, and
+   order numbers do the rest.
+
+   The query is deliberately narrow: phone width AND a touch screen with no
+   mouse. A desktop or laptop browser reports pointer: fine / hover: hover at
+   every window size, so dragging a desktop window narrow keeps the existing
+   layout. Nothing on a computer screen changes. */
+@media (max-width: 760px) and (pointer: coarse) and (hover: none) {
+  .trade-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch; /* the base grid's align-items: start would shrink-wrap flex items */
+  }
+
+  /* promote the detail panel's children into the column */
+  .detail { display: contents; }
+
+  .watchlist  { order: 1; }
+  .stock-head { order: 2; margin-top: 22px; } /* .detail's own margin goes with its box */
+  .lock-note  { order: 3; align-self: start; } /* keep it hugging its text, not stretched */
+  .warn-note  { order: 4; }
+  .price-row  { order: 5; }
+  .chart-wrap { order: 6; }
+  .order-col  { order: 7; }
+  .range52    { order: 8; }
+  .stat-grid  { order: 9; }
+  .detail-lower { order: 10; }
+
+  /* it is a divider now, not a trailing block */
+  .order-col { margin: 20px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line-strong); }
+  .range52 { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
 }
