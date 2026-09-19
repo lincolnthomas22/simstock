@@ -1,0 +1,114 @@
+# Deploys the match server, without anyone needing to install anything.
+#
+# This exists because the usual way — install flyctl, sign in, deploy — needs
+# admin rights on the machine you are sitting at, and plenty of machines
+# (school and work laptops especially) do not give you those. GitHub's runners
+# have no such problem, so the install happens there instead.
+#
+# Setting it up, all in a browser, once:
+#
+#   1. Make a Fly.io account at https://fly.io
+#   2. Go to https://fly.io/user/personal_access_tokens and create a token
+#   3. In this repository: Settings > Secrets and variables > Actions >
+#      New repository secret. Name it FLY_API_TOKEN and paste the token in.
+#   4. Actions tab > "Deploy the match server" > Run workflow
+#
+# After that it redeploys on its own whenever the server or the market
+# simulation changes.
+name: Deploy the match server
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'sim.js'
+      - 'Dockerfile'
+      - 'fly.toml'
+      - '.github/workflows/deploy-server.yml'
+
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false      # never interrupt a deploy half way
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Fly.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check there is a token to deploy with
+        # Without this, flyctl fails with something that reads like a bug
+        # rather than a missing setting.
+        run: |
+          if [ -z "${{ secrets.FLY_API_TOKEN }}" ]; then
+            echo "::error title=No FLY_API_TOKEN::Add a Fly.io token before this can deploy. Settings > Secrets and variables > Actions > New repository secret, named FLY_API_TOKEN. Get the token from https://fly.io/user/personal_access_tokens"
+            exit 1
+          fi
+
+      - name: Install flyctl
+        run: |
+          curl -L https://fly.io/install.sh | sh
+          echo "$HOME/.fly/bin" >> "$GITHUB_PATH"
+
+      - name: Create the app the first time
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          APP=$(sed -n 's/^app *= *"\(.*\)"/\1/p' fly.toml | head -1)
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          if flyctl status --app "$APP" >/dev/null 2>&1; then
+            echo "$APP already exists; deploying over it."
+          else
+            echo "Creating $APP."
+            # App names are global on Fly, so say so plainly if it is taken.
+            flyctl apps create "$APP" --org personal || {
+              echo "::error title=Could not create $APP::The name may be taken — they are global across all of Fly. Change the 'app' line in fly.toml and run this again."
+              exit 1
+            }
+          fi
+
+      - name: Deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        # Built from the repository root, not server/: the image needs sim.js
+        # too, so that the server and the browser generate the same market.
+        run: flyctl deploy --app "$APP" --remote-only
+
+      - name: Wait for it to answer, and print the address
+        run: |
+          HOST="$APP.fly.dev"
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 10 "https://$HOST/health" > health.json 2>/dev/null; then
+              {
+                echo "## The match server is up"
+                echo
+                echo '```'
+                cat health.json
+                echo
+                echo '```'
+                echo
+                echo "Its address is:"
+                echo
+                echo '```'
+                echo "wss://$HOST"
+                echo '```'
+                echo
+                echo "To point the game at it, set this line near the top of the versus section of \`game.js\`:"
+                echo
+                echo '```js'
+                echo "const DEFAULT_SERVER = 'wss://$HOST';"
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "wss://$HOST"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error title=No answer::The server deployed but never answered on /health. Check: flyctl logs --app $APP"
+          exit 1
