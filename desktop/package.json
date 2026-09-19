@@ -1,0 +1,66 @@
+{
+  "name": "simstock-desktop",
+  "productName": "SimStock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SimStock, as a desktop game",
+  "author": {
+    "name": "Lincoln Thomas"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lincolnthomas22/simstock.git"
+  },
+  "main": "main.js",
+  "scripts": {
+    "sync": "node sync-game.js",
+    "start": "npm run sync && electron .",
+    "pack": "npm run sync && electron-builder --dir",
+    "dist": "npm run sync && electron-builder -mwl",
+    "dist:win": "npm run sync && electron-builder --win",
+    "dist:linux": "npm run sync && electron-builder --linux",
+    "test": "npm run sync && node test.js"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "playwright": "^1.63.0"
+  },
+  "build": {
+    "appId": "com.lincolnthomas.simstock",
+    "productName": "SimStock",
+    "copyright": "Copyright © Lincoln Thomas",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "steam.js",
+      "achievements.json",
+      "app/**/*"
+    ],
+    "win": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.png",
+      "category": "Game",
+      "executableName": "SimStock"
+    },
+    "mac": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.games"
+    }
+  }
+}

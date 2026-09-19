@@ -19,6 +19,12 @@
   const COMPANY_NEWS_CHANCE = 1 / 90;   // per stock, per day
   const MARKET_NEWS_CHANCE = 1 / 120;   // per day
   const OFFLINE_CAP_SEC = 2 * 60 * 60;  // staff pay for at most 2 hours away
+  // The desktop build puts a small bridge on the window: a real save file that
+  // Steam Cloud can sync, Steam achievements, and the address of a match
+  // server. In a browser there is none, and everything falls back to the
+  // browser's own storage.
+  const desktop = (typeof window !== 'undefined' && window.simstock && window.simstock.desktop) ? window.simstock : null;
+
   const SAVE_KEY = 'simstock.save.v2';
   const OLD_SAVE_KEY = 'stockTycoon.save.v2'; // saves made before the rename to SimStock
   const SAVE_EVERY_TICKS = 5;
@@ -388,6 +394,7 @@
   function unlockAchievement(id, silent = false) {
     if (state.achieved[id]) return false;
     state.achieved[id] = state.day;
+    if (desktop) desktop.unlockAchievement(id);
     if (!silent && ui.screen !== 'landing') {
       const a = ACHIEVEMENT_BY_ID[id];
       toast(`Achievement unlocked: ${a.name}`, a.blurb, 'accent');
@@ -1267,7 +1274,8 @@
 
   function loadState() {
     try {
-      const saved = migrate(JSON.parse(localStorage.getItem(SAVE_KEY) || localStorage.getItem(OLD_SAVE_KEY)));
+      const raw = desktop ? desktop.readSave() : (localStorage.getItem(SAVE_KEY) || localStorage.getItem(OLD_SAVE_KEY));
+      const saved = migrate(JSON.parse(raw));
       if (saved) return saved;
     } catch (e) { /* storage blocked or save unreadable: start fresh */ }
     return freshState();
@@ -1275,8 +1283,10 @@
 
   function saveState() {
     state.lastSeen = Date.now();
+    const json = JSON.stringify(state);
+    if (desktop) return void desktop.writeSave(json);
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      localStorage.setItem(SAVE_KEY, json);
       localStorage.removeItem(OLD_SAVE_KEY);
     } catch (e) { /* storage unavailable */ }
   }
@@ -4264,7 +4274,7 @@
     }
   };
   try {
-    $('vsServerUrl').value = localStorage.getItem(SERVER_KEY) || '';
+    $('vsServerUrl').value = localStorage.getItem(SERVER_KEY) || (desktop && desktop.defaultServer) || '';
     $('vsName').value = localStorage.getItem(NAME_KEY) || '';
   } catch { /* a browser with storage switched off still plays fine */ }
   $('vsAgainBtn').onclick = () => {

@@ -1459,6 +1459,7 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .versus-card .btn-block { margin-top: 18px; }
 
 .versus-pass-field { display: flex; gap: 8px; }
+.versus-pass-field .step-btn { flex: 0 0 auto; padding: 0 14px; }
 .versus-pass-field input {
   flex: 1;
   min-width: 0;
