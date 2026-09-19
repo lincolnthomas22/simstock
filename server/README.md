@@ -45,12 +45,18 @@ docker build -t simstock-server .
 docker run -p 8080:8080 simstock-server
 ```
 
-On Fly.io:
+On Fly.io, `./tools/deploy-server.sh` from the repository root does the lot:
+checks you have flyctl and are signed in, creates the app the first time,
+deploys, waits for `/health` to answer, and offers to write the address into
+`game.js`. By hand it is:
 
 ```sh
 fly launch --no-deploy     # once, to claim the app name
 fly deploy                 # from the repository root
 ```
+
+App names are global on Fly, so if `simstock-versus` is taken, change the
+`app` line in `fly.toml`.
 
 An idle machine suspends and a connection wakes it, so a server nobody is
 using costs nothing. The first player to connect after a quiet spell waits a
