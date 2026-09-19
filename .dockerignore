@@ -1,0 +1,11 @@
+# Only the match server is built into the image; the game itself is a static
+# site served from anywhere.
+**/node_modules
+.git
+.github
+*.png
+index.html
+style.css
+game.js
+favicon.svg
+sitemap.xml

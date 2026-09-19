@@ -21,9 +21,9 @@
 <meta name="twitter:title" content="SimStock · Stock Market Simulator Game">
 <meta name="twitter:description" content="Learn how investing works by building a trading desk in a free, beginner-friendly stock market game.">
 <meta name="twitter:image" content="https://lincolnthomas22.github.io/simstock/og-image.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<!-- The fonts are served from here rather than a CDN, so the game works with
+     no internet at all, which the desktop build needs. See tools/fetch-fonts.js. -->
+<link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -74,6 +74,7 @@
       <button data-screen="trade">Trading floor</button>
       <button data-screen="crypto" class="nav-crypto">Crypto</button>
       <button data-screen="meme" class="nav-meme">Memecoins</button>
+      <button data-screen="versus" class="nav-versus">Versus</button>
       <button data-screen="portfolio">Portfolio</button>
       <button data-screen="upgrades">Upgrades</button>
       <button data-screen="achievements">Achievements</button>
@@ -163,6 +164,7 @@
         <div class="landing-buttons">
           <button class="btn btn-mustard btn-xl" data-screen="home">Step onto the floor</button>
           <button class="btn btn-green btn-xl" data-screen="portfolio">Your portfolio</button>
+          <button class="btn btn-xl btn-versus" data-screen="versus">Play a 1v1</button>
         </div>
         <p class="landing-fine">New here? <button class="link-inline" data-screen="tutorial">Mr. Sim will walk you through it</button>.</p>
       </div>
@@ -780,6 +782,193 @@
     </div>
   </main>
 
+
+  <!-- ============================ VERSUS ============================ -->
+  <main class="screen versus" id="versusScreen" hidden>
+
+    <!-- ---------- the lobby: set a match up, or join one ---------- -->
+    <div class="versus-stage" id="vsLobby">
+      <section class="versus-intro">
+        <h2 class="column-head h-mustard">Head to head</h2>
+        <p class="section-note">Two traders, one stock, $1,000 each and the same clock. Whoever is worth more when the bell goes wins. Nothing you do here touches your saved game.</p>
+      </section>
+
+      <section class="versus-server">
+        <div class="versus-server-row">
+          <span class="versus-dot" id="vsDot" aria-hidden="true"></span>
+          <span class="versus-server-status" id="vsStatus">Offline</span>
+          <label class="field-label" for="vsServerUrl">Match server</label>
+          <input id="vsServerUrl" type="text" autocomplete="off" spellcheck="false" placeholder="wss://your-server.fly.dev">
+          <label class="field-label" for="vsName">Your name</label>
+          <input id="vsName" type="text" maxlength="18" autocomplete="off" placeholder="Trader">
+          <button class="btn btn-sm" id="vsConnectBtn">Connect</button>
+        </div>
+        <p class="versus-server-note" id="vsServerNote"></p>
+      </section>
+
+      <div class="versus-lobby-grid">
+        <section class="versus-card">
+          <h3 class="versus-card-head">Host a match</h3>
+          <p class="versus-card-note">Pick a password and the shape of the market. Anyone who types the same password gets exactly the same stock and the same price moves.</p>
+
+          <label class="field-label" for="vsHostPass">Match password</label>
+          <div class="versus-pass-field">
+            <input id="vsHostPass" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="e.g. copper-otter">
+            <button class="step-btn" id="vsRollPass" title="Make one up">Roll</button>
+          </div>
+
+          <span class="field-label">How risky is the stock?</span>
+          <div class="seg seg-full versus-risk-seg" id="vsRiskSeg" role="group" aria-label="Risk level">
+            <button data-risk="1">1</button>
+            <button data-risk="2">2</button>
+            <button data-risk="3">3</button>
+            <button data-risk="4">4</button>
+            <button data-risk="5">5</button>
+          </div>
+          <p class="versus-risk-blurb"><b id="vsRiskName"></b> <span id="vsRiskBlurb"></span></p>
+
+          <span class="field-label">How long does it last?</span>
+          <div class="seg seg-full" id="vsLenSeg" role="group" aria-label="Match length"></div>
+
+          <button class="btn btn-green btn-block" id="vsHostBtn">Start the match</button>
+        </section>
+
+        <section class="versus-card">
+          <h3 class="versus-card-head">Join a match</h3>
+          <p class="versus-card-note" id="vsJoinCardNote">Type the whole code your opponent gave you — password, risk and length.</p>
+
+          <label class="field-label" for="vsJoinPass">Match password</label>
+          <div class="versus-pass-field">
+            <input id="vsJoinPass" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="their password">
+          </div>
+          <button class="btn btn-mustard btn-block" id="vsJoinBtn">Join the match</button>
+          <p class="versus-note" id="vsJoinNote"></p>
+
+          <hr class="versus-rule">
+
+          <h3 class="versus-card-head">Or play the desk</h3>
+          <p class="versus-card-note">A practice match against one of the traders downstairs, on the settings you set on the left. No password, starts at once.</p>
+          <button class="btn btn-block" id="vsBotBtn">Practice against the desk</button>
+        </section>
+      </div>
+
+      <p class="versus-footnote" id="vsFootnote"></p>
+    </div>
+
+    <!-- ---------- hosted, waiting for somebody to join ---------- -->
+    <div class="versus-stage versus-waiting" id="vsWaiting" hidden>
+      <h2 class="versus-waiting-head">Waiting for an opponent</h2>
+      <p class="section-note">Give them this password. The risk and the length are held by the server, so it is all they need.</p>
+      <div class="versus-code" id="vsWaitCode"></div>
+      <button class="btn btn-sm" id="vsCopyBtn">Copy it</button>
+      <p class="versus-waiting-settings" id="vsWaitSettings"></p>
+      <div class="versus-waiting-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <button class="text-btn versus-quit" id="vsCancelBtn">Cancel the match</button>
+    </div>
+
+    <!-- ---------- the match itself ---------- -->
+    <div class="versus-stage versus-live" id="vsLive" hidden>
+      <section class="versus-board">
+        <div class="versus-side versus-side-me">
+          <span class="versus-side-name" id="vsMeName">You</span>
+          <span class="versus-side-worth" id="vsMeWorth">$1,000.00</span>
+          <span class="change-sm" id="vsMeChange"></span>
+        </div>
+        <div class="versus-clock">
+          <span class="versus-clock-time" id="vsClock">5:00</span>
+          <div class="versus-clock-bar"><span id="vsClockFill"></span></div>
+          <span class="versus-clock-note" id="vsClockNote"></span>
+        </div>
+        <div class="versus-side versus-side-them">
+          <span class="versus-side-name" id="vsThemName">Opponent</span>
+          <span class="versus-side-worth" id="vsThemWorth">$1,000.00</span>
+          <span class="change-sm" id="vsThemChange"></span>
+        </div>
+      </section>
+
+      <div class="versus-grid">
+        <section class="versus-detail">
+          <div class="stock-head">
+            <div class="stock-title">
+              <div class="stock-meta" id="vsMeta"></div>
+              <h2 class="stock-name" id="vsName"></h2>
+            </div>
+            <div class="price-row versus-price-row">
+              <span class="price-big" id="vsPrice"></span>
+              <span class="change" id="vsChange"></span>
+            </div>
+          </div>
+          <div class="chart-wrap versus-chart-wrap"><canvas id="vsChart"></canvas></div>
+          <p class="versus-about" id="vsAbout"></p>
+          <h3 class="column-head h-claret">Headlines</h3>
+          <ol class="news-list" id="vsNews"></ol>
+        </section>
+
+        <aside class="versus-order">
+          <div class="ticket">
+            <div class="ticket-head">Order ticket</div>
+            <div class="seg seg-full" id="vsSideSeg" role="group" aria-label="Buy or sell">
+              <button data-side="buy" class="buy">Buy</button>
+              <button data-side="sell" class="sell">Sell</button>
+            </div>
+            <label class="field-label" for="vsQty">Number of shares</label>
+            <div class="qty-field">
+              <button class="step-btn" id="vsQtyMinus" aria-label="One fewer share">&minus;</button>
+              <input id="vsQty" type="number" min="1" step="1" value="1" inputmode="numeric">
+              <button class="step-btn" id="vsQtyPlus" aria-label="One more share">+</button>
+              <button class="step-btn max-btn" id="vsQtyMax">Max</button>
+            </div>
+            <div class="lines order-lines">
+              <div><span>Price per share</span><span class="v" id="vsOPrice"></span></div>
+              <div><span>Shares cost</span><span class="v" id="vsOTotal"></span></div>
+              <div><span>Commission</span><span class="v" id="vsOFee"></span></div>
+              <div class="total"><span>Cash afterwards</span><span class="v" id="vsOCash"></span></div>
+            </div>
+            <button class="btn btn-buy btn-block" id="vsOrderBtn">Buy</button>
+            <div class="order-hint" id="vsOrderHint"></div>
+          </div>
+
+          <section class="position">
+            <h3 class="column-head h-green">Your position</h3>
+            <div class="lines">
+              <div><span>Cash</span><span class="v" id="vsPCash"></span></div>
+              <div><span>Shares owned</span><span class="v" id="vsPShares"></span></div>
+              <div><span>Average cost</span><span class="v" id="vsPAvg"></span></div>
+              <div><span>Shares worth</span><span class="v" id="vsPValue"></span></div>
+              <div class="total"><span>Net worth</span><span class="v" id="vsPWorth"></span></div>
+            </div>
+          </section>
+
+          <button class="text-btn versus-quit" id="vsQuitBtn">Leave the match</button>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ---------- the result ---------- -->
+    <div class="versus-stage versus-result" id="vsOver" hidden>
+      <h2 class="versus-verdict" id="vsVerdict"></h2>
+      <p class="section-note" id="vsVerdictNote"></p>
+      <div class="versus-result-grid">
+        <div class="versus-result-card" id="vsResMe">
+          <span class="versus-side-name" id="vsResMeName">You</span>
+          <span class="versus-result-worth" id="vsResMeWorth"></span>
+          <span class="change-sm" id="vsResMeChange"></span>
+        </div>
+        <div class="versus-result-card" id="vsResThem">
+          <span class="versus-side-name" id="vsResThemName">Opponent</span>
+          <span class="versus-result-worth" id="vsResThemWorth"></span>
+          <span class="change-sm" id="vsResThemChange"></span>
+        </div>
+      </div>
+      <dl class="versus-result-stats" id="vsResStats"></dl>
+      <div class="versus-result-actions">
+        <button class="btn btn-green" id="vsAgainBtn">Play it again</button>
+        <button class="btn" id="vsLobbyBtn">Back to the lobby</button>
+      </div>
+    </div>
+
+  </main>
+
   <!-- ============================ UPGRADES ============================ -->
   <main class="screen" id="upgradesScreen" hidden>
     <section class="upgrade-section">
@@ -814,6 +1003,7 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div id="modalRoot"></div>
 
+<script src="sim.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

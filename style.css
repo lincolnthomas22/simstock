@@ -1432,3 +1432,205 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 @media (max-width: 760px) {
   .ach-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------------------------------------------------------
+   VERSUS
+   The 1v1 room: a lobby for setting a match up, the match
+   itself with both traders' numbers over the chart, and the
+   result. Claret is the colour of a contest.
+--------------------------------------------------------- */
+.task-switch .nav-versus[aria-current="page"] { border-color: #7d2b3c; background: linear-gradient(180deg, #d9536a, #94334a); }
+
+.versus { padding: 26px 0 40px; }
+
+/* ---- the lobby ---- */
+.versus-intro { max-width: 62ch; margin-bottom: 22px; }
+.versus-lobby-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+.versus-card {
+  padding: 20px 22px 22px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--claret);
+  border-radius: 3px;
+  background: var(--bg-2);
+}
+.versus-card-head { margin: 0; font-size: 21px; font-weight: 700; }
+.versus-card-note { margin: 6px 0 16px; font-family: var(--serif); font-size: 16px; line-height: 1.35; color: var(--text-2); }
+.versus-card .field-label { display: block; margin: 14px 0 6px; }
+.versus-card .btn-block { margin-top: 18px; }
+
+.versus-pass-field { display: flex; gap: 8px; }
+.versus-pass-field .step-btn { flex: 0 0 auto; padding: 0 14px; }
+.versus-pass-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+.versus-pass-field input:focus-visible { outline: 2px solid var(--mustard); outline-offset: 1px; }
+
+.versus-risk-seg button { font-family: var(--mono); font-size: 15px; }
+.versus-risk-blurb {
+  min-height: 3em;
+  margin: 8px 0 0;
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+.versus-risk-blurb b { color: var(--mustard); }
+#vsLenSeg button { display: flex; flex-direction: column; gap: 1px; line-height: 1.2; }
+#vsLenSeg small { font-family: var(--mono); font-size: 11px; font-weight: 400; opacity: 0.75; }
+
+.versus-rule { margin: 22px 0 18px; border: 0; border-top: 1px solid var(--line); }
+.versus-note { min-height: 1.2em; margin: 8px 0 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--mustard); }
+.versus-footnote { margin: 22px 0 0; font-family: var(--mono); font-size: 13px; color: var(--text-3); }
+
+/* ---- the scoreboard ---- */
+.versus-board {
+  display: grid;
+  grid-template-columns: 1fr minmax(200px, 260px) 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg-2);
+}
+.versus-side { display: flex; flex-direction: column; gap: 2px; }
+.versus-side-them { text-align: right; }
+.versus-side-name { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
+.versus-side-worth { font-family: var(--mono); font-size: 30px; font-weight: 600; line-height: 1.1; }
+.versus-side-me .versus-side-worth { color: var(--gain); }
+.versus-live:not(.versus-ahead) .versus-side-me .versus-side-worth { color: var(--loss); }
+.versus-side-them .versus-side-worth { color: var(--mustard); }
+
+.versus-clock { text-align: center; }
+.versus-clock-time { display: block; font-family: var(--mono); font-size: 26px; font-weight: 600; letter-spacing: 0.04em; }
+.versus-clock-time.urgent { color: var(--loss); animation: versus-pulse 1s steps(2, end) infinite; }
+@keyframes versus-pulse { 50% { opacity: 0.45; } }
+.versus-clock-bar { height: 5px; margin: 6px 0 5px; border-radius: 3px; background: var(--bg-3); overflow: hidden; }
+.versus-clock-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--green-mid), var(--green-bright)); transition: width 0.25s linear; }
+.versus-clock-note { font-family: var(--serif); font-size: 14px; font-style: italic; color: var(--text-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .versus-clock-time.urgent { animation: none; }
+  .versus-clock-bar span { transition: none; }
+}
+
+/* ---- the match ---- */
+.versus-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 26px; margin-top: 22px; }
+.versus-detail { min-width: 0; }
+.versus-price-row { margin: 0 0 4px auto; }
+.versus-chart-wrap { position: relative; height: 300px; margin-top: 14px; }
+.versus-chart-wrap canvas { width: 100%; height: 100%; }
+.versus-about { margin: 14px 0 22px; font-family: var(--serif); font-size: 17px; line-height: 1.4; color: var(--text-2); }
+.versus-detail .news-list { margin-top: 8px; }
+.versus-order .ticket { margin-bottom: 18px; }
+.versus-quit { display: block; margin-top: 16px; color: var(--text-3); }
+
+/* ---- the result ---- */
+.versus-result { max-width: 720px; margin: 0 auto; text-align: center; }
+.versus-verdict { margin: 30px 0 0; font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+.versus-verdict.pos { color: var(--gain); }
+.versus-verdict.neg { color: var(--loss); }
+.versus-result .section-note { margin: 10px 0 26px; }
+.versus-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.versus-result-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg-2);
+}
+.versus-result-card.winner { border-color: var(--mustard); box-shadow: 0 0 0 1px var(--mustard-soft); }
+.versus-result-card .versus-side-name { display: block; }
+.versus-result-worth { display: block; margin: 4px 0 2px; font-family: var(--mono); font-size: 28px; font-weight: 600; }
+.versus-result-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0 26px; margin: 26px 0 0; text-align: left; }
+.versus-result-stats > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.versus-result-stats dt { font-family: var(--serif); font-size: 16px; color: var(--text-2); }
+.versus-result-stats dd { margin: 0; font-family: var(--mono); font-size: 14px; }
+.versus-result-actions { display: flex; justify-content: center; gap: 12px; margin-top: 28px; }
+
+@media (max-width: 900px) {
+  .versus-lobby-grid,
+  .versus-grid,
+  .versus-result-grid,
+  .versus-result-stats { grid-template-columns: 1fr; }
+  .versus-board { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .versus-clock { grid-column: 1 / -1; order: -1; }
+  .versus-verdict { font-size: 38px; }
+}
+.btn-versus {
+  border-color: #7d2b3c;
+  background: linear-gradient(180deg, #e0687c, #a33a51);
+  color: #200409;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* ---- the match server bar ---- */
+.versus-server {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg-2);
+}
+.versus-server-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.versus-server-row .field-label { margin: 0 0 0 6px; }
+.versus-server-row input {
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.versus-server-row #vsServerUrl { flex: 1 1 230px; }
+.versus-server-row #vsName { flex: 0 1 130px; }
+.versus-server-row input:disabled { opacity: 0.55; }
+.versus-server-status { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); }
+.versus-server-note { min-height: 1.2em; margin: 8px 0 0; font-family: var(--serif); font-size: 15px; color: var(--text-3); }
+
+.versus-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-3); }
+.versus-dot-on { background: var(--gain); box-shadow: 0 0 0 3px var(--gain-soft); }
+.versus-dot-connecting { background: var(--mustard); animation: versus-pulse 0.9s ease-in-out infinite; }
+.versus-dot-error { background: var(--loss); box-shadow: 0 0 0 3px var(--loss-soft); }
+
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+
+/* ---- the waiting room ---- */
+.versus-waiting { max-width: 560px; margin: 0 auto; padding-top: 40px; text-align: center; }
+.versus-waiting-head { margin: 0; font-size: 34px; font-weight: 700; }
+.versus-code {
+  margin: 22px 0 14px;
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 3px;
+  background: var(--bg-2);
+  font-family: var(--mono);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--mustard);
+  word-break: break-all;
+}
+.versus-waiting-settings { margin: 18px 0 0; font-family: var(--mono); font-size: 13px; color: var(--text-3); }
+.versus-waiting-dots { display: flex; justify-content: center; gap: 7px; margin: 24px 0; }
+.versus-waiting-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); animation: versus-wait 1.2s ease-in-out infinite; }
+.versus-waiting-dots span:nth-child(2) { animation-delay: 0.2s; }
+.versus-waiting-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes versus-wait { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+.versus-waiting .versus-quit { margin: 0 auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .versus-dot-connecting,
+  .versus-waiting-dots span { animation: none; }
+}

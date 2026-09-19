@@ -1,0 +1,40 @@
+API Name	Display Name	Description	Hidden	Category
+ACH_FIRST_TRADE	First Trade	Place your first order.	No	Getting started
+ACH_OPEN_FOR_BUSINESS	Open for Business	Open a brokerage account.	No	Getting started
+ACH_FIRST_HIRE	First Hire	Hire your first member of staff.	No	Getting started
+ACH_FULL_HOUSE	Full House	Reach an Obsidian account, the top tier.	No	Getting started
+ACH_IN_THE_BLACK	In the Black	Close a single sale for over $1,000 profit.	No	Trading
+ACH_DIAMOND_HANDS	Diamond Hands	Hold a position for a full year before selling out of it.	No	Trading
+ACH_PAPER_HANDS	Paper Hands	Buy and fully sell a position on the same day.	No	Trading
+ACH_BUY_THE_DIP	Buy the Dip	Buy a stock the same day it drops more than 8%.	No	Trading
+ACH_PERFECT_QUARTER	Perfect Quarter	End a quarter with every holding above what you paid for it.	No	Trading
+ACH_NEAR_MISS	Near Miss	Sell out of a company the moment it warns of trouble.	No	Risk & survival
+ACH_BURNED	Burned	Lose money when a company you hold fails outright.	No	Risk & survival
+ACH_PHOENIX	Phoenix	Recover your net worth after a company you held failed.	No	Risk & survival
+ACH_NERVES_OF_STEEL	Nerves of Steel	Hold a rating-5 stock for 100 days straight.	No	Risk & survival
+ACH_DIVERSIFIED	Diversified	Go a full quarter without any one company topping 25% of your net worth.	No	Risk & survival
+ACH_FULL_TEAM	Full Team	Have at least one of every staff role at once.	No	Building the firm
+ACH_THE_OFFICE	The Office	Have 10 staff on the payroll at once.	No	Building the firm
+ACH_LOYAL_CREW	Loyal Crew	Go 100 days without a layoff after your first hire.	No	Building the firm
+ACH_ROUGH_QUARTER	Rough Quarter	Survive a whole quarter of staff costing more than they bring in.	No	Building the firm
+ACH_FIVE_FIGURES	Five Figures	Reach a net worth of $10,000.	No	Milestones
+ACH_SIX_FIGURES	Six Figures	Reach a net worth of $100,000.	No	Milestones
+ACH_SEVEN_FIGURES	Seven Figures	Reach a net worth of $1,000,000.	No	Milestones
+ACH_DIVIDEND_INCOME	Dividend Income	Earn $10,000 in dividends over the life of your account.	No	Milestones
+ACH_A_YEAR_ON_THE_FLOOR	A Year on the Floor	Play for a full trading year.	No	Milestones
+ACH_WHOLE_BOARD	The Whole Board	Own shares in every company open to your account at once.	No	Milestones
+ACH_BEATING_THE_MARKET	Beating the Market	Beat the index fund's return over a quarter.	No	Milestones
+ACH_CRYPTO_CURIOUS	Crypto Curious	Buy your first cryptocurrency.	No	Crypto & memecoins
+ACH_WHOLE_COIN	A Whole Coin	Own one entire Bitcoyn.	No	Crypto & memecoins
+ACH_HODL	HODL	Hold a cryptocurrency for 100 days without selling out of it.	No	Crypto & memecoins
+ACH_MEME_MILLION	Millionaire, Sort Of	Hold 1,000,000 coins of a single memecoin.	No	Crypto & memecoins
+ACH_MEME_BILLION	Billionaire, Technically	Hold 1,000,000,000 coins of a single memecoin.	No	Crypto & memecoins
+ACH_MEME_TRILLION	Trillionaire	Hold 1,000,000,000,000 coins of a single memecoin.	No	Crypto & memecoins
+ACH_MEME_WHALE	Whale	Own 1% of every coin in existence of a single memecoin.	No	Crypto & memecoins
+ACH_TO_THE_MOON	To the Moon	Be holding a memecoin on the day it ascends.	No	Crypto & memecoins
+ACH_TEN_BAGGER	Ten-Bagger	Sell memecoins for ten times what you paid for them.	No	Crypto & memecoins
+ACH_RUGGED	Rugged	Lose your coins when the makers of a memecoin vanish.	No	Crypto & memecoins
+ACH_COFFEE_BREAK	Coffee Break	Have a staff member on the books whose quirk mentions coffee.	Yes	Hidden
+ACH_RAGS_TO_RICHES	Rags to Riches	Go from under $50 in cash to a $50,000 net worth.	Yes	Hidden
+ACH_THE_CONTRARIAN	The Contrarian	Buy a rating-5 stock the same day bad news breaks about it.	Yes	Hidden
+ACH_STABLE_GENIUS	Stable Genius	Park $10,000 in a stablecoin.	Yes	Hidden

@@ -1,0 +1,129 @@
+# Everything that has to hold before a change lands.
+#
+# Four jobs rather than one, so a failure says which part broke without
+# reading a log: the generated files, the match server's protocol, the game in
+# a real browser, and the desktop shell as a real app.
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch makes the first one pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  checks:
+    name: Syntax and generated files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Everything parses
+        run: |
+          for f in game.js sim.js server/server.js server/test.js \
+                   desktop/main.js desktop/preload.js desktop/steam.js \
+                   desktop/sync-game.js desktop/test.js \
+                   tests/helpers.js tests/browser.test.js tests/online.test.js \
+                   tools/fetch-fonts.js tools/steam-achievements.js; do
+            node --check "$f" || exit 1
+          done
+
+      - name: The Steam achievement list is in step with the game
+        # Regenerated from game.js, so adding an achievement and forgetting to
+        # run the generator shows up here rather than on the store page.
+        # The font bundle is deliberately not checked this way: it would mean
+        # fetching from Google on every run, and a font they quietly update
+        # would fail the build for no reason.
+        run: |
+          node tools/steam-achievements.js
+          git diff --exit-code -- desktop/achievements.json desktop/steam-achievements.tsv \
+            || { echo "::error::Run 'node tools/steam-achievements.js' and commit the result"; exit 1; }
+
+      - name: The achievement map is valid JSON
+        # It is require()d by the Steam bridge at startup, so a stray comment
+        # in it would break the desktop build and nothing else would notice.
+        run: |
+          node -e "
+            const m = require('./desktop/achievements.json');
+            const n = Object.keys(m).length;
+            if (n < 30) throw new Error('suspiciously few achievements: ' + n);
+            console.log(n + ' achievements mapped');
+          "
+
+  server:
+    name: Match server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+        working-directory: server
+      - name: Protocol tests
+        run: npm test
+        working-directory: server
+        env:
+          PORT: '0'
+
+  browser:
+    name: The game in a browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            tests/package-lock.json
+            server/package-lock.json
+      - run: npm ci
+        working-directory: tests
+      - run: npm ci
+        working-directory: server
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: tests
+      - name: The game on its own
+        run: npm run test:browser
+        working-directory: tests
+      - name: Two browsers against a real server
+        run: npm run test:online
+        working-directory: tests
+
+  desktop:
+    name: The desktop shell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+        working-directory: desktop
+      - name: Install the libraries Electron needs
+        run: npx playwright install-deps chromium
+        working-directory: desktop
+      - name: Launch the app and test it
+        # Electron needs a display even to open a window it never shows.
+        run: xvfb-run -a npm test
+        working-directory: desktop

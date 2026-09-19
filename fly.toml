@@ -1,0 +1,30 @@
+# Fly.io deployment for the match server. `fly launch --no-deploy` once to
+# claim the name, then `fly deploy` from the repository root.
+app = "simstock-versus"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # A machine with a match on it has open sockets, so it is never stopped
+  # mid-match. An idle one suspends, which is what keeps this free.
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
