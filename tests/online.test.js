@@ -48,6 +48,39 @@ async function player(browser, name, watch) {
   const browser = await launch();
 
   try {
+    // ---- nobody should have to type an address ----
+    // DEFAULT_SERVER in game.js, a desktop build's baked-in address and a
+    // player's own saved one all land in the same box and are connected by
+    // the same code, so seeding the saved one tests all three.
+    {
+      const ctx = await browser.newContext();
+      await ctx.addInitScript(addr => {
+        try { localStorage.setItem('simstock.versus.server', addr); } catch { /* storage off */ }
+      }, ADDRESS);
+      const page = await ctx.newPage();
+      page.on('pageerror', e => r.fail(`PAGEERROR(auto): ${e.message}`));
+      await page.goto('file://' + path.join(__dirname, '..', 'index.html'));
+      await page.waitForTimeout(400);
+      await page.click('.landing-buttons [data-screen="versus"]');
+      await page.waitForFunction(() => document.querySelector('#vsStatus').textContent === 'Live',
+        null, { timeout: 10000 }).catch(() => {});
+      r.check('a known server is connected to without anyone typing anything',
+        (await page.textContent('#vsStatus')) === 'Live', await page.textContent('#vsStatus'));
+      r.check('and the address is already in the box',
+        (await page.inputValue('#vsServerUrl')) === ADDRESS, await page.inputValue('#vsServerUrl'));
+
+      // Disconnecting on purpose has to stick, or the room argues with you.
+      await page.click('#vsConnectBtn');
+      await page.waitForTimeout(400);
+      await page.click('.task-switch [data-screen="home"]');
+      await page.waitForTimeout(300);
+      await page.click('.task-switch [data-screen="versus"]');
+      await page.waitForTimeout(1200);
+      r.check('but a deliberate disconnect is not undone on the way back in',
+        (await page.textContent('#vsStatus')) === 'Offline', await page.textContent('#vsStatus'));
+      await ctx.close();
+    }
+
     const ada = await player(browser, 'Ada', r.fail);
     const grace = await player(browser, 'Grace', r.fail);
     r.check('both clients connect', true);
