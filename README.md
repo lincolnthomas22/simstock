@@ -18,8 +18,18 @@ All companies and prices are fictional and simulated. No real money is involved.
 
 Open `index.html` in a browser. There's nothing to install or build.
 
-For live 1v1, run the match server as well — see `server/README.md` — and put
-its address into the Versus room.
+For live 1v1 you need a match server running somewhere — see
+`server/README.md`. Once you have one, set `DEFAULT_SERVER` near the top of
+the versus section of `game.js`:
+
+```js
+const DEFAULT_SERVER = 'wss://your-server.example';
+```
+
+That is the only line to change. The lobby then fills the address in and
+connects on its own, so nobody has to type anything. Left empty it stays
+blank, and the room still plays: the practice bot and password matches need no
+server at all.
 
 For the desktop version, `cd desktop && npm install && npm start`. See
 `desktop/README.md`, which also covers what getting onto Steam involves.

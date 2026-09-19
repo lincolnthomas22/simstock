@@ -2226,7 +2226,10 @@
       updateTip();
     }
     if (name === 'portfolio') sizeWorthChart();
-    if (name === 'versus') setVsStage(vs.match ? (vs.match.over ? 'over' : 'live') : vs.stage === 'over' ? 'over' : 'lobby');
+    if (name === 'versus') {
+      setVsStage(vs.match ? (vs.match.over ? 'over' : 'live') : vs.stage === 'over' ? 'over' : 'lobby');
+      autoConnect();
+    }
     // move the keyboard to the new room, but not on the way in to the game
     if (booted && name !== 'landing') $('pageTitle').focus();
   }
@@ -3548,9 +3551,22 @@
   // path, and reveals prices one tick at a time so neither player can read the
   // end of the match out of their own browser. Without a server the room still
   // works, on the same password, apart — see parOpponent above.
+  // ===========================================================
+  // The match server this game connects to. Put your own deployment here —
+  // it is the only line that needs changing — and nobody has to type an
+  // address: the lobby fills it in and connects on its own.
+  //
+  //   const DEFAULT_SERVER = 'wss://simstock-versus.fly.dev';
+  //
+  // Left empty, the box starts blank and the room still plays: the practice
+  // bot and password matches need no server at all. It has to be wss:// and
+  // not ws://, because a page served over https cannot open a plain socket.
+  // ===========================================================
+  const DEFAULT_SERVER = '';
+
   const SERVER_KEY = 'simstock.versus.server';
   const NAME_KEY = 'simstock.versus.name';
-  const net = { ws: null, status: 'off', note: '' };
+  const net = { ws: null, status: 'off', note: '', tried: false };
 
   // Accepts whatever somebody pastes in: a bare host, an http:// address, or a
   // proper ws:// one. Anything not plainly local gets the encrypted scheme,
@@ -3574,7 +3590,18 @@
     renderVsLobby();
   }
 
+  // Connects on the way into the room the first time, so a player never has to
+  // know there is a server. It gives up quietly after one go: somebody who
+  // came for the practice bot should not be told about a socket at all, and
+  // somebody who disconnected on purpose meant it.
+  function autoConnect() {
+    if (net.tried || net.ws || !$('vsServerUrl').value.trim()) return;
+    net.tried = true;
+    netConnect();
+  }
+
   function netConnect() {
+    net.tried = true;   // a hand-pressed Connect counts too, so a later visit does not retry
     if (net.ws) return netDisconnect();
     const url = serverUrl($('vsServerUrl').value);
     if (!url) return setNetStatus('off', 'Paste the address of a match server to play live. Without one, a password match still works — you just play it apart and compare the closing numbers.');
@@ -3602,7 +3629,9 @@
         leaveMatch();
         toast('The connection dropped', 'The match ended when the socket closed.', 'neg');
       }
-      setNetStatus('off', wasConnected ? 'Disconnected from the match server.' : 'Could not reach that server. Check the address, and that it is running.');
+      setNetStatus('off', wasConnected
+        ? 'Disconnected from the match server.'
+        : 'No match server reachable, so live matches are off. Everything else on this screen still works.');
     };
   }
 
@@ -4274,7 +4303,9 @@
     }
   };
   try {
-    $('vsServerUrl').value = localStorage.getItem(SERVER_KEY) || (desktop && desktop.defaultServer) || '';
+    // A player's own address wins, then whatever a desktop build was built
+    // with, then the one above.
+    $('vsServerUrl').value = localStorage.getItem(SERVER_KEY) || (desktop && desktop.defaultServer) || DEFAULT_SERVER;
     $('vsName').value = localStorage.getItem(NAME_KEY) || '';
   } catch { /* a browser with storage switched off still plays fine */ }
   $('vsAgainBtn').onclick = () => {

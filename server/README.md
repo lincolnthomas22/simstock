@@ -19,6 +19,11 @@ npm test           # 23 protocol tests against a real server
 Then in the game's Versus room, put `ws://localhost:8080` in the match server
 box and press Connect.
 
+For a deployed server, set `DEFAULT_SERVER` in `game.js` to its `wss://`
+address instead and players never see the box at all — the room connects on
+its own. Desktop builds take theirs from `SIMSTOCK_SERVER` at build time; see
+`desktop/README.md`.
+
 ### Settings
 
 | Variable | Default | What it does |
