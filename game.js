@@ -2177,8 +2177,9 @@
   const SCREEN_TITLES = {
     landing: 'SimStock', home: 'Front page', trade: 'Trading floor', crypto: 'Crypto exchange', meme: 'Memecoin pit',
     portfolio: 'Your portfolio', upgrades: 'Upgrades', achievements: 'Achievements', tutorial: 'How to play',
+    versus: 'Versus',
   };
-  const OPEN_SCREENS = ['landing', 'home', 'portfolio', 'achievements', 'tutorial']; // viewable before a brokerage account exists
+  const OPEN_SCREENS = ['landing', 'home', 'portfolio', 'achievements', 'tutorial', 'versus']; // viewable before a brokerage account exists
 
   // The trading floor, the crypto exchange and the memecoin pit are one room
   // showing a different market.
@@ -2202,6 +2203,7 @@
     $('portfolioScreen').hidden = name !== 'portfolio';
     $('upgradesScreen').hidden = name !== 'upgrades';
     $('achievementsScreen').hidden = name !== 'achievements';
+    $('versusScreen').hidden = name !== 'versus';
     $('tutorialScreen').hidden = name !== 'tutorial';
     document.querySelectorAll('.task-switch [data-screen]').forEach(b => {
       if (b.dataset.screen === name) b.setAttribute('aria-current', 'page');
@@ -2214,6 +2216,7 @@
       updateTip();
     }
     if (name === 'portfolio') sizeWorthChart();
+    if (name === 'versus') setVsStage(vs.match ? (vs.match.over ? 'over' : 'live') : vs.stage === 'over' ? 'over' : 'lobby');
     // move the keyboard to the new room, but not on the way in to the game
     if (booted && name !== 'landing') $('pageTitle').focus();
   }
@@ -3449,6 +3452,447 @@
   }
 
   // ===========================================================
+  // VERSUS — 1v1 matches
+  //
+  // A match is walled off from the career game on purpose: its own money, its
+  // own stock, its own clock, and nothing of it is ever saved. The market comes
+  // from sim.js, which works the whole price path out from a seed up front, so
+  // two people on the same password are trading an identical market.
+  //
+  // Everything that talks to an opponent goes through `transport`. Today there
+  // are two: a local bot, and a shared-password challenge where the opponent is
+  // the stock's own buy-and-hold return. When the matchmaking server lands, it
+  // becomes a third transport and none of the rest of this has to change.
+  // ===========================================================
+  const VS = window.SimStockMatch;
+
+  // Two halves of a password, so "Roll" gives something sayable down a phone.
+  const PASS_A = ['copper', 'velvet', 'amber', 'crooked', 'quiet', 'iron', 'paper', 'salted', 'hollow', 'gilded', 'bitter', 'rapid'];
+  const PASS_B = ['otter', 'ledger', 'kettle', 'magpie', 'anvil', 'lantern', 'thistle', 'pigeon', 'harbour', 'compass', 'walnut', 'bellow'];
+
+  const vs = {
+    risk: 3,
+    ticks: 300,
+    stage: 'lobby',
+    match: null,     // the match under way, or null
+    side: 'buy',
+    timer: null,
+  };
+
+  const vsChart = $('vsChart');
+  const vsCtx = vsChart.getContext('2d');
+
+  const rollPassword = () => `${pick(PASS_A)}-${pick(PASS_B)}`;
+  // Slashes and spaces separate the parts of a match code, so a password
+  // cannot contain them, and case is not worth an argument over the phone.
+  const cleanPassword = text => String(text).trim().toLowerCase().replace(/[\s/|]+/g, '-').replace(/^-+|-+$/g, '');
+  // The settings are baked into the seed: change the risk or the length and it
+  // is a different match, even under the same password.
+  const passwordSeed = (password, risk, ticks) => VS.hashSeed(`${password}|${risk}|${ticks}`);
+  const vsDuration = () => VS.DURATIONS.find(d => d.ticks === vs.ticks) || VS.DURATIONS[1];
+
+  // ---------- transports ----------
+  // Each one hands back an opponent: a name, and a way of working out what
+  // they are worth at a given tick.
+
+  // The desk bot. It reads the same prices you do, one tick at a time, and
+  // trades on them; it cannot see ahead.
+  function botOpponent(data, seed) {
+    const bot = VS.makeBot(seed);
+    const side = { name: `${bot.name} of the desk`, note: bot.label, cash: data.startingCash, shares: 0, worth: [data.startingCash] };
+    side.step = tick => {
+      const move = bot.decide({ tick, ticks: data.ticks, prices: data.prices, cash: side.cash, shares: side.shares });
+      if (move) {
+        const price = data.prices[tick];
+        if (move.side === 'buy') {
+          const qty = Math.min(move.qty, Math.floor(side.cash / (price * (1 + VS.COMMISSION_RATE))));
+          if (qty > 0) { side.cash -= qty * price + VS.commission(qty * price); side.shares += qty; }
+        } else {
+          const qty = Math.min(move.qty, side.shares);
+          if (qty > 0) { side.cash += qty * price - VS.commission(qty * price); side.shares -= qty; }
+        }
+      }
+      return side.cash + side.shares * data.prices[tick];
+    };
+    return side;
+  }
+
+  // A password match, played apart. Your opponent types the same password and
+  // gets the same market; the line you are racing in the meantime is what the
+  // stock itself did, which is the one number both of you can compare against.
+  function parOpponent(data) {
+    const shares = Math.floor(data.startingCash / (data.prices[0] * (1 + VS.COMMISSION_RATE)));
+    const cash = data.startingCash - shares * data.prices[0] - VS.commission(shares * data.prices[0]);
+    return {
+      name: 'Buy and hold',
+      note: 'what the stock itself did',
+      cash, shares,
+      worth: [data.startingCash],
+      step: tick => cash + shares * data.prices[tick],
+    };
+  }
+
+  // ---------- starting and ending ----------
+  function startMatch({ seed, risk, ticks, password, mode }) {
+    const data = VS.generateMatch({ seed, risk, ticks });
+    const them = mode === 'bot' ? botOpponent(data, seed) : parOpponent(data);
+    vs.match = {
+      data, password, mode, seed, risk, ticks,
+      startedAt: Date.now(),
+      tick: 0,
+      me: { cash: data.startingCash, shares: 0, spent: 0, bought: 0, trades: 0, fees: 0, worth: [data.startingCash] },
+      them,
+      seenNews: 0,
+      over: false,
+    };
+    vs.side = 'buy';
+    $('vsQty').value = '1';
+    setVsStage('live');
+    // The clock is read off the wall, not counted, so a throttled background
+    // tab catches up instead of quietly falling behind its opponent.
+    clearInterval(vs.timer);
+    vs.timer = setInterval(matchTick, 250);
+    matchTick();
+    sizeVsChart();
+    toast('The bell goes', `${data.stock.name} at ${fmtPrice(data.prices[0])}. ${vsDuration().note} on the clock.`, 'accent');
+    playSound('level');
+  }
+
+  function leaveMatch(toLobby = true) {
+    clearInterval(vs.timer);
+    vs.timer = null;
+    vs.match = null;
+    if (toLobby) setVsStage('lobby');
+  }
+
+  function matchTick() {
+    const m = vs.match;
+    if (!m || m.over) return;
+    const elapsed = Math.floor((Date.now() - m.startedAt) / 1000);
+    const tick = Math.min(m.ticks, elapsed);
+
+    // Catch the opponent up one tick at a time, so a bot that missed a chance
+    // while the tab was hidden really did miss it.
+    while (m.tick < tick) {
+      m.tick += 1;
+      m.them.worth.push(m.them.step(m.tick));
+      m.me.worth.push(m.me.cash + m.me.shares * m.data.prices[m.tick]);
+    }
+
+    for (; m.seenNews < m.data.news.length; m.seenNews++) {
+      const n = m.data.news[m.seenNews];
+      if (n.tick > m.tick) break;
+      if (n.tick > m.tick - 3) toast(n.mood === 'up' ? 'Good news' : 'Bad news', n.text, n.mood === 'up' ? 'pos' : 'neg');
+    }
+
+    if (tick >= m.ticks) return endMatch();
+    renderVersus();
+  }
+
+  function endMatch() {
+    const m = vs.match;
+    m.over = true;
+    clearInterval(vs.timer);
+    vs.timer = null;
+    // Everything is marked to the closing price; nobody is paid for holding on.
+    m.final = {
+      me: m.me.cash + m.me.shares * m.data.prices[m.ticks],
+      them: m.them.worth[m.them.worth.length - 1],
+    };
+    setVsStage('over');
+    renderVersusResult();
+    const won = m.final.me > m.final.them;
+    playSound(won ? 'achieve' : 'loss');
+    if (won) confetti(90, ['#f0b73d', '#4cc38a', '#7fb2d6']);
+  }
+
+  // ---------- trading ----------
+  const vsPrice = () => vs.match.data.prices[vs.match.tick];
+
+  function vsOrderQty() {
+    const n = Math.floor(Number($('vsQty').value));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  const vsMaxBuy = price => Math.floor(vs.match.me.cash / (price * (1 + VS.COMMISSION_RATE)));
+
+  function placeVsOrder() {
+    const m = vs.match;
+    if (!m || m.over) return;
+    const price = vsPrice();
+    const qty = vsOrderQty();
+    if (!qty) return;
+
+    if (vs.side === 'buy') {
+      if (qty > vsMaxBuy(price)) return toast("That's more than you can afford", 'Trim the order, or press Max.', 'neg');
+      const value = qty * price;
+      const fee = VS.commission(value);
+      m.me.cash -= value + fee;
+      m.me.shares += qty;
+      m.me.spent += value;
+      m.me.bought += qty;
+      m.me.fees += fee;
+    } else {
+      if (qty > m.me.shares) return toast("You don't have that many", 'Sell what you hold, or press Max.', 'neg');
+      const value = qty * price;
+      const fee = VS.commission(value);
+      m.me.cash += value - fee;
+      m.me.shares -= qty;
+      m.me.fees += fee;
+    }
+    m.me.trades += 1;
+    playSound('buy', 120);
+    $('vsQty').value = '1';
+    renderVersus();
+  }
+
+  // ---------- the lobby ----------
+  function hostMatch() {
+    const password = cleanPassword($('vsHostPass').value);
+    if (!password) {
+      $('vsHostPass').value = rollPassword();
+      renderVsLobby();
+      return toast('Pick a password first', 'One has been rolled for you. Give your opponent the whole code, then start again.', 'accent');
+    }
+    $('vsHostPass').value = password;
+    startMatch({ seed: passwordSeed(password, vs.risk, vs.ticks), risk: vs.risk, ticks: vs.ticks, password, mode: 'password' });
+  }
+
+  function joinMatch() {
+    const code = $('vsJoinPass').value.trim();
+    if (!code) return toast('That code is empty', 'Type the one your opponent gave you.', 'neg');
+    // Until there is a server to hold the settings, they travel with the
+    // password: "copper-otter/3/300" is what the host's screen hands over.
+    // A bare password is refused rather than filled in from whatever this
+    // screen happens to be set to — that would quietly put the two of you in
+    // different markets, which is worse than not starting at all.
+    const bits = code.split(/[\s/|]+/).filter(Boolean);
+    const risk = Number(bits[1]);
+    const ticks = Number(bits[2]);
+    if (bits.length !== 3 || !VS.RISKS[risk] || !VS.DURATIONS.some(d => d.ticks === ticks)) {
+      $('vsJoinNote').textContent = 'That is not a whole match code. Ask your opponent for all three parts, like copper-otter/3/300.';
+      return;
+    }
+    $('vsJoinNote').textContent = '';
+    startMatch({ seed: passwordSeed(bits[0], risk, ticks), risk, ticks, password: bits[0], mode: 'password' });
+  }
+
+  function practiceMatch() {
+    startMatch({ seed: VS.randomSeed(), risk: vs.risk, ticks: vs.ticks, password: null, mode: 'bot' });
+  }
+
+  function setVsStage(stage) {
+    vs.stage = stage;
+    $('vsLobby').hidden = stage !== 'lobby';
+    $('vsLive').hidden = stage !== 'live';
+    $('vsOver').hidden = stage !== 'over';
+    if (stage === 'lobby') renderVsLobby();
+    if (stage === 'live') { renderVersus(); sizeVsChart(); }
+  }
+
+  function renderVsLobby() {
+    const level = VS.RISKS[vs.risk];
+    $('vsRiskName').textContent = `${level.name}.`;
+    $('vsRiskBlurb').textContent = level.blurb;
+    document.querySelectorAll('#vsRiskSeg button').forEach(b => {
+      const on = Number(b.dataset.risk) === vs.risk;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    document.querySelectorAll('#vsLenSeg button').forEach(b => {
+      const on = Number(b.dataset.ticks) === vs.ticks;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    const pass = cleanPassword($('vsHostPass').value);
+    $('vsFootnote').textContent = pass
+      ? `Give your opponent the whole code: ${pass}/${vs.risk}/${vs.ticks}`
+      : 'Live matches over the internet are still being wired up. For now a password match gives both of you the identical market to play, and you compare the closing numbers.';
+  }
+
+  const vsClockText = left => `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+
+  function renderVersus() {
+    const m = vs.match;
+    if (!m || vs.stage !== 'live') return;
+    const price = vsPrice();
+    const start = m.data.prices[0];
+    const mine = m.me.cash + m.me.shares * price;
+    const theirs = m.them.worth[m.them.worth.length - 1];
+
+    $('vsMeName').textContent = 'You';
+    $('vsMeWorth').textContent = fmt(mine);
+    $('vsMeChange').innerHTML = chg(((mine / m.data.startingCash) - 1) * 100);
+    $('vsThemName').textContent = m.them.name;
+    $('vsThemWorth').textContent = fmt(theirs);
+    $('vsThemChange').innerHTML = chg(((theirs / m.data.startingCash) - 1) * 100);
+    $('vsLive').classList.toggle('versus-ahead', mine >= theirs);
+
+    const left = m.ticks - m.tick;
+    $('vsClock').textContent = vsClockText(left);
+    $('vsClock').classList.toggle('urgent', left <= 15);
+    $('vsClockFill').style.width = `${(m.tick / m.ticks) * 100}%`;
+    $('vsClockNote').textContent = m.them.note;
+
+    $('vsMeta').textContent = `${m.data.stock.id} · ${m.data.stock.sector} · Risk ${m.risk}, ${VS.RISKS[m.risk].name}`;
+    $('vsName').textContent = m.data.stock.name;
+    $('vsPrice').textContent = fmtPrice(price);
+    $('vsChange').innerHTML = chg(((price / start) - 1) * 100);
+    $('vsAbout').textContent = m.data.stock.about;
+
+    const seen = m.data.news.filter(n => n.tick <= m.tick).slice(-8).reverse();
+    $('vsNews').innerHTML = seen.length
+      ? seen.map(n => `<li class="news-item ${n.mood}"><span class="news-meta">${vsClockText(m.ticks - n.tick)} left</span><div class="news-text">${esc(n.text)}</div></li>`).join('')
+      : '<li class="empty">Nothing on the wire yet.</li>';
+
+    // the ticket
+    document.querySelectorAll('#vsSideSeg button').forEach(b => {
+      const on = b.dataset.side === vs.side;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    const qty = vsOrderQty();
+    const value = qty * price;
+    const fee = VS.commission(value);
+    const buying = vs.side === 'buy';
+    $('vsOPrice').textContent = fmtPrice(price);
+    $('vsOTotal').textContent = fmt(value);
+    $('vsOFee').textContent = fmt(fee);
+    $('vsOCash').textContent = fmt(buying ? m.me.cash - value - fee : m.me.cash + value - fee);
+    const btn = $('vsOrderBtn');
+    btn.textContent = buying ? `Buy ${qty || 0}` : `Sell ${qty || 0}`;
+    btn.className = `btn btn-block ${buying ? 'btn-buy' : 'btn-sell'}`;
+    const blocked = !qty || (buying ? qty > vsMaxBuy(price) : qty > m.me.shares);
+    btn.disabled = blocked;
+    $('vsOrderHint').textContent = !qty ? 'Enter a number of shares.'
+      : buying && qty > vsMaxBuy(price) ? `You can afford ${vsMaxBuy(price)} at this price.`
+      : !buying && qty > m.me.shares ? `You hold ${m.me.shares}.`
+      : buying ? `${vsMaxBuy(price)} is the most you can buy right now.`
+      : `${m.me.shares} shares on the book.`;
+
+    const avg = m.me.bought ? m.me.spent / m.me.bought : 0;
+    $('vsPCash').textContent = fmt(m.me.cash);
+    $('vsPShares').textContent = m.me.shares.toLocaleString('en-US');
+    $('vsPAvg').textContent = avg ? fmtPrice(avg) : '—';
+    $('vsPValue').textContent = fmt(m.me.shares * price);
+    $('vsPWorth').textContent = fmt(mine);
+
+    drawVsChart();
+  }
+
+  function renderVersusResult() {
+    const m = vs.match;
+    const mine = m.final.me;
+    const theirs = m.final.them;
+    const won = mine > theirs;
+    const drew = Math.abs(mine - theirs) < 0.005;
+
+    $('vsVerdict').textContent = drew ? 'A dead heat' : won ? 'You win' : 'You lose';
+    $('vsVerdict').className = `versus-verdict ${drew ? '' : won ? 'pos' : 'neg'}`;
+    $('vsVerdictNote').textContent = drew
+      ? `Both of you closed on ${fmt(mine)}. Somebody had better go again.`
+      : `${fmt(Math.abs(mine - theirs))} in it after ${vsDuration().note} on ${m.data.stock.name}.`;
+
+    $('vsResMe').className = `versus-result-card ${won && !drew ? 'winner' : ''}`;
+    $('vsResThem').className = `versus-result-card ${!won && !drew ? 'winner' : ''}`;
+    $('vsResMeWorth').textContent = fmt(mine);
+    $('vsResMeChange').innerHTML = chg(((mine / m.data.startingCash) - 1) * 100);
+    $('vsResThemName').textContent = m.them.name;
+    $('vsResThemWorth').textContent = fmt(theirs);
+    $('vsResThemChange').innerHTML = chg(((theirs / m.data.startingCash) - 1) * 100);
+
+    const best = Math.max(...m.me.worth);
+    const rows = [
+      ['Stock', `${m.data.stock.name} (${m.data.stock.id})`],
+      ['Risk', `${m.risk} · ${VS.RISKS[m.risk].name}`],
+      ['The stock itself', fmtPct(((m.data.prices[m.ticks] / m.data.prices[0]) - 1) * 100)],
+      ['Trades made', String(m.me.trades)],
+      ['Commission paid', fmt(m.me.fees)],
+      ['Best you were worth', fmt(best)],
+    ];
+    if (m.password) rows.push(['Match code', `${m.password}/${m.risk}/${m.ticks}`]);
+    $('vsResStats').innerHTML = rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
+  }
+
+  // ---------- the match chart ----------
+  function sizeVsChart() {
+    const dpr = window.devicePixelRatio || 1;
+    const { width, height } = vsChart.getBoundingClientRect();
+    if (!width) return;
+    vsChart.width = Math.round(width * dpr);
+    vsChart.height = Math.round(height * dpr);
+    drawVsChart();
+  }
+
+  // The price so far, with your net worth and your opponent's drawn over it as
+  // percentages of where they started, so the race reads at a glance.
+  function drawVsChart() {
+    const m = vs.match;
+    if (!m || vs.stage !== 'live' || !vsChart.width) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = vsChart.width / dpr;
+    const h = vsChart.height / dpr;
+    const ctx = vsCtx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const base = m.data.startingCash;
+    const mine = m.me.worth.map(v => (v / base - 1) * 100);
+    const theirs = m.them.worth.map(v => (v / base - 1) * 100);
+    const stock = m.data.prices.slice(0, m.tick + 1).map(p => (p / m.data.prices[0] - 1) * 100);
+    const n = mine.length;
+    if (n < 2) return;
+
+    const box = { left: 4, right: w - 56, top: 12, bottom: h - 8 };
+    let min = Math.min(0, ...mine, ...theirs, ...stock);
+    let max = Math.max(0, ...mine, ...theirs, ...stock);
+    const pad = (max - min) * 0.12 || 2;
+    min -= pad;
+    max += pad;
+    // The whole match is on the x axis from the start, so the lines advance
+    // across the picture instead of the picture rescaling under them.
+    const x = i => box.left + (i / m.ticks) * (box.right - box.left);
+    const y = v => box.bottom - ((v - min) / (max - min)) * (box.bottom - box.top);
+
+    ctx.font = '11px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const v = min + ((max - min) * i) / 4;
+      const yy = Math.round(y(v)) + 0.5;
+      ctx.strokeStyle = Math.abs(v) < (max - min) / 40 ? 'rgba(239,232,216,0.22)' : CHART.grid;
+      ctx.beginPath();
+      ctx.moveTo(box.left, yy);
+      ctx.lineTo(box.right, yy);
+      ctx.stroke();
+      ctx.fillStyle = CHART.text;
+      ctx.fillText(`${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(0)}%`, box.right + 8, yy);
+    }
+
+    const line = (data, colour, width, dash) => {
+      ctx.beginPath();
+      data.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = width;
+      ctx.lineJoin = 'round';
+      ctx.setLineDash(dash || []);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+
+    line(stock, 'rgba(133,124,108,0.65)', 1.25, [2, 3]);   // the stock, faintly, underneath
+    line(theirs, CHART.accent, 2, [6, 4]);                 // your opponent
+    const ahead = mine[n - 1] >= theirs[n - 1];
+    line(mine, ahead ? CHART.pos : CHART.neg, 2.5);        // you, on top
+
+    ctx.beginPath();
+    ctx.arc(x(n - 1), y(mine[n - 1]), 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = ahead ? CHART.pos : CHART.neg;
+    ctx.fill();
+  }
+
+  // ===========================================================
   // WIRING
   // ===========================================================
   document.querySelectorAll('[data-icon]').forEach(node => {
@@ -3526,9 +3970,49 @@
       if (!busy) { e.preventDefault(); togglePause(); }
     }
   });
-  window.addEventListener('resize', () => { sizeChart(); sizeWorthChart(); });
+  window.addEventListener('resize', () => { sizeChart(); sizeWorthChart(); sizeVsChart(); });
   window.addEventListener('pagehide', saveState);
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
+
+  // ---------- versus ----------
+  $('vsLenSeg').innerHTML = VS.DURATIONS
+    .map(d => `<button data-ticks="${d.ticks}">${d.label}<small>${d.note}</small></button>`).join('');
+  document.querySelectorAll('#vsRiskSeg button').forEach(b => {
+    b.onclick = () => { vs.risk = Number(b.dataset.risk); renderVsLobby(); };
+  });
+  document.querySelectorAll('#vsLenSeg button').forEach(b => {
+    b.onclick = () => { vs.ticks = Number(b.dataset.ticks); renderVsLobby(); };
+  });
+  document.querySelectorAll('#vsSideSeg button').forEach(b => {
+    b.onclick = () => { vs.side = b.dataset.side; renderVersus(); };
+  });
+  $('vsRollPass').onclick = () => { $('vsHostPass').value = rollPassword(); renderVsLobby(); };
+  $('vsHostPass').addEventListener('input', renderVsLobby);
+  $('vsHostBtn').onclick = hostMatch;
+  $('vsJoinBtn').onclick = joinMatch;
+  $('vsJoinPass').addEventListener('keydown', e => { if (e.key === 'Enter') joinMatch(); });
+  $('vsBotBtn').onclick = practiceMatch;
+  $('vsOrderBtn').onclick = placeVsOrder;
+  $('vsQty').addEventListener('input', renderVersus);
+  $('vsQty').addEventListener('keydown', e => { if (e.key === 'Enter') placeVsOrder(); });
+  $('vsQtyMinus').onclick = () => { $('vsQty').value = String(Math.max(1, vsOrderQty() - 1)); renderVersus(); };
+  $('vsQtyPlus').onclick = () => { $('vsQty').value = String(vsOrderQty() + 1); renderVersus(); };
+  $('vsQtyMax').onclick = () => {
+    if (!vs.match || vs.match.over) return;
+    $('vsQty').value = String(Math.max(1, vs.side === 'buy' ? vsMaxBuy(vsPrice()) : vs.match.me.shares));
+    renderVersus();
+  };
+  $('vsQuitBtn').onclick = () => { if (!vs.match) return; leaveMatch(); toast('You walked out', 'The match is over and nothing was recorded.'); };
+  $('vsAgainBtn').onclick = () => {
+    const m = vs.match;
+    if (!m) return setVsStage('lobby');
+    // A practice match is a fresh market; a password match is the same one again.
+    const seed = m.mode === 'bot' ? VS.randomSeed() : m.seed;
+    startMatch({ seed, risk: m.risk, ticks: m.ticks, password: m.password, mode: m.mode });
+  };
+  $('vsLobbyBtn').onclick = () => leaveMatch();
+  $('vsHostPass').value = rollPassword();
+  renderVsLobby();
 
   buildWatchlist();
   buildUpgrades();
