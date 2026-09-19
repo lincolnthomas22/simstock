@@ -6,7 +6,9 @@ Build a trading desk from $1,000: research fictional companies, buy and sell sha
 
 The portfolio screen charts your net worth against the market, so you can see whether your trading is beating the index or just paying commission to keep up.
 
-The Versus room is a 1v1 match: one stock, $1,000 each, a risk level and a length chosen by the host, and whoever is worth more when the bell goes wins. Matches are sealed off from a saved game entirely. Share the match code and your opponent gets exactly the same stock and the same price moves, because the whole price path is worked out from a seed. Live matches over the internet are not wired up yet; today you can practise against a desk bot, or race the same market apart and compare the closing numbers.
+The Versus room is a 1v1 match: one stock, $1,000 each, a risk level and a length chosen by the host, and whoever is worth more when the bell goes wins. Matches are sealed off from a saved game entirely.
+
+Point the room at a match server and two people play live, in the same market, against each other's net worth. With no server there is still a practice opponent on the desk, and a password match that puts both of you in an identical market to play apart and compare afterwards.
 
 All companies and prices are fictional and simulated. No real money is involved.
 
@@ -14,12 +16,17 @@ All companies and prices are fictional and simulated. No real money is involved.
 
 Open `index.html` in a browser. There's nothing to install or build.
 
+For live 1v1, run the match server as well — see `server/README.md` — and put
+its address into the Versus room.
+
 ## Files
 
 - `index.html` — page layout (the desk home screen, Trading and Upgrades)
 - `style.css` — all styling
 - `game.js` — game logic, market simulation and saving (progress is stored in the browser's localStorage)
-- `sim.js` — the 1v1 match simulator: seeded, self-contained and DOM-free, so the browser and a future matchmaking server can generate the identical market
+- `sim.js` — the 1v1 match simulator: seeded, self-contained and DOM-free, so the browser and the match server generate the identical market
+- `server/` — the match server: matchmaking, the clock and the referee for live 1v1 play. It has its own README and its own tests, and the game works without it
+- `Dockerfile`, `fly.toml` — deployment for the match server, built from the repository root because it needs `sim.js` too
 - `favicon.svg` — browser tab icon
 - `og-image.png` — the card that shows up when the site is linked somewhere
 

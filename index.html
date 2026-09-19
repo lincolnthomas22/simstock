@@ -793,6 +793,19 @@
         <p class="section-note">Two traders, one stock, $1,000 each and the same clock. Whoever is worth more when the bell goes wins. Nothing you do here touches your saved game.</p>
       </section>
 
+      <section class="versus-server">
+        <div class="versus-server-row">
+          <span class="versus-dot" id="vsDot" aria-hidden="true"></span>
+          <span class="versus-server-status" id="vsStatus">Offline</span>
+          <label class="field-label" for="vsServerUrl">Match server</label>
+          <input id="vsServerUrl" type="text" autocomplete="off" spellcheck="false" placeholder="wss://your-server.fly.dev">
+          <label class="field-label" for="vsName">Your name</label>
+          <input id="vsName" type="text" maxlength="18" autocomplete="off" placeholder="Trader">
+          <button class="btn btn-sm" id="vsConnectBtn">Connect</button>
+        </div>
+        <p class="versus-server-note" id="vsServerNote"></p>
+      </section>
+
       <div class="versus-lobby-grid">
         <section class="versus-card">
           <h3 class="versus-card-head">Host a match</h3>
@@ -822,7 +835,7 @@
 
         <section class="versus-card">
           <h3 class="versus-card-head">Join a match</h3>
-          <p class="versus-card-note">Type the password your opponent gave you. The risk and the length come with it, so there is nothing else to agree on.</p>
+          <p class="versus-card-note" id="vsJoinCardNote">Type the whole code your opponent gave you — password, risk and length.</p>
 
           <label class="field-label" for="vsJoinPass">Match password</label>
           <div class="versus-pass-field">
@@ -840,6 +853,17 @@
       </div>
 
       <p class="versus-footnote" id="vsFootnote"></p>
+    </div>
+
+    <!-- ---------- hosted, waiting for somebody to join ---------- -->
+    <div class="versus-stage versus-waiting" id="vsWaiting" hidden>
+      <h2 class="versus-waiting-head">Waiting for an opponent</h2>
+      <p class="section-note">Give them this password. The risk and the length are held by the server, so it is all they need.</p>
+      <div class="versus-code" id="vsWaitCode"></div>
+      <button class="btn btn-sm" id="vsCopyBtn">Copy it</button>
+      <p class="versus-waiting-settings" id="vsWaitSettings"></p>
+      <div class="versus-waiting-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <button class="text-btn versus-quit" id="vsCancelBtn">Cancel the match</button>
     </div>
 
     <!-- ---------- the match itself ---------- -->

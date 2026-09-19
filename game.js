@@ -3475,6 +3475,7 @@
     ticks: 300,
     stage: 'lobby',
     match: null,     // the match under way, or null
+    hosted: null,    // a room open on the server, waiting for somebody to join
     side: 'buy',
     timer: null,
   };
@@ -3489,7 +3490,7 @@
   // The settings are baked into the seed: change the risk or the length and it
   // is a different match, even under the same password.
   const passwordSeed = (password, risk, ticks) => VS.hashSeed(`${password}|${risk}|${ticks}`);
-  const vsDuration = () => VS.DURATIONS.find(d => d.ticks === vs.ticks) || VS.DURATIONS[1];
+  const matchLength = ticks => VS.DURATIONS.find(d => d.ticks === ticks) || { label: 'Custom', ticks, note: `${ticks} ticks` };
 
   // ---------- transports ----------
   // Each one hands back an opponent: a name, and a way of working out what
@@ -3532,6 +3533,193 @@
     };
   }
 
+  // ---------- the match server ----------
+  // The server is the referee: it owns the clock, the money and the price
+  // path, and reveals prices one tick at a time so neither player can read the
+  // end of the match out of their own browser. Without a server the room still
+  // works, on the same password, apart — see parOpponent above.
+  const SERVER_KEY = 'simstock.versus.server';
+  const NAME_KEY = 'simstock.versus.name';
+  const net = { ws: null, status: 'off', note: '' };
+
+  // Accepts whatever somebody pastes in: a bare host, an http:// address, or a
+  // proper ws:// one. Anything not plainly local gets the encrypted scheme,
+  // because a page served over https cannot open a plain socket anyway.
+  function serverUrl(text) {
+    let url = String(text || '').trim();
+    if (!url) return '';
+    url = url.replace(/^http:\/\//i, 'ws://').replace(/^https:\/\//i, 'wss://');
+    if (!/^wss?:\/\//i.test(url)) {
+      const local = /^(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(url);
+      url = (local ? 'ws://' : 'wss://') + url;
+    }
+    return url.replace(/\/+$/, '');
+  }
+
+  const netOn = () => net.status === 'on';
+
+  function setNetStatus(status, note) {
+    net.status = status;
+    net.note = note || '';
+    renderVsLobby();
+  }
+
+  function netConnect() {
+    if (net.ws) return netDisconnect();
+    const url = serverUrl($('vsServerUrl').value);
+    if (!url) return setNetStatus('off', 'Paste the address of a match server to play live. Without one, a password match still works — you just play it apart and compare the closing numbers.');
+    try { localStorage.setItem(SERVER_KEY, url); } catch { /* a locked-down browser is not worth an error */ }
+    $('vsServerUrl').value = url;
+    setNetStatus('connecting', `Connecting to ${url}…`);
+
+    let ws;
+    try { ws = new WebSocket(url); } catch (e) { return setNetStatus('error', `That address will not open: ${e.message}`); }
+    net.ws = ws;
+
+    ws.onopen = () => setNetStatus('on', 'Connected. Host a match and give your opponent the password, or join theirs.');
+    ws.onmessage = e => {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      handleNetMessage(msg);
+    };
+    ws.onerror = () => { /* onclose carries the outcome; this would only double the noise */ };
+    ws.onclose = () => {
+      const wasConnected = net.status === 'on';
+      net.ws = null;
+      // A drop mid-match is a forfeit at the server's end, so say so plainly
+      // rather than leaving a dead match on screen.
+      if (vs.match && vs.match.net && !vs.match.over) {
+        leaveMatch();
+        toast('The connection dropped', 'The match ended when the socket closed.', 'neg');
+      }
+      setNetStatus('off', wasConnected ? 'Disconnected from the match server.' : 'Could not reach that server. Check the address, and that it is running.');
+    };
+  }
+
+  function netDisconnect() {
+    const ws = net.ws;
+    net.ws = null;
+    if (ws) { ws.onclose = null; try { ws.close(); } catch { /* already gone */ } }
+    if (vs.match && vs.match.net) leaveMatch();
+    setNetStatus('off', 'Disconnected.');
+  }
+
+  const netSend = msg => { if (net.ws && net.ws.readyState === 1) net.ws.send(JSON.stringify(msg)); };
+  const myName = () => $('vsName').value.trim().slice(0, 18) || 'Trader';
+
+  function handleNetMessage(msg) {
+    switch (msg.t) {
+      case 'hosted':
+        vs.hosted = msg;
+        setVsStage('waiting');
+        return;
+      case 'start':
+        return beginNetMatch(msg);
+      case 'tick':
+        return netTick(msg);
+      case 'filled':
+        return netFilled(msg);
+      case 'over':
+        return netOver(msg);
+      case 'error':
+        // An error while waiting sends you back; one mid-match is just a
+        // refused order, and the match carries on.
+        if (vs.stage === 'waiting') { vs.hosted = null; setVsStage('lobby'); }
+        return toast('The server said no', msg.message || msg.code, 'neg');
+      default:
+        return;
+    }
+  }
+
+  function beginNetMatch(msg) {
+    vs.hosted = null;
+    vs.match = {
+      net: true,
+      mode: 'online',
+      password: msg.password,
+      risk: msg.risk,
+      ticks: msg.ticks,
+      seed: null,                    // handed over only once the match is done
+      // The path starts as just the opening price and grows a tick at a time.
+      data: { stock: msg.stock, startingCash: msg.startingCash, ticks: msg.ticks, prices: [msg.price], news: [] },
+      tick: 0,
+      me: { cash: msg.startingCash, shares: 0, spent: 0, bought: 0, trades: 0, fees: 0, worth: [msg.startingCash] },
+      them: { name: msg.them.name, note: 'your opponent', worth: [msg.startingCash] },
+      seenNews: 0,
+      over: false,
+    };
+    vs.side = 'buy';
+    $('vsQty').value = '1';
+    clearInterval(vs.timer);
+    vs.timer = null;
+    setVsStage('live');
+    sizeVsChart();
+    toast('The bell goes', `${msg.stock.name} at ${fmtPrice(msg.price)}, against ${msg.them.name}.`, 'accent');
+    playSound('level');
+  }
+
+  function netTick(msg) {
+    const m = vs.match;
+    if (!m || !m.net || m.over) return;
+    const first = m.tick + 1;
+    msg.prices.forEach(p => m.data.prices.push(p));
+    m.data.news.push(...msg.news);
+    m.tick = msg.tick;
+    // The server's figures win outright; nothing here is the client's to decide.
+    m.me.cash = msg.you.cash;
+    m.me.shares = msg.you.shares;
+    m.me.serverWorth = msg.you.worth;
+
+    // Normally one tick arrives at a time. If the tab was asleep and several
+    // turned up at once, the missing points are filled in between the last
+    // known worth and this one, which is honest enough for a chart.
+    const fromThem = m.them.worth[m.them.worth.length - 1];
+    const steps = m.data.prices.length - m.me.worth.length;
+    for (let i = 1; i <= steps; i++) {
+      const at = m.me.worth.length;
+      m.me.worth.push(m.me.cash + m.me.shares * m.data.prices[at]);
+      m.them.worth.push(fromThem + ((msg.them.worth - fromThem) * i) / steps);
+    }
+
+    for (; m.seenNews < m.data.news.length; m.seenNews++) {
+      const n = m.data.news[m.seenNews];
+      if (n.tick >= first) toast(n.mood === 'up' ? 'Good news' : 'Bad news', n.text, n.mood === 'up' ? 'pos' : 'neg');
+    }
+    renderVersus();
+  }
+
+  function netFilled(msg) {
+    const m = vs.match;
+    if (!m || !m.net) return;
+    m.me.cash = msg.cash;
+    m.me.shares = msg.shares;
+    m.me.fees += msg.fee;
+    m.me.trades += 1;
+    if (msg.side === 'buy') { m.me.spent += msg.qty * msg.price; m.me.bought += msg.qty; }
+    playSound('buy', 120);
+    $('vsQty').value = '1';
+    renderVersus();
+  }
+
+  function netOver(msg) {
+    const m = vs.match;
+    if (!m || !m.net || m.over) return;
+    m.over = true;
+    m.seed = msg.seed;
+    m.data.prices = msg.prices;          // the whole path, now it can do no harm
+    m.tick = msg.tick;
+    m.me.trades = msg.you.trades;
+    m.me.fees = msg.you.fees;
+    m.forfeit = msg.reason === 'forfeit';
+    m.outcome = msg.outcome;
+    m.them.name = msg.them.name;
+    m.final = { me: msg.you.worth, them: msg.them.worth };
+    setVsStage('over');
+    renderVersusResult();
+    if (msg.outcome === 'win') { playSound('achieve'); confetti(90, ['#f0b73d', '#4cc38a', '#7fb2d6']); }
+    else playSound('loss');
+  }
+
   // ---------- starting and ending ----------
   function startMatch({ seed, risk, ticks, password, mode }) {
     const data = VS.generateMatch({ seed, risk, ticks });
@@ -3554,20 +3742,24 @@
     vs.timer = setInterval(matchTick, 250);
     matchTick();
     sizeVsChart();
-    toast('The bell goes', `${data.stock.name} at ${fmtPrice(data.prices[0])}. ${vsDuration().note} on the clock.`, 'accent');
+    toast('The bell goes', `${data.stock.name} at ${fmtPrice(data.prices[0])}. ${matchLength(ticks).note} on the clock.`, 'accent');
     playSound('level');
   }
 
   function leaveMatch(toLobby = true) {
     clearInterval(vs.timer);
     vs.timer = null;
+    // Walking out of an online match forfeits it, so the server hears about it
+    // before the screen changes.
+    if ((vs.match && vs.match.net && !vs.match.over) || vs.hosted) netSend({ t: 'leave' });
     vs.match = null;
+    vs.hosted = null;
     if (toLobby) setVsStage('lobby');
   }
 
   function matchTick() {
     const m = vs.match;
-    if (!m || m.over) return;
+    if (!m || m.over || m.net) return;   // an online match is stepped by the server
     const elapsed = Math.floor((Date.now() - m.startedAt) / 1000);
     const tick = Math.min(m.ticks, elapsed);
 
@@ -3623,6 +3815,11 @@
     const qty = vsOrderQty();
     if (!qty) return;
 
+    // Online, the server fills the order and tells us what happened. Guessing
+    // at the outcome here would only mean showing a number that is about to be
+    // corrected.
+    if (m.net) return netSend({ t: 'order', side: vs.side, qty });
+
     if (vs.side === 'buy') {
       if (qty > vsMaxBuy(price)) return toast("That's more than you can afford", 'Trim the order, or press Max.', 'neg');
       const value = qty * price;
@@ -3655,6 +3852,9 @@
       return toast('Pick a password first', 'One has been rolled for you. Give your opponent the whole code, then start again.', 'accent');
     }
     $('vsHostPass').value = password;
+    // Connected, the server holds the room and the settings and waits for an
+    // opponent. Not connected, the password itself is the market.
+    if (netOn()) return netSend({ t: 'host', password, risk: vs.risk, ticks: vs.ticks, name: myName() });
     startMatch({ seed: passwordSeed(password, vs.risk, vs.ticks), risk: vs.risk, ticks: vs.ticks, password, mode: 'password' });
   }
 
@@ -3667,6 +3867,12 @@
     // screen happens to be set to — that would quietly put the two of you in
     // different markets, which is worse than not starting at all.
     const bits = code.split(/[\s/|]+/).filter(Boolean);
+    // Online there is nothing to agree on: the host's room already knows the
+    // risk and the length, so a bare password is all it takes.
+    if (netOn()) {
+      $('vsJoinNote').textContent = '';
+      return netSend({ t: 'join', password: cleanPassword(bits[0]), name: myName() });
+    }
     const risk = Number(bits[1]);
     const ticks = Number(bits[2]);
     if (bits.length !== 3 || !VS.RISKS[risk] || !VS.DURATIONS.some(d => d.ticks === ticks)) {
@@ -3684,10 +3890,19 @@
   function setVsStage(stage) {
     vs.stage = stage;
     $('vsLobby').hidden = stage !== 'lobby';
+    $('vsWaiting').hidden = stage !== 'waiting';
     $('vsLive').hidden = stage !== 'live';
     $('vsOver').hidden = stage !== 'over';
     if (stage === 'lobby') renderVsLobby();
+    if (stage === 'waiting') renderVsWaiting();
     if (stage === 'live') { renderVersus(); sizeVsChart(); }
+  }
+
+  function renderVsWaiting() {
+    const h = vs.hosted;
+    if (!h) return setVsStage('lobby');
+    $('vsWaitCode').textContent = h.password;
+    $('vsWaitSettings').textContent = `Risk ${h.risk}, ${VS.RISKS[h.risk].name} · ${matchLength(h.ticks).note}`;
   }
 
   function renderVsLobby() {
@@ -3704,10 +3919,27 @@
       b.classList.toggle('active', on);
       b.setAttribute('aria-pressed', String(on));
     });
+    const STATUS = { off: 'Offline', connecting: 'Connecting', on: 'Live', error: 'Trouble' };
+    $('vsStatus').textContent = STATUS[net.status];
+    $('vsDot').className = `versus-dot versus-dot-${net.status}`;
+    $('vsConnectBtn').textContent = net.ws ? 'Disconnect' : 'Connect';
+    $('vsServerNote').textContent = net.note;
+    $('vsServerUrl').disabled = !!net.ws;
+    $('vsName').disabled = !!net.ws;
+
+    const live = netOn();
+    $('vsHostBtn').textContent = live ? 'Open the room' : 'Start the match';
+    $('vsJoinPass').placeholder = live ? 'their password' : 'their whole code';
+    $('vsJoinCardNote').textContent = live
+      ? 'Type the password your opponent is hosting on. The risk and the length come from their room, so there is nothing else to agree on.'
+      : 'Type the whole code your opponent gave you \u2014 password, risk and length. Connect to a match server above and the password alone will do.';
+
     const pass = cleanPassword($('vsHostPass').value);
-    $('vsFootnote').textContent = pass
-      ? `Give your opponent the whole code: ${pass}/${vs.risk}/${vs.ticks}`
-      : 'Live matches over the internet are still being wired up. For now a password match gives both of you the identical market to play, and you compare the closing numbers.';
+    $('vsFootnote').textContent = live
+      ? (pass ? `Your opponent only needs the password: ${pass}` : 'Pick a password and open the room.')
+      : pass
+        ? `No server, so you play the same market apart. Give your opponent the whole code: ${pass}/${vs.risk}/${vs.ticks}`
+        : 'Without a match server you can still race the same market apart, on a shared code, and compare the closing numbers afterwards.';
   }
 
   const vsClockText = left => `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
@@ -3717,13 +3949,13 @@
     if (!m || vs.stage !== 'live') return;
     const price = vsPrice();
     const start = m.data.prices[0];
-    const mine = m.me.cash + m.me.shares * price;
+    const mine = m.net && m.me.serverWorth != null ? m.me.serverWorth : m.me.cash + m.me.shares * price;
     const theirs = m.them.worth[m.them.worth.length - 1];
 
     $('vsMeName').textContent = 'You';
     $('vsMeWorth').textContent = fmt(mine);
     $('vsMeChange').innerHTML = chg(((mine / m.data.startingCash) - 1) * 100);
-    $('vsThemName').textContent = m.them.name;
+    $('vsThemName').textContent = m.them.name;   // textContent, because an online name is somebody else's typing
     $('vsThemWorth').textContent = fmt(theirs);
     $('vsThemChange').innerHTML = chg(((theirs / m.data.startingCash) - 1) * 100);
     $('vsLive').classList.toggle('versus-ahead', mine >= theirs);
@@ -3784,14 +4016,18 @@
     const m = vs.match;
     const mine = m.final.me;
     const theirs = m.final.them;
-    const won = mine > theirs;
-    const drew = Math.abs(mine - theirs) < 0.005;
+    // Where a server refereed the match its verdict is the one that counts: a
+    // forfeit is won by staying, whatever the two of you were worth.
+    const won = m.outcome ? m.outcome === 'win' : mine > theirs;
+    const drew = m.outcome ? m.outcome === 'draw' : Math.abs(mine - theirs) < 0.005;
 
     $('vsVerdict').textContent = drew ? 'A dead heat' : won ? 'You win' : 'You lose';
     $('vsVerdict').className = `versus-verdict ${drew ? '' : won ? 'pos' : 'neg'}`;
-    $('vsVerdictNote').textContent = drew
-      ? `Both of you closed on ${fmt(mine)}. Somebody had better go again.`
-      : `${fmt(Math.abs(mine - theirs))} in it after ${vsDuration().note} on ${m.data.stock.name}.`;
+    $('vsVerdictNote').textContent = m.forfeit
+      ? (won ? `${m.them.name} walked out, so the match is yours.` : 'You walked out, so the match went the other way.')
+      : drew
+        ? `Both of you closed on ${fmt(mine)}. Somebody had better go again.`
+        : `${fmt(Math.abs(mine - theirs))} in it after ${matchLength(m.ticks).note} on ${m.data.stock.name}.`;
 
     $('vsResMe').className = `versus-result-card ${won && !drew ? 'winner' : ''}`;
     $('vsResThem').className = `versus-result-card ${!won && !drew ? 'winner' : ''}`;
@@ -3810,8 +4046,12 @@
       ['Commission paid', fmt(m.me.fees)],
       ['Best you were worth', fmt(best)],
     ];
-    if (m.password) rows.push(['Match code', `${m.password}/${m.risk}/${m.ticks}`]);
+    if (m.password) rows.push(['Match code', m.net ? m.password : `${m.password}/${m.risk}/${m.ticks}`]);
+    if (m.net && m.seed != null) rows.push(['Seed', String(m.seed)]);
     $('vsResStats').innerHTML = rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
+    // An online rematch needs a new room on the server, so it starts from the lobby.
+    $('vsAgainBtn').hidden = !!m.net;
+
   }
 
   // ---------- the match chart ----------
@@ -4002,7 +4242,31 @@
     $('vsQty').value = String(Math.max(1, vs.side === 'buy' ? vsMaxBuy(vsPrice()) : vs.match.me.shares));
     renderVersus();
   };
-  $('vsQuitBtn').onclick = () => { if (!vs.match) return; leaveMatch(); toast('You walked out', 'The match is over and nothing was recorded.'); };
+  $('vsQuitBtn').onclick = () => {
+    if (!vs.match) return;
+    const online = vs.match.net;
+    leaveMatch();
+    toast('You walked out', online ? 'That hands the match to your opponent.' : 'The match is over and nothing was recorded.');
+  };
+  $('vsCancelBtn').onclick = () => leaveMatch();
+  $('vsConnectBtn').onclick = netConnect;
+  $('vsServerUrl').addEventListener('keydown', e => { if (e.key === 'Enter') netConnect(); });
+  $('vsName').addEventListener('change', () => {
+    try { localStorage.setItem(NAME_KEY, myName()); } catch { /* nothing worth failing over */ }
+  });
+  $('vsCopyBtn').onclick = async () => {
+    if (!vs.hosted) return;
+    try {
+      await navigator.clipboard.writeText(vs.hosted.password);
+      toast('Copied', 'The password is on your clipboard.');
+    } catch {
+      toast('Could not copy', 'Read it out instead.', 'neg');
+    }
+  };
+  try {
+    $('vsServerUrl').value = localStorage.getItem(SERVER_KEY) || '';
+    $('vsName').value = localStorage.getItem(NAME_KEY) || '';
+  } catch { /* a browser with storage switched off still plays fine */ }
   $('vsAgainBtn').onclick = () => {
     const m = vs.match;
     if (!m) return setVsStage('lobby');
