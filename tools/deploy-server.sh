@@ -18,9 +18,25 @@ die()  { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------- what this needs ----------
 if ! command -v flyctl >/dev/null 2>&1 && ! command -v fly >/dev/null 2>&1; then
-  die "flyctl is not installed. Get it with:
-    curl -L https://fly.io/install.sh | sh
-  then open a new terminal and run this again."
+  # Git Bash on Windows is a Unix-looking shell on a machine that needs the
+  # Windows installer, so telling everyone to pipe install.sh into sh is wrong
+  # for whoever is most likely to be reading this.
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+      die "flyctl is not installed.
+
+  On Windows, install it from PowerShell, not from here. Open PowerShell and run:
+
+      iwr https://fly.io/install.ps1 -useb | iex
+
+  Then close this window, open Git Bash again, and re-run this script." ;;
+    *)
+      die "flyctl is not installed. Get it with:
+
+      curl -L https://fly.io/install.sh | sh
+
+  Then open a new terminal and run this again." ;;
+  esac
 fi
 FLY=$(command -v flyctl || command -v fly)
 
