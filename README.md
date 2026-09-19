@@ -18,9 +18,16 @@ All companies and prices are fictional and simulated. No real money is involved.
 
 Open `index.html` in a browser. There's nothing to install or build.
 
-For live 1v1 you need a match server running somewhere — see
-`server/README.md`. Once you have one, set `DEFAULT_SERVER` near the top of
-the versus section of `game.js`:
+For live 1v1 you need a match server running somewhere. If you have a Fly.io
+account, this does the whole thing — deploy, wait for it to answer, and write
+the address into the game:
+
+```sh
+./tools/deploy-server.sh
+```
+
+Otherwise see `server/README.md`. Either way, what it comes down to is setting
+`DEFAULT_SERVER` near the top of the versus section of `game.js`:
 
 ```js
 const DEFAULT_SERVER = 'wss://your-server.example';
