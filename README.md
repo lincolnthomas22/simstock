@@ -18,15 +18,23 @@ All companies and prices are fictional and simulated. No real money is involved.
 
 Open `index.html` in a browser. There's nothing to install or build.
 
-For live 1v1 you need a match server running somewhere. If you have a Fly.io
-account, this does the whole thing — deploy, wait for it to answer, and write
-the address into the game:
+For live 1v1 you need a match server running somewhere. There are two ways,
+and neither needs you to understand Docker.
+
+**From a browser, installing nothing.** Add a Fly.io token as a repository
+secret, then run the "Deploy the match server" workflow from the Actions tab.
+The install happens on GitHub's machines, so this works on a locked-down
+laptop where you cannot install anything yourself. Setup steps are in the
+comment at the top of `.github/workflows/deploy-server.yml`.
+
+**From your own machine**, if you can install things:
 
 ```sh
 ./tools/deploy-server.sh
 ```
 
-Otherwise see `server/README.md`. Either way, what it comes down to is setting
+which deploys, waits for the server to answer, and offers to write the address
+into the game for you. See also `server/README.md`. Either way, what it comes down to is setting
 `DEFAULT_SERVER` near the top of the versus section of `game.js`:
 
 ```js

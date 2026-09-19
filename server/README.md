@@ -45,7 +45,14 @@ docker build -t simstock-server .
 docker run -p 8080:8080 simstock-server
 ```
 
-On Fly.io, `./tools/deploy-server.sh` from the repository root does the lot:
+**Without installing anything**, add a Fly.io token as the `FLY_API_TOKEN`
+repository secret and run the "Deploy the match server" workflow from the
+Actions tab. flyctl is installed on the runner instead of on your machine,
+which is the way round this when you do not have admin rights on the one you
+are sitting at. The setup steps are in the comment at the top of
+`.github/workflows/deploy-server.yml`.
+
+On your own machine, `./tools/deploy-server.sh` from the repository root does the lot:
 checks you have flyctl and are signed in, creates the app the first time,
 deploys, waits for `/health` to answer, and offers to write the address into
 `game.js`. By hand it is:
