@@ -1,0 +1,12 @@
+{
+  "name": "simstock-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser tests for SimStock, run against the real page",
+  "scripts": {
+    "test": "node browser.test.js && node online.test.js",
+    "test:browser": "node browser.test.js",
+    "test:online": "node online.test.js"
+  },
+  "devDependencies": { "playwright": "^1.49.0" }
+}

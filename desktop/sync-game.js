@@ -22,4 +22,12 @@ for (const name of TAKE) {
   fs.cpSync(from, path.join(APP, name), { recursive: true });
   files += fs.statSync(from).isDirectory() ? fs.readdirSync(from).length : 1;
 }
-console.log(`synced ${files} files into desktop/app`);
+
+// Anything a build needs baked into it goes here. It has to be written at sync
+// time rather than read from the environment when the game runs, because a
+// player double-clicking an icon has none of the build's environment.
+const config = { defaultServer: process.env.SIMSTOCK_SERVER || '' };
+fs.writeFileSync(path.join(APP, 'build-config.json'), JSON.stringify(config, null, 2) + '\n');
+
+console.log(`synced ${files} files into desktop/app`
+  + (config.defaultServer ? `, pointing at ${config.defaultServer}` : ', with no match server set'));

@@ -47,14 +47,17 @@ const launch = userData => electron.launch({
   check('the default match server reaches the game', bridge && bridge.server === 'ws://127.0.0.1:8090', bridge && bridge.server);
   check('no Node is reachable from the page', await win.evaluate(() => typeof require === 'undefined' && typeof process === 'undefined'));
 
-  // Faces load lazily as glyphs are needed, so a count would be flaky. What
-  // matters is that each family resolved, from the bundle rather than a CDN.
-  const families = await win.evaluate(async () => {
-    await document.fonts.ready;
-    return [...new Set([...document.fonts].filter(f => f.status === 'loaded').map(f => f.family))];
+  // Faces load lazily, when a glyph on screen needs one, so counting what
+  // happens to have loaded is a coin toss. Asking for each family outright is
+  // deterministic, and tests what matters: the face resolves from the bundle.
+  const fonts = await win.evaluate(async () => {
+    const out = {};
+    for (const family of ['IBM Plex Mono', 'IBM Plex Sans', 'Newsreader']) {
+      out[family] = (await document.fonts.load(`16px "${family}"`)).length;
+    }
+    return out;
   });
-  check('every font family loads from the bundle',
-    ['IBM Plex Mono', 'IBM Plex Sans', 'Newsreader'].every(f => families.includes(f)), JSON.stringify(families));
+  check('every font family resolves from the bundle', Object.values(fonts).every(n => n > 0), JSON.stringify(fonts));
 
   // Play for long enough that the game saves (it writes every five ticks).
   await win.click('.landing-buttons [data-screen="home"]');

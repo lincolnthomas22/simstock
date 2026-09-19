@@ -53,8 +53,18 @@ The targets are all `dir` — a plain folder of files, which is what Steam wants
 to upload. It does not want an installer; Steam is the installer.
 
 You cannot build for macOS from anywhere but a Mac, and building for Windows
-from Linux needs Wine. The usual answer is a GitHub Actions matrix with one
-runner per platform.
+from Linux needs Wine, which is why `.github/workflows/release.yml` exists: one
+runner per platform, kicked off by a `v*` tag or by hand from the Actions tab.
+Its `server` input is the match server address to bake into the build.
+
+That address is written into `app/build-config.json` at sync time rather than
+read from the environment when the game runs, because a player double-clicking
+an icon has none of the build machine's environment. `SIMSTOCK_SERVER` still
+wins during a dev run, which is how the tests point at a local server.
+
+Uploading to Steam is deliberately not automated. It needs steamcmd, partner
+credentials and a second factor, and a wrong build pushed to a live branch is
+not something to learn about from a workflow log.
 
 ## What the shell adds
 

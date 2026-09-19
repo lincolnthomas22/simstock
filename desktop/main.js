@@ -15,9 +15,19 @@ const fs = require('fs');
 const path = require('path');
 const steam = require('./steam.js');
 
-// Where the online lobby points when a player has not set an address. Change
-// this to your own deployment before shipping a build.
-const DEFAULT_SERVER = process.env.SIMSTOCK_SERVER || '';
+// Where the online lobby points when a player has not set an address. It is
+// baked in at sync time from SIMSTOCK_SERVER — see sync-game.js — because a
+// packaged game has none of the build machine's environment. The environment
+// still wins during a dev run, which is how the tests point it at a local one.
+function defaultServer() {
+  if (process.env.SIMSTOCK_SERVER) return process.env.SIMSTOCK_SERVER;
+  try {
+    return require('./app/build-config.json').defaultServer || '';
+  } catch {
+    return '';   // an unsynced checkout: the lobby just starts empty
+  }
+}
+const DEFAULT_SERVER = defaultServer();
 
 const isDev = !app.isPackaged;
 const SAVE_NAME = 'simstock-save.json';

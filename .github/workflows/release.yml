@@ -1,0 +1,94 @@
+# Builds the desktop game for Windows, macOS and Linux.
+#
+# This is the job that cannot be done on one machine: macOS builds only on a
+# Mac, and a Windows build from Linux needs Wine. One runner per platform is
+# the whole reason this workflow exists.
+#
+# The targets are all `dir` — a plain folder of files. That is what Steam
+# wants uploaded to a depot; it does not want an installer, because Steam is
+# the installer.
+#
+# Uploading to Steam is deliberately NOT automated. It needs steamcmd, partner
+# credentials and a second factor, and a wrong build pushed to a live branch is
+# not something to find out about from a workflow log. Download the artifacts
+# and run the upload by hand, at least until there is a release to be routine
+# about.
+name: Desktop builds
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      server:
+        description: 'Match server the build points at, e.g. wss://simstock-versus.fly.dev'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false      # one platform failing should not hide the others
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            args: --linux --x64
+            out: dist/linux-unpacked
+          - os: windows-latest
+            name: Windows
+            args: --win --x64
+            out: dist/win-unpacked
+          - os: macos-latest
+            name: macOS
+            args: --mac --x64 --arm64
+            out: dist/mac*
+
+    env:
+      # Baked into the build by sync-game.js. Empty leaves the lobby blank,
+      # which still plays offline and against the desk bot.
+      SIMSTOCK_SERVER: ${{ github.event.inputs.server }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - run: npm ci
+        working-directory: desktop
+
+      - name: Copy the game into the shell
+        run: npm run sync
+        working-directory: desktop
+
+      - name: Build
+        run: npx electron-builder ${{ matrix.args }} --dir
+        working-directory: desktop
+        env:
+          # Unsigned builds. Signing needs a certificate in secrets; until
+          # there is one, do not let electron-builder go looking for a keychain
+          # identity and fail the job over it.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: What came out
+        shell: bash
+        run: |
+          echo "### ${{ matrix.name }}" >> "$GITHUB_STEP_SUMMARY"
+          du -sh desktop/${{ matrix.out }} 2>/dev/null | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY" || true
+          ls desktop/${{ matrix.out }} | head -20 | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simstock-${{ matrix.name }}
+          path: desktop/${{ matrix.out }}
+          retention-days: 14
+          if-no-files-found: error
