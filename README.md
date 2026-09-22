@@ -62,6 +62,7 @@ For the desktop version, `cd desktop && npm install && npm start`. See
 - `server/` — the match server: matchmaking, the clock and the referee for live 1v1 play. It has its own README and its own tests, and the game works without it
 - `desktop/` — the Electron shell that makes it a desktop game, for Steam. Its README covers the build, the Steam side, and why the Linux build is started through a launcher script
 - `tests/` — browser tests: the game on its own, and two browsers playing each other through a real match server
+- `steam/` — the non-code half of getting onto Steam: the account and app setup in the order it has to happen, and the store page copy
 - `tools/` — small generators: the font bundle and the Steam achievement mapping, both read from the game rather than kept by hand
 - `.github/workflows/` — CI on every push, and the three-platform desktop build
 - `Dockerfile`, `fly.toml` — deployment for the match server, built from the repository root because it needs `sim.js` too
