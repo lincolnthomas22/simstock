@@ -50,6 +50,54 @@ function client() {
   await new Promise(r => server.listening ? r() : server.on('listening', r));
   console.log('server on port', server.address().port);
 
+  // ---- the market a match is played on ----
+  // sim.js is shared with the browser, so what holds here holds there.
+  {
+    const m = VS.generateMatch({ seed: 4242, risk: 3, ticks: 300 });
+    ok('a match stock has profits behind its price', () => {
+      assert.strictEqual(m.eps.length, m.prices.length);
+      assert.ok(m.eps.every(e => e > 0), 'a share of the profits went to nothing');
+      // Fair value is profits times the P/E, and the price is pulled toward
+      // it, so the ratio should stay in the same country as the company's.
+      const pe = m.prices[300] / m.eps[300];
+      assert.ok(pe > m.stock.pe / 3 && pe < m.stock.pe * 3, `P/E drifted to ${pe.toFixed(1)} from ${m.stock.pe}`);
+    });
+    ok('it opens fairly valued, as a listed company does', () => {
+      assert.ok(Math.abs(m.prices[0] / (m.eps[0] * m.stock.pe) - 1) < 0.001);
+    });
+    ok('there is an index behind it, and it is not the stock', () => {
+      assert.strictEqual(m.market.length, m.prices.length);
+      assert.notStrictEqual(m.market[300], m.prices[300]);
+    });
+    ok('the economy gets a word in as well as the company', () => {
+      const kinds = new Set(m.news.map(n => n.kind));
+      assert.ok(kinds.has('market'), 'no market news in 300 ticks');
+      assert.ok(kinds.has('earnings'), 'no earnings report in 300 ticks');
+    });
+    ok('earnings land on the quarter, not at random', () => {
+      const reports = m.news.filter(n => n.kind === 'earnings');
+      assert.ok(reports.length >= 4, `only ${reports.length} reports in 300 ticks`);
+      reports.forEach(r => assert.strictEqual(r.tick % VS.DAYS_PER_QUARTER, m.stock.earningsDay));
+    });
+    ok('a dividend follows its report three weeks later', () => {
+      const payer = [4242, 7, 19, 23, 88, 101].map(s => VS.generateMatch({ seed: s, risk: 3, ticks: 300 })).find(x => x.stock.divYield);
+      assert.ok(payer, 'no seed in the sample landed on a company that pays one');
+      assert.ok(payer.dividends.length >= 4, `only ${payer.dividends.length} dividends`);
+      payer.dividends.forEach(d => {
+        assert.strictEqual(d.tick % VS.DAYS_PER_QUARTER, payer.stock.dividendDay);
+        assert.strictEqual(VS.dividendAt(payer, d.tick), d.perShare);
+      });
+      assert.strictEqual(VS.dividendAt(payer, payer.dividends[0].tick + 1), 0);
+    });
+    ok('a company that pays nothing pays nothing', () => {
+      const dry = [1, 2, 3, 5, 8, 13, 21, 34].map(s => VS.generateMatch({ seed: s, risk: 3, ticks: 300 })).find(x => !x.stock.divYield);
+      if (dry) assert.strictEqual(dry.dividends.length, 0);
+    });
+    ok('the same seed still gives the same market, to the cent', () => {
+      assert.deepStrictEqual(VS.generateMatch({ seed: 4242, risk: 3, ticks: 300 }), m);
+    });
+  }
+
   // ---- a whole match, end to end ----
   const a = client();
   const b = client();
@@ -159,6 +207,50 @@ function client() {
     assert.strictEqual(replay.stock.id, startA.stock.id);
   });
   ok('the room is cleaned up after the bell', () => assert.strictEqual(rooms.size, 0));
+  ok('the result offers a rematch while both players are still there', () => {
+    assert.strictEqual(overA.rematch, true);
+    assert.strictEqual(overB.rematch, true);
+  });
+
+  // ---- a rematch, without either of them going back to the lobby ----
+  const askedAt = b.mark();
+  a.send({ t: 'rematch' });
+  const offer = await b.want('rematch_offer');
+  ok('one player asking is an offer, not a match', () => {
+    assert.strictEqual(offer.name, 'Ada');
+    assert.ok(!b.seen.slice(askedAt).some(m => m.t === 'start'), 'started on one say-so');
+  });
+
+  const againAt = a.mark();
+  b.send({ t: 'rematch' });
+  const againA = await a.want('start', againAt);
+  const againB = await b.want('start');
+  ok('both of them asking starts another match', () => {
+    assert.strictEqual(againA.ticks, 5);
+    assert.strictEqual(againA.risk, startA.risk);
+    assert.strictEqual(againA.startingCash, 1000);
+  });
+  ok('the rematch is a new market, not the one they have both seen', () => {
+    assert.notStrictEqual(againA.seed, overA.seed);
+  });
+  ok('and both of them start it from a clean desk', () => {
+    assert.strictEqual(againA.startingCash, againB.startingCash);
+  });
+
+  const endAgainA = await a.want('over', againAt);
+  await b.want('over', againAt);
+  ok('the rematch plays out and is refereed the same way', () => {
+    assert.strictEqual(endAgainA.reason, 'bell');
+    assert.strictEqual(endAgainA.prices.length, 6);
+  });
+
+  // ---- leaving a finished room takes the rematch off the table ----
+  a.send({ t: 'leave' });
+  const off = await b.want('rematch_off');
+  ok('a player leaving tells the other one the rematch is off', () => {
+    assert.strictEqual(off.reason, 'opponent_left');
+  });
+  ok('and the finished room is gone with them', () => assert.strictEqual(rooms.size, 0));
   a.close(); b.close();
 
   // ---- walking out ----

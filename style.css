@@ -1527,8 +1527,12 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .versus-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 26px; margin-top: 22px; }
 .versus-detail { min-width: 0; }
 .versus-price-row { margin: 0 0 4px auto; }
+.versus-again-note { margin-top: 12px; text-align: center; }
 .versus-chart-wrap { position: relative; height: 300px; margin-top: 14px; }
 .versus-chart-wrap canvas { width: 100%; height: 100%; }
+/* Which of the two views of a match the chart is showing. */
+.versus-chart-seg { margin-top: 16px; max-width: 320px; }
+.versus-chart-seg button { font-size: 12.5px; padding: 7px 10px; }
 .versus-about { margin: 14px 0 22px; font-family: var(--serif); font-size: 17px; line-height: 1.4; color: var(--text-2); }
 .versus-detail .news-list { margin-top: 8px; }
 .versus-order .ticket { margin-bottom: 18px; }

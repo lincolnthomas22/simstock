@@ -104,9 +104,10 @@ async function player(browser, name, watch) {
     await grace.click('#vsJoinBtn');
     await ada.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
     await grace.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
-    const stock = await ada.textContent('#vsName');
-    r.check('both players land in the same market', stock === (await grace.textContent('#vsName')),
-      `${stock} vs ${await grace.textContent('#vsName')}`);
+    const stock = await ada.textContent('#vsStockName');
+    r.check('both players land in the same market', stock === (await grace.textContent('#vsStockName')),
+      `${stock} vs ${await grace.textContent('#vsStockName')}`);
+    r.check('and the market has a company behind it', !!stock.trim(), `"${stock}"`);
     r.check('each sees the other by name',
       (await ada.textContent('#vsThemName')) === 'Grace' && (await grace.textContent('#vsThemName')) === 'Ada');
 
@@ -157,7 +158,14 @@ async function player(browser, name, watch) {
       stats.some(s => s.startsWith('Seed')), JSON.stringify(stats));
     r.check('the full price path arrives only now, at the end',
       stats.some(s => s.startsWith('The stock itself')), JSON.stringify(stats));
-    r.check('there is no rematch button for an online match', await ada.isHidden('#vsAgainBtn'));
+    // A rematch takes two, and one of them has just walked out — so the
+    // button is not offered, and it says why. (The rematch itself is a
+    // protocol matter, and lives in the match server's own tests: a match
+    // here would have to run the full two minutes to reach the bell.)
+    r.check('a walkout leaves no rematch to ask for', await ada.isHidden('#vsAgainBtn'));
+    r.check('and the result says so rather than going quiet',
+      (await ada.textContent('#vsAgainNote')).toLowerCase().includes('lobby'),
+      await ada.textContent('#vsAgainNote'));
 
     // ---- and back ----
     await ada.click('#vsLobbyBtn');

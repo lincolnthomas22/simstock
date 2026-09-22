@@ -92,7 +92,12 @@ cannot open a plain `ws://` socket.
   |<-- filled {cash, ------ |                              |
   |            shares}      |                              |
   |<-- over {outcome, ----- | -------------- over {...} -->|   + the full path and seed
-  |          seed, prices}  |                              |
+  |          seed, prices,  |                              |
+  |          rematch}       |                              |
+  |--- rematch ------------>|  an offer until both ask     |
+  |                         | ------ rematch_offer {name}->|
+  |                         |<------------------- rematch -|
+  |<-- start {...} -------- | ------------- start {...} -->|   a new seed, same terms
 ```
 
 The important line is the third one from the bottom. Prices are revealed one
@@ -102,12 +107,22 @@ match can be checked or replayed afterwards.
 
 Orders are filled at whatever tick the *server's* clock is on. A client that
 thinks it is somewhere else does not get to trade on that, and cash and
-shares only ever change because the server said so.
+shares only ever change because the server said so. Dividends are the same:
+the server pays them, on the shares a player is holding at that tick, and the
+new cash arrives with the next `tick` message.
+
+A finished room stays up for two minutes with both players still in it, so a
+rematch costs nobody a trip back to the lobby and a new password. It takes
+both of them — one asking is an offer — and it plays on a fresh seed with the
+same risk and length, from $1,000 each. The room closes the moment either
+player leaves, disconnects, or the two minutes run out, and the other one is
+told (`rematch_off`) rather than left waiting.
 
 ## What it does not do yet
 
 - **No reconnection.** A dropped socket forfeits the match. Rejoining a match
   in progress would mean keying players by a token rather than a connection.
+  A rematch is not a reconnection: it needs both sockets still open.
 - **No accounts, no ranking, no history.** Rooms live in memory and a finished
   match is forgotten.
 - **No matchmaking queue.** You need a password from someone; there is no

@@ -19,6 +19,7 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : (process.env.PORT ===
 const TICK_MS = 1000;              // one trading day a second, as everywhere else
 const SWEEP_MS = 15000;
 const ROOM_IDLE_MS = 10 * 60 * 1000;   // a room nobody joins is eventually swept
+const REMATCH_MS = 2 * 60 * 1000;      // how long a finished room stays up for a rematch
 const MAX_ROOMS = 500;
 const MAX_ORDERS_PER_TICK = 4;         // enough to change your mind, not enough to flood
 const MAX_FRAME = 4096;
@@ -61,7 +62,7 @@ function makePlayer(ws, name) {
   return {
     ws, name: cleanName(name),
     cash: VS.STARTING_CASH, shares: 0,
-    spent: 0, bought: 0, trades: 0, fees: 0,
+    spent: 0, bought: 0, trades: 0, fees: 0, dividends: 0,
     sentTick: -1,          // the last tick whose prices this player has been given
     ordersThisTick: 0,
     room: null,
@@ -118,7 +119,23 @@ function startMatch(room) {
   room.stage = 'running';
   room.tick = 0;
   room.startedAt = Date.now();
+  clearTimeout(room.rematchTimer);
+  room.rematchTimer = null;
   matchesPlayed += 1;
+
+  // A rematch reuses the room, so everybody starts from a clean desk rather
+  // than from whatever they were left holding.
+  room.players.forEach(p => {
+    p.cash = VS.STARTING_CASH;
+    p.shares = 0;
+    p.spent = 0;
+    p.bought = 0;
+    p.trades = 0;
+    p.fees = 0;
+    p.dividends = 0;
+    p.ordersThisTick = 0;
+    p.wantsRematch = false;
+  });
 
   const { stock, startingCash, prices } = room.match;
   room.players.forEach((p, i) => {
@@ -147,6 +164,9 @@ function stepRoom(room) {
   if (room.stage !== 'running') return;
   const tick = Math.min(room.ticks, Math.floor((Date.now() - room.startedAt) / 1000));
   if (tick !== room.tick) {
+    // Every tick the clock passed over, not just the one it landed on: a busy
+    // moment must not cost a player a dividend they were holding through.
+    for (let t = room.tick + 1; t <= tick; t++) payDividends(room, t);
     room.tick = tick;
     room.players.forEach(p => { p.ordersThisTick = 0; });
   }
@@ -154,8 +174,22 @@ function stepRoom(room) {
   if (tick >= room.ticks) endMatch(room, 'bell');
 }
 
+// A dividend is paid on the shares held at that tick, to whoever holds them.
+// The money is the server's to move, so it moves it here and the clients are
+// told what their cash is in the same tick message as everything else.
+function payDividends(room, tick) {
+  const perShare = VS.dividendAt(room.match, tick);
+  if (!perShare) return;
+  room.players.forEach(p => {
+    if (p.shares <= 0) return;
+    const paid = round2(perShare * p.shares);
+    p.cash = round2(p.cash + paid);
+    p.dividends = round2((p.dividends || 0) + paid);
+  });
+}
+
 function broadcastTick(room) {
-  const { prices, news } = room.match;
+  const { prices, news, eps } = room.match;
   const price = prices[room.tick];
   room.players.forEach((p, i) => {
     const them = room.players[1 - i];
@@ -167,8 +201,11 @@ function broadcastTick(room) {
       t: 'tick',
       tick: room.tick,
       prices: prices.slice(from, room.tick + 1),
+      // The profits behind the price, so a player's panel can show the P/E and
+      // the earnings the same way the trading floor's does.
+      eps: eps.slice(from, room.tick + 1),
       news: news.filter(n => n.tick >= from && n.tick <= room.tick),
-      you: { cash: round2(p.cash), shares: p.shares, worth: round2(worthOf(p, price)) },
+      you: { cash: round2(p.cash), shares: p.shares, dividends: round2(p.dividends || 0), worth: round2(worthOf(p, price)) },
       them: { worth: round2(worthOf(them, price)) },
     });
     p.sentTick = room.tick;
@@ -221,6 +258,11 @@ function endMatch(room, reason, quitter) {
 
   const price = room.match.prices[Math.min(room.tick, room.ticks)];
   const finals = room.players.map(p => worthOf(p, price));
+  // A rematch needs two people who are both still on the line. Nobody is
+  // offered another go against an opponent who has just walked out.
+  const canRematch = reason === 'bell'
+    && room.players.length === 2
+    && room.players.every(p => p.ws && p.ws.readyState === 1);
 
   room.players.forEach((p, i) => {
     const them = room.players[1 - i];
@@ -235,14 +277,58 @@ function endMatch(room, reason, quitter) {
       reason,
       outcome,
       tick: room.tick,
-      you: { worth: round2(finals[i]), cash: round2(p.cash), shares: p.shares, trades: p.trades, fees: round2(p.fees) },
+      you: { worth: round2(finals[i]), cash: round2(p.cash), shares: p.shares, trades: p.trades, fees: round2(p.fees), dividends: round2(p.dividends || 0) },
       them: { name: them.name, worth: round2(finals[1 - i]) },
       // Handed over only now the match is done, so it can be replayed or checked.
       seed: room.seed,
       prices: room.match.prices,
+      // Both still here, so either can ask for another one on the same terms.
+      rematch: canRematch,
     });
-    p.room = null;
   });
+
+  // The room stays up for a couple of minutes with both players still in it,
+  // so a rematch costs nobody a trip back to the lobby and a new password.
+  if (!canRematch) {
+    room.players.forEach(p => { p.room = null; });
+    room.players = [];
+    return;
+  }
+  room.finishedAt = Date.now();
+  room.rematchTimer = setTimeout(() => closeRoom(room, 'rematch_timeout'), REMATCH_MS);
+  if (room.rematchTimer.unref) room.rematchTimer.unref();
+}
+
+// Everybody out, and the room is gone. Used when a rematch window runs out or
+// the last player of a finished room leaves.
+function closeRoom(room, why) {
+  clearInterval(room.timer);
+  clearTimeout(room.rematchTimer);
+  room.timer = null;
+  room.rematchTimer = null;
+  room.players.forEach(p => {
+    if (why) send(p.ws, { t: 'rematch_off', reason: why });
+    p.room = null;
+    p.wantsRematch = false;
+  });
+  room.players = [];
+  room.stage = 'closed';
+  rooms.delete(room.password);
+}
+
+// A rematch is the same two people, the same settings and a brand new market.
+// It takes both of them: one asking is an offer, not a match.
+function askRematch(ws) {
+  const p = ws.player;
+  if (!p || !p.room) return fail(ws, 'no_match', 'There is no match to play again.');
+  const room = p.room;
+  if (room.stage !== 'over') return fail(ws, 'not_over', 'That match is still going.');
+  if (room.players.length < 2) return fail(ws, 'alone', 'Your opponent has gone.');
+  p.wantsRematch = true;
+  const them = room.players.find(x => x !== p);
+  if (!them.wantsRematch) return send(them.ws, { t: 'rematch_offer', name: p.name });
+  room.seed = VS.randomSeed();     // a new market, not the one they have both now seen
+  startMatch(room);
 }
 
 function dropPlayer(ws) {
@@ -250,6 +336,15 @@ function dropPlayer(ws) {
   if (!p || !p.room) return;
   const room = p.room;
   if (room.stage === 'running') return endMatch(room, 'forfeit', p);
+  // Out of a finished room: whoever is left is told the rematch is off rather
+  // than waiting on an answer that is not coming.
+  if (room.stage === 'over') {
+    room.players = room.players.filter(x => x !== p);
+    p.room = null;
+    p.wantsRematch = false;
+    if (!room.players.length) return closeRoom(room);
+    return closeRoom(room, 'opponent_left');
+  }
   // Still waiting: the room goes with them.
   room.players = room.players.filter(x => x !== p);
   if (!room.players.length) {
@@ -299,6 +394,7 @@ wss.on('connection', ws => {
         case 'host': return ws.player ? fail(ws, 'busy', 'You are already in a match.') : hostRoom(ws, msg);
         case 'join': return ws.player ? fail(ws, 'busy', 'You are already in a match.') : joinRoom(ws, msg);
         case 'order': return placeOrder(ws, msg);
+        case 'rematch': return askRematch(ws);
         case 'leave': { dropPlayer(ws); ws.player = null; return send(ws, { t: 'left' }); }
         case 'ping': return send(ws, { t: 'pong', now: Date.now() });
         default: return fail(ws, 'unknown', `No idea what "${String(msg.t).slice(0, 20)}" means.`);
@@ -324,6 +420,7 @@ setInterval(() => {
   });
   const now = Date.now();
   for (const room of [...rooms.values()]) {
+    if (room.stage === 'over' && now - (room.finishedAt || 0) > REMATCH_MS) closeRoom(room, 'rematch_timeout');
     if (room.stage === 'waiting' && now - room.createdAt > ROOM_IDLE_MS) {
       room.players.forEach(p => { fail(p.ws, 'expired', 'Nobody joined, so the room was closed.'); p.room = null; p.ws.player = null; });
       rooms.delete(room.password);
