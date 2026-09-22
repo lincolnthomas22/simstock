@@ -28,18 +28,20 @@ npm start           # copies the game in, then opens it
 ```
 
 ```sh
-npm test            # 15 tests against the real app; on a headless box: xvfb-run -a npm test
+npm test            # 33 tests against the real app; on a headless box: xvfb-run -a npm test
 ```
 
 `npm start` runs `sync-game.js` first, which copies `index.html`, `style.css`,
-`game.js`, `sim.js`, `favicon.svg` and `fonts/` into `desktop/app/`. That
-directory is generated — never edit it, edit the web root and re-sync.
+`game.js`, `sim.js`, `gamepad.js`, `favicon.svg` and `fonts/` into
+`desktop/app/`. That directory is generated — never edit it, edit the web root
+and re-sync.
 
 | Variable | What it does |
 | --- | --- |
 | `SIMSTOCK_SERVER` | The match server the Versus lobby is prefilled with, e.g. `wss://simstock-versus.fly.dev`. Set `DEFAULT_SERVER` in `main.js` for real builds. |
 | `SIMSTOCK_DEVTOOLS` | Opens the developer tools on start, in a dev run only. |
 | `STEAM_APP_ID` | Overrides `steam_appid.txt`. |
+| `SIMSTOCK_NO_SANDBOX` | `1` makes the launcher stand the Chromium sandbox down without probing. For reproducing a Steam Deck on a machine that is not one. |
 
 ## Building
 
@@ -61,6 +63,13 @@ That address is written into `app/build-config.json` at sync time rather than
 read from the environment when the game runs, because a player double-clicking
 an icon has none of the build machine's environment. `SIMSTOCK_SERVER` still
 wins during a dev run, which is how the tests point at a local server.
+
+One thing to know about the release workflow's artifacts: GitHub zips them, and
+a zip does not carry the executable bit. `launch-linux.sh` and the Linux binary
+itself come out of a downloaded artifact unexecutable. Build the depot from a
+local `npm run dist:linux`, or `chmod +x` them after unzipping — Steam will
+copy across whatever mode it is given, and a launcher without `+x` is the same
+dead Play button the launcher exists to prevent.
 
 Uploading to Steam is deliberately not automated. It needs steamcmd, partner
 credentials and a second factor, and a wrong build pushed to a live branch is
@@ -144,19 +153,83 @@ None of this is code, and it is most of the work.
 
 ### Steam Deck
 
-Deck is a strong fit for this game, but two things need doing:
+Deck is a strong fit for this game.
 
-- The Linux build ships a `chrome-sandbox` that needs setuid root to work.
-  Inside Steam's container it usually does not have it, and the game will
-  refuse to start. The normal fix is a launch option of `--no-sandbox`. Test
-  this on a real Deck, not on an assumption.
-- Everything in the game is a mouse click. Deck Verified needs full controller
-  support, which this does not have yet. It will pass as "Playable" with a
-  touch/trackpad control layout, not "Verified".
+**Set the Linux launch executable to `launch-linux.sh`, not to `SimStock`.**
+This is the one Steamworks setting the game will not start without.
+
+The Linux build ships a `chrome-sandbox` helper that Chromium will only trust
+if root owns it and it carries the setuid bit. A Steam depot does not carry
+setuid bits and Steam's `pressure-vessel` container does not add them, so on a
+Deck the helper is present and untrusted, and Chromium aborts before it draws
+a window — the player presses Play and nothing happens.
+
+Most games answer this with a blanket `--no-sandbox` launch option.
+`build/launch-linux.sh` does the same thing without the blanket: it asks
+`sandbox.js` whether a sandbox is possible on this machine — unprivileged user
+namespaces, or a correctly configured setuid helper — and hands over with the
+switch only when neither is available. A Deck loses the sandbox; a normal Linux
+desktop keeps it.
+
+Verified against a real packaged build, running as an unprivileged user with
+Chromium forced onto the setuid path: the binary on its own aborts with
+`The SUID sandbox helper binary was found, but is not configured correctly`,
+and the same build through the launcher starts. Still worth confirming on
+actual Deck hardware before release — the container is reproduced here by
+argument, not by being a Deck.
+
+### Playing with a controller
+
+`gamepad.js` in the web root, loaded by both builds. The game is already built
+out of real `<button>` elements, so nothing had to be made focusable — what was
+missing was a way to move the focus with a thumb. It moves focus in the
+direction pushed, and turns the rest of the pad into the keys the game already
+listens for, so there is one pause and one Escape rather than two of each.
+
+| | |
+| --- | --- |
+| D-pad / left stick | move the focus, repeating while held |
+| A | press whatever is focused |
+| B | close a modal, or go back to the front page |
+| LB / RB | previous / next tab |
+| Start | stop and start the market, as the space bar does |
+
+A modal takes the pad entirely: the shoulders stop changing the screen behind
+it, the way the space bar already refuses to pause from inside one.
+
+The focus ring appears the moment a pad is used and goes away when a mouse
+turns up, because with a pad it is the only thing saying where you are. A bar
+along the bottom says what each button does, listing only the ones that would
+do something from where the player is standing — inside a modal it drops the
+shoulders, because a modal ignores them, and it never offers A on the quantity
+field, because A leaves that alone.
+
+The glyphs are drawn in the game's own ink rather than in Xbox's green A and
+red B. This is a game about a market, where green and red already mean a gain
+and a loss, and a green A sitting above a Buy button reads as an instruction
+rather than as a label.
+
+The tests drive it with a fake pad in a real page, stepping the module a frame
+at a time: the whole opening tutorial is completed with the pad alone, and a
+flood fill checks that all 46 stops on the trading floor can actually be
+pushed to, which is the question that decides whether the game is playable
+this way at all.
+
+**What a pad still cannot do.** These are what stand between "Playable" and
+"Verified":
+
+- **Text entry.** The Versus lobby's match-server address and password fields
+  need a keyboard. Steam's on-screen keyboard may cover this on a Deck; it has
+  not been tested. Nothing else in the game needs typing — the quantity field
+  has −, + and Max beside it, and the pad deliberately leaves it alone.
+- **No Steam Input.** This reads the browser's Gamepad API, not Steam's, so
+  there is no official controller layout to ship and no rebinding.
+- **The charts are hover-only.** Reading a price off the chart wants a mouse.
 
 ## What is not done
 
-- **No controller support.** See above.
+- **Controller support is partial.** A pad plays the game and the screen says
+  what its buttons do; text entry and Steam Input are still missing. See above.
 - **No Steam Cloud conflict handling.** Two machines playing offline and then
   syncing will have Steam pick one save; the loser is gone.
 - **No rich presence, leaderboards or Steam multiplayer.** 1v1 goes through

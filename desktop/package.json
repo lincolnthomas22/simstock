@@ -38,6 +38,7 @@
       "main.js",
       "preload.js",
       "steam.js",
+      "sandbox.js",
       "achievements.json",
       "app/**/*"
     ],
@@ -53,7 +54,16 @@
       ],
       "icon": "build/icon.png",
       "category": "Game",
-      "executableName": "SimStock"
+      "executableName": "SimStock",
+      "extraFiles": [
+        {
+          "from": "build/launch-linux.sh",
+          "to": "launch-linux.sh"
+        }
+      ],
+      "asarUnpack": [
+        "sandbox.js"
+      ]
     },
     "mac": {
       "target": [

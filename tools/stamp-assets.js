@@ -23,7 +23,7 @@ const PAGE = path.join(ROOT, 'index.html');
 // Everything index.html pulls in that a change can land in. The fonts are
 // already named by their own hashes, but the stylesheet that points at them
 // is not.
-const ASSETS = ['fonts/fonts.css', 'style.css', 'sim.js', 'game.js'];
+const ASSETS = ['fonts/fonts.css', 'style.css', 'sim.js', 'game.js', 'gamepad.js'];
 
 const hashOf = file => crypto
   .createHash('sha256')

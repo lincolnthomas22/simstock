@@ -10,7 +10,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const APP = path.join(__dirname, 'app');
-const TAKE = ['index.html', 'style.css', 'game.js', 'sim.js', 'favicon.svg', 'fonts'];
+const TAKE = ['index.html', 'style.css', 'game.js', 'sim.js', 'gamepad.js', 'favicon.svg', 'fonts'];
 
 fs.rmSync(APP, { recursive: true, force: true });
 fs.mkdirSync(APP, { recursive: true });
