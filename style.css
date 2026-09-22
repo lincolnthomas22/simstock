@@ -1644,6 +1644,12 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .versus-waiting-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes versus-wait { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 .versus-waiting .versus-quit { margin: 0 auto; }
+.versus-lobby-players { list-style: none; margin: 22px auto 22px; padding: 0; max-width: 320px; display: grid; gap: 8px; }
+.versus-lobby-players li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border, rgba(127,127,127,0.3)); border-radius: 10px; text-align: left; }
+.versus-lobby-players li.empty { color: var(--text-3); border-style: dashed; }
+.versus-lobby-players .tag { font-family: var(--mono); font-size: 12px; color: var(--text-3); }
+.versus-waiting #vsStartBtn { margin: 0 auto 18px; display: block; }
+.versus-waiting #vsStartBtn[hidden] { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .versus-dot-connecting,

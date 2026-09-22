@@ -17,7 +17,7 @@ function startServer() {
     // The dropped player's window: long enough that the test can look at an
     // outage and still get back in well inside it, short enough not to sit
     // through the real 45 seconds.
-    env: { ...process.env, PORT: String(PORT), GRACE_SECONDS: '30' },
+    env: { ...process.env, PORT: String(PORT), GRACE_SECONDS: '30', COUNTDOWN_SECONDS: '2' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   proc.stderr.on('data', d => process.stderr.write(`[server] ${d}`));
@@ -144,6 +144,23 @@ async function flakyPlayer(browser, name, watch) {
     // ---- joining ----
     await grace.fill('#vsJoinPass', 'copper-otter');
     await grace.click('#vsJoinBtn');
+
+    // ---- the lobby: both in the room, nothing moving until the host says go ----
+    await grace.waitForSelector('#vsWaiting:not([hidden])', { timeout: 8000 });
+    await ada.waitForFunction(() => document.querySelectorAll('#vsWaitPlayers li:not(.empty)').length === 2, null, { timeout: 8000 });
+    r.check('joining lands in the lobby, not a running match', await grace.isHidden('#vsLive') && await ada.isHidden('#vsLive'));
+    r.check('both players see who is in the room',
+      (await ada.textContent('#vsWaitPlayers')).includes('Grace') && (await grace.textContent('#vsWaitPlayers')).includes('Ada'));
+    r.check('the joiner is told the host starts it', (await grace.textContent('#vsWaitNote')).includes('Ada to start'),
+      await grace.textContent('#vsWaitNote'));
+    r.check('only the host gets a start button', await ada.isVisible('#vsStartBtn') && await grace.isHidden('#vsStartBtn'));
+    await ada.waitForTimeout(1500);
+    r.check('and the market waits for them', await grace.isHidden('#vsLive'));
+    await ada.click('#vsStartBtn');
+    await grace.waitForFunction(() => /Starting in/.test(document.querySelector('#vsWaitHead').textContent), null, { timeout: 8000 });
+    const adaCounts = await ada.waitForFunction(() => /Starting in/.test(document.querySelector('#vsWaitHead').textContent), null, { timeout: 8000 })
+      .then(() => true, () => false);
+    r.check('both screens count down to the bell', adaCounts, await ada.textContent('#vsWaitHead'));
     await ada.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
     await grace.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
     const stock = await ada.textContent('#vsStockName');
@@ -178,8 +195,15 @@ async function flakyPlayer(browser, name, watch) {
       !(await ada.textContent('#vsPCash')).includes('-'), await ada.textContent('#vsPCash'));
 
     await ada.waitForTimeout(2000);
+    // The two pages are read one after the other, so a tick can land between
+    // the reads. A few tries in step is the honest version of "the same".
+    let worthsMatch = false;
+    for (let i = 0; i < 4 && !worthsMatch; i++) {
+      worthsMatch = (await grace.textContent('#vsThemWorth')) === (await ada.textContent('#vsMeWorth'));
+      if (!worthsMatch) await ada.waitForTimeout(250);
+    }
     r.check('the opponent panel matches the real net worth, to the penny',
-      (await grace.textContent('#vsThemWorth')) === (await ada.textContent('#vsMeWorth')),
+      worthsMatch,
       `${await grace.textContent('#vsThemWorth')} vs ${await ada.textContent('#vsMeWorth')}`);
 
     await ada.fill('#vsQty', '999999');
@@ -196,6 +220,8 @@ async function flakyPlayer(browser, name, watch) {
       await flaky.waitForSelector('#vsWaiting:not([hidden])', { timeout: 8000 });
       await patient.fill('#vsJoinPass', 'dropout');
       await patient.click('#vsJoinBtn');
+      await flaky.waitForSelector('#vsStartBtn:not([disabled])', { timeout: 8000 });
+      await flaky.click('#vsStartBtn');
       await flaky.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
       await patient.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
 

@@ -3501,6 +3501,7 @@
     hosted: null,    // a room open on the server, waiting for somebody to join
     side: 'buy',
     timer: null,
+    countTimer: null, // the countdown between the host saying go and the bell
   };
 
   const vsChart = $('vsChart');
@@ -3719,6 +3720,12 @@
         setNetStatus('off', 'The connection dropped. Getting back into the match…');
         return startResuming();
       }
+      // A room in its lobby is gone with the socket: the server let it go.
+      if (vs.hosted && !vs.hosted.offline) {
+        stopCountdown();
+        vs.hosted = null;
+        if (vs.stage === 'waiting') setVsStage('lobby');
+      }
       setNetStatus('off', wasConnected
         ? 'Disconnected from the match server.'
         : 'No match server reachable, so live matches are off. Everything else on this screen still works.');
@@ -3800,9 +3807,20 @@
   function handleNetMessage(msg) {
     switch (msg.t) {
       case 'hosted':
-        vs.hosted = msg;
+        // The host's own room, with nobody in it yet but them.
+        stopCountdown();
+        vs.hosted = { ...msg, host: true, players: [msg.you] };
         setVsStage('waiting');
         return;
+      case 'lobby':
+        // Somebody came in or went out. Nothing is moving until the host
+        // starts it, so whoever joined second is not behind.
+        stopCountdown();
+        vs.hosted = { ...msg };
+        setVsStage('waiting');
+        return;
+      case 'countdown':
+        return startCountdown(msg.seconds);
       case 'start':
         return beginNetMatch(msg);
       case 'tick':
@@ -3826,16 +3844,45 @@
         // it was for is over, or somebody else is already holding that seat.
         if (msg.code === 'no_match' && vs.match && vs.match.net && vs.match.dropped) return lostMatch();
         if (msg.code === 'still_here') return;
+        if (msg.code === 'host_left' && vs.stage === 'waiting') {
+          stopCountdown();
+          vs.hosted = null;
+          setVsStage('lobby');
+          return toast('The room closed', 'The host left before the match started.', 'neg');
+        }
         // An error while waiting sends you back; one mid-match is just a
         // refused order, and the match carries on.
-        if (vs.stage === 'waiting') { vs.hosted = null; setVsStage('lobby'); }
+        if (vs.stage === 'waiting') { stopCountdown(); vs.hosted = null; setVsStage('lobby'); }
         return toast('The server said no', msg.message || msg.code, 'neg');
       default:
         return;
     }
   }
 
+  // The few seconds between the host's "start" and the bell, counted down on
+  // both screens. The server's clock is the one that starts the match; this
+  // is only there so nobody is caught looking the other way.
+  function startCountdown(seconds) {
+    const h = vs.hosted;
+    if (!h) return;
+    stopCountdown();
+    h.counting = Math.max(0, Math.round(seconds));
+    renderVsWaiting();
+    vs.countTimer = setInterval(() => {
+      if (!vs.hosted || vs.hosted.counting == null) return stopCountdown();
+      vs.hosted.counting = Math.max(0, vs.hosted.counting - 1);
+      renderVsWaiting();
+    }, 1000);
+  }
+
+  function stopCountdown() {
+    clearInterval(vs.countTimer);
+    vs.countTimer = null;
+    if (vs.hosted) vs.hosted.counting = null;
+  }
+
   function beginNetMatch(msg) {
+    stopCountdown();
     vs.hosted = null;
     keepTicket(msg.token, msg.graceSec);
     stopResuming();
@@ -4101,6 +4148,7 @@
     vs.noteTimer = null;
     stopResuming();
     keepTicket(null);
+    stopCountdown();
     // Walking out of an online match forfeits it, so the server hears about it
     // before the screen changes.
     if ((vs.match && vs.match.net) || (vs.hosted && !vs.hosted.offline)) netSend({ t: 'leave' });
@@ -4224,7 +4272,12 @@
 
   function startHostedMatch() {
     const h = vs.hosted;
-    if (!h || !h.offline) return;
+    if (!h) return;
+    // Online the server starts it, for both players at once.
+    if (!h.offline) {
+      if (h.host && h.players && h.players.length > 1 && h.counting == null) netSend({ t: 'begin' });
+      return;
+    }
     vs.hosted = null;
     startMatch({ seed: passwordSeed(h.password, h.risk, h.ticks), risk: h.risk, ticks: h.ticks, password: h.password, mode: 'password' });
   }
@@ -4261,14 +4314,44 @@
   function renderVsWaiting() {
     const h = vs.hosted;
     if (!h) return setVsStage('lobby');
-    $('vsWaitCode').textContent = h.offline ? h.code : h.password;
-    $('vsWaitNote').textContent = h.offline
-      ? 'Give your opponent this code, exactly as it is. With no match server you each play the same market apart, so start whenever you are ready and compare closing numbers.'
-      : 'Give them this password. The risk and the length are held by the server, so it is all they need.';
-    $('vsWaitDots').hidden = !!h.offline;
-    $('vsWaitHead').textContent = h.offline ? 'Hand over the code' : 'Waiting for an opponent';
-    $('vsStartBtn').hidden = !h.offline;
     $('vsWaitSettings').textContent = `Risk ${h.risk}, ${VS.RISKS[h.risk].name} · ${matchLength(h.ticks).note}`;
+    if (h.offline) {
+      $('vsWaitHead').textContent = 'Hand over the code';
+      $('vsWaitNote').textContent = 'Give your opponent this code, exactly as it is. With no match server you each play the same market apart, so start whenever you are ready and compare closing numbers.';
+      $('vsWaitCode').textContent = h.code;
+      $('vsWaitPlayers').hidden = true;
+      $('vsWaitDots').hidden = true;
+      $('vsStartBtn').hidden = false;
+      $('vsStartBtn').disabled = false;
+      $('vsStartBtn').textContent = 'Start trading';
+      $('vsCancelBtn').textContent = 'Cancel the match';
+      return;
+    }
+
+    // Online this is the room's lobby: who is in it, and for the host, the
+    // button that starts the match for both of them at once.
+    const players = h.players || [];
+    const both = players.length > 1;
+    const counting = h.counting != null;
+    const hostName = players[0] ? players[0].name : 'the host';
+    $('vsWaitHead').textContent = counting
+      ? (h.counting > 0 ? `Starting in ${h.counting}` : 'The bell goes')
+      : h.host ? (both ? 'Your opponent is here' : 'Waiting for an opponent') : 'In the lobby';
+    $('vsWaitNote').textContent = counting
+      ? 'Eyes on the market. It opens for both of you at the same moment.'
+      : h.host
+        ? (both ? 'Start the match when you are both ready. The clock does not run until you do.' : 'Give them this password. The risk and the length are held by the server, so it is all they need.')
+        : `Waiting for ${hostName} to start the match. Nothing moves until they do, so you are not missing anything.`;
+    $('vsWaitCode').textContent = h.password;
+    $('vsWaitPlayers').hidden = false;
+    const rows = players.map((p, i) => `<li><span>${esc(p.name)}</span><span class="tag">${i === 0 ? 'host' : 'opponent'}${(i === 0) === !!h.host ? ' · you' : ''}</span></li>`);
+    if (!both) rows.push('<li class="empty"><span>Waiting for an opponent\u2026</span></li>');
+    $('vsWaitPlayers').innerHTML = rows.join('');
+    $('vsWaitDots').hidden = counting || (h.host && both);
+    $('vsStartBtn').hidden = !h.host;
+    $('vsStartBtn').disabled = !both || counting;
+    $('vsStartBtn').textContent = both ? 'Start the match' : 'Waiting for an opponent';
+    $('vsCancelBtn').textContent = h.host ? 'Close the room' : 'Leave the room';
   }
 
   function renderVsLobby() {
