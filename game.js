@@ -3513,17 +3513,40 @@
   // The settings are baked into the seed: change the risk or the length and it
   // is a different match, even under the same password.
   const passwordSeed = (password, risk, ticks) => VS.hashSeed(`${password}|${risk}|${ticks}`);
-  // Whatever the joiner typed, read back into a password and, if they are
-  // there, the settings: "copper-otter/3/300", "Copper Otter 3 300" and
-  // "copper-otter-3-300" are all the same code, and "copper otter" on its own
-  // is one password, not the first word of one.
+  // The match code is all words, so it can be read down a phone. The risk and
+  // the length ride along as words of their own, and only when they are not
+  // the usual ones: "copper-otter" is a Lively, Standard match,
+  // "copper-otter-wild-long" is not.
+  const CODE_RISK = 3;
+  const CODE_TICKS = 300;
+  const riskWord = risk => VS.RISKS[risk].name.toLowerCase();
+  const lengthWord = ticks => matchLength(ticks).label.toLowerCase();
+  // Whatever the joiner typed, read back into a password and the settings.
+  // Capitals, spaces and slashes do not matter, and the older numbered codes
+  // ("copper-otter/3/300") still work.
   function readCode(text) {
     const whole = cleanPassword(text);
     const m = whole.match(/^(.+?)-(\d)-(\d+)$/);
     if (m && VS.RISKS[Number(m[2])] && VS.DURATIONS.some(d => d.ticks === Number(m[3]))) {
       return { password: m[1], risk: Number(m[2]), ticks: Number(m[3]) };
     }
-    return { password: whole, risk: null, ticks: null };
+    const parts = whole.split('-');
+    let risk = CODE_RISK;
+    let ticks = CODE_TICKS;
+    const length = parts.length > 1 && VS.DURATIONS.find(d => d.label.toLowerCase() === parts[parts.length - 1]);
+    if (length) { ticks = length.ticks; parts.pop(); }
+    const level = parts.length > 1 && VS.RISKS.findIndex(r => r && r.name.toLowerCase() === parts[parts.length - 1]);
+    if (level > 0) { risk = level; parts.pop(); }
+    return { password: parts.join('-'), risk, ticks };
+  }
+  // The code the host hands over. The short form leaves the usual settings
+  // out, but a password that itself ends in a setting's word ("so-long")
+  // would read back wrong, so then both words are spelled out.
+  function matchCode(password, risk, ticks) {
+    const short = [password, risk !== CODE_RISK && riskWord(risk), ticks !== CODE_TICKS && lengthWord(ticks)].filter(Boolean).join('-');
+    const back = readCode(short);
+    if (back.password === password && back.risk === risk && back.ticks === ticks) return short;
+    return [password, riskWord(risk), lengthWord(ticks)].join('-');
   }
   const matchLength = ticks => VS.DURATIONS.find(d => d.ticks === ticks) || { label: 'Custom', ticks, note: `${ticks} ticks` };
 
@@ -4187,7 +4210,7 @@
     if (!password) {
       $('vsHostPass').value = rollPassword();
       renderVsLobby();
-      return toast('Pick a password first', 'One has been rolled for you. Give your opponent the whole code, then start again.', 'accent');
+      return toast('Pick a password first', 'One has been rolled for you. Start again and give your opponent the code.', 'accent');
     }
     $('vsHostPass').value = password;
     // Connected, the server holds the room and the settings and waits for an
@@ -4195,7 +4218,7 @@
     if (netOn()) return netSend({ t: 'host', password, risk: vs.risk, ticks: vs.ticks, name: myName() });
     // Offline the settings travel with the password, so the host is shown the
     // whole code to hand over before the clock starts, not after the bell.
-    vs.hosted = { offline: true, password, risk: vs.risk, ticks: vs.ticks, code: `${password}/${vs.risk}/${vs.ticks}` };
+    vs.hosted = { offline: true, password, risk: vs.risk, ticks: vs.ticks, code: matchCode(password, vs.risk, vs.ticks) };
     setVsStage('waiting');
   }
 
@@ -4209,25 +4232,14 @@
   function joinMatch() {
     const code = $('vsJoinPass').value.trim();
     if (!code) return toast('That code is empty', 'Type the one your opponent gave you.', 'neg');
-    // Until there is a server to hold the settings, they travel with the
-    // password: "copper-otter/3/300" is what the host's screen hands over.
-    // A bare password is refused rather than filled in from whatever this
-    // screen happens to be set to — that would quietly put the two of you in
-    // different markets, which is worse than not starting at all.
+    $('vsJoinNote').textContent = '';
+    // Online there is nothing to agree on: the host's room already knows the
+    // risk and the length, so the password is sent just as typed.
+    if (netOn()) return netSend({ t: 'join', password: cleanPassword(code), name: myName() });
+    // Until there is a server to hold the settings, they travel inside the
+    // code as words — see matchCode.
     const { password, risk, ticks } = readCode(code);
     if (!password) return toast('That code is empty', 'Type the one your opponent gave you.', 'neg');
-    // Online there is nothing to agree on: the host's room already knows the
-    // risk and the length, so a bare password is all it takes, and a whole
-    // code pasted in works just as well.
-    if (netOn()) {
-      $('vsJoinNote').textContent = '';
-      return netSend({ t: 'join', password, name: myName() });
-    }
-    if (risk == null) {
-      $('vsJoinNote').textContent = 'That is not a whole match code. Ask your opponent for all three parts, like copper-otter/3/300 \u2014 or, if they opened a room on a match server, connect to the same server above and the password alone will do.';
-      return;
-    }
-    $('vsJoinNote').textContent = '';
     startMatch({ seed: passwordSeed(password, risk, ticks), risk, ticks, password, mode: 'password' });
   }
 
@@ -4251,7 +4263,7 @@
     if (!h) return setVsStage('lobby');
     $('vsWaitCode').textContent = h.offline ? h.code : h.password;
     $('vsWaitNote').textContent = h.offline
-      ? 'Give your opponent this whole code \u2014 password, risk and length. With no match server you each play the same market apart, so start whenever you are ready and compare closing numbers.'
+      ? 'Give your opponent this code, exactly as it is. With no match server you each play the same market apart, so start whenever you are ready and compare closing numbers.'
       : 'Give them this password. The risk and the length are held by the server, so it is all they need.';
     $('vsWaitDots').hidden = !!h.offline;
     $('vsWaitHead').textContent = h.offline ? 'Hand over the code' : 'Waiting for an opponent';
@@ -4283,16 +4295,16 @@
 
     const live = netOn();
     $('vsHostBtn').textContent = live ? 'Open the room' : 'Start the match';
-    $('vsJoinPass').placeholder = live ? 'their password' : 'their whole code';
+    $('vsJoinPass').placeholder = live ? 'their password' : 'their match code';
     $('vsJoinCardNote').textContent = live
       ? 'Type the password your opponent is hosting on. The risk and the length come from their room, so there is nothing else to agree on.'
-      : 'Type the whole code your opponent gave you \u2014 password, risk and length. Connect to a match server above and the password alone will do.';
+      : 'Type the match code your opponent gave you, word for word. The risk and the length are in it.';
 
     const pass = cleanPassword($('vsHostPass').value);
     $('vsFootnote').textContent = live
       ? (pass ? `Your opponent only needs the password: ${pass}` : 'Pick a password and open the room.')
       : pass
-        ? `No server, so you play the same market apart. Give your opponent the whole code: ${pass}/${vs.risk}/${vs.ticks}`
+        ? `No server, so you play the same market apart. Give your opponent the code: ${matchCode(pass, vs.risk, vs.ticks)}`
         : 'Without a match server you can still race the same market apart, on a shared code, and compare the closing numbers afterwards.';
   }
 
@@ -4469,7 +4481,7 @@
       ['Best you were worth', fmt(best)],
     ];
     if (m.me.divs > 0) rows.splice(5, 0, ['Dividends received', fmt(m.me.divs)]);
-    if (m.password) rows.push(['Match code', m.net ? m.password : `${m.password}/${m.risk}/${m.ticks}`]);
+    if (m.password) rows.push(['Match code', m.net ? m.password : matchCode(m.password, m.risk, m.ticks)]);
     if (m.net && m.seed != null) rows.push(['Seed', String(m.seed)]);
     $('vsResStats').innerHTML = rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
     renderRematch();
@@ -4900,7 +4912,7 @@
     if (!vs.hosted) return;
     try {
       await navigator.clipboard.writeText(vs.hosted.offline ? vs.hosted.code : vs.hosted.password);
-      toast('Copied', vs.hosted.offline ? 'The whole code is on your clipboard.' : 'The password is on your clipboard.');
+      toast('Copied', vs.hosted.offline ? 'The code is on your clipboard.' : 'The password is on your clipboard.');
     } catch {
       toast('Could not copy', 'Read it out instead.', 'neg');
     }
