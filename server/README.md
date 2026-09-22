@@ -29,6 +29,7 @@ its own. Desktop builds take theirs from `SIMSTOCK_SERVER` at build time; see
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `PORT` | `8080` | Port to listen on. `0` picks a free one, which is how the tests run. |
+| `GRACE_SECONDS` | `45` | How long a player whose socket drops has to reconnect before the match is forfeited. |
 | `ALLOWED_ORIGINS` | *(unset)* | Comma-separated list of origins allowed to connect. Unset accepts anyone, which is what you want while testing. Set it to your own site before you point real players at it. |
 
 `GET /health` returns room and match counts, which is what the deploy health
@@ -84,30 +85,62 @@ cannot open a plain `ws://` socket.
   |                         |<---------- join {password} --|
   |                         |  generates the whole path    |
   |                         |  from a fresh seed           |
-  |<-- start {stock, ------ | ------- start {stock, ... }->|   only the opening price
-  |          price}         |                              |
+  |<-- start {stock, ------ | ------- start {stock, ... }->|   only the opening price,
+  |          price, token}  |                              |   and a ticket each
   |<-- tick {prices, news,  | -------------- tick {...} -->|   once a second
   |          you, them} ----|                              |
   |--- order {side, qty} -->|  filled at the server's tick |
   |<-- filled {cash, ------ |                              |
   |            shares}      |                              |
+  |   ( socket drops )      |  the place is held, the      |
+  |                         |  clock is not                |
+  |                         | ----- opponent_gone {secs} ->|
+  |--- resume {token} ----->|                              |
+  |<-- resumed {prices, --- | ----- opponent_back {name} ->|   everything missed, at once
+  |            you, them}   |                              |
   |<-- over {outcome, ----- | -------------- over {...} -->|   + the full path and seed
-  |          seed, prices}  |                              |
+  |          seed, prices,  |                              |
+  |          rematch}       |                              |
+  |--- rematch ------------>|  an offer until both ask     |
+  |                         | ------ rematch_offer {name}->|
+  |                         |<------------------- rematch -|
+  |<-- start {...} -------- | ------------- start {...} -->|   a new seed, same terms
 ```
 
-The important line is the third one from the bottom. Prices are revealed one
+The important line is the `tick` one. Prices are revealed one
 tick at a time, so neither player has the end of the match sitting in their
 own browser. The full path only goes out once the result is settled, so a
 match can be checked or replayed afterwards.
 
 Orders are filled at whatever tick the *server's* clock is on. A client that
 thinks it is somewhere else does not get to trade on that, and cash and
-shares only ever change because the server said so.
+shares only ever change because the server said so. Dividends are the same:
+the server pays them, on the shares a player is holding at that tick, and the
+new cash arrives with the next `tick` message.
+
+A dropped socket is not a walkout. The player is a row in a room rather than a
+connection, so when one drops the room holds their money, their shares and
+their place for `GRACE_SECONDS`, tells the other player who is missing and for
+how long, and keeps the clock running — an absent player's position is frozen
+where they left it, and they cannot trade while they are away. The ticket
+handed out in the `start` message is what claims the place back: it goes to
+that one player over their own socket, and possession of it is the proof. Come
+back in time and everything missed arrives in one `resumed` message; miss the
+window and it forfeits after all. Leaving on purpose still forfeits at once,
+because that is a decision and not an accident.
+
+A finished room stays up for two minutes with both players still in it, so a
+rematch costs nobody a trip back to the lobby and a new password. It takes
+both of them — one asking is an offer — and it plays on a fresh seed with the
+same risk and length, from $1,000 each. The room closes the moment either
+player leaves, disconnects, or the two minutes run out, and the other one is
+told (`rematch_off`) rather than left waiting.
 
 ## What it does not do yet
 
-- **No reconnection.** A dropped socket forfeits the match. Rejoining a match
-  in progress would mean keying players by a token rather than a connection.
+- **No reconnection across servers.** A ticket is held in one server's memory,
+  so a restart or a second instance loses every match in progress. Surviving
+  that would mean putting rooms somewhere both instances can see.
 - **No accounts, no ranking, no history.** Rooms live in memory and a finished
   match is forgotten.
 - **No matchmaking queue.** You need a password from someone; there is no

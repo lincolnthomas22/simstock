@@ -68,6 +68,24 @@ const { launch, results, openGame, GAME } = require('./helpers.js');
     r.check('an order fills', (await page.textContent('#vsPShares')) === qty.toLocaleString('en-US'),
       `asked ${qty}, holds ${await page.textContent('#vsPShares')}`);
 
+    // ---- the match stock is a company, the way the floor's stocks are ----
+    const stats = await page.textContent('#vsStatGrid');
+    for (const label of ['Market cap', 'P/E ratio', 'Earnings per share', 'Dividend yield', 'Beta']) {
+      r.check(`the match stock shows its ${label.toLowerCase()}`, stats.includes(label), stats.slice(0, 120));
+    }
+    r.check('the P/E is a number, not a dash',
+      /P\/E ratio\s*[\d.]+/.test((await page.textContent('#vsStatGrid')).replace(/\s+/g, ' ')),
+      (await page.textContent('#vsStatGrid')).replace(/\s+/g, ' ').slice(0, 200));
+    r.check('the calendar says when the next report is due',
+      !!(await page.textContent('#vsCalEarnings')).trim(), await page.textContent('#vsCalEarnings'));
+    r.check('the chart opens on the price, as the trading floor does',
+      (await page.getAttribute('#vsChartSeg button[data-chart=\"price\"]', 'class') || '').includes('active'));
+    await page.click('#vsChartSeg button[data-chart="race"]');
+    await page.waitForTimeout(250);
+    r.check('and the race is still there to switch to',
+      (await page.getAttribute('#vsChartSeg button[data-chart=\"race\"]', 'class') || '').includes('active'));
+    await page.click('#vsChartSeg button[data-chart="price"]');
+
     // ---- the career game is untouched by any of it ----
     r.check('the career cash is untouched', (await page.textContent('#topCash')) === '$1,000.00');
     for (const screen of ['home', 'portfolio', 'achievements', 'tutorial', 'versus']) {
@@ -89,15 +107,18 @@ const { launch, results, openGame, GAME } = require('./helpers.js');
       (await page.textContent('#vsFootnote')).includes('copper-otter/2/120'), await page.textContent('#vsFootnote'));
     await page.click('#vsHostBtn');
     await page.waitForTimeout(600);
-    const hostStock = await page.textContent('#vsName');
+    const hostStock = await page.textContent('#vsStockName');
+    // Named, not blank: the heading and the lobby's name box once shared an
+    // id, so the company's name went into an input nobody could see.
+    r.check('the match names the company it is on', !!hostStock.trim(), `"${hostStock}"`);
 
     await page.click('#vsQuitBtn');
     await page.waitForTimeout(300);
     await page.fill('#vsJoinPass', 'copper-otter/2/120');
     await page.click('#vsJoinBtn');
     await page.waitForTimeout(600);
-    r.check('the same code gives the same market', (await page.textContent('#vsName')) === hostStock,
-      `${hostStock} vs ${await page.textContent('#vsName')}`);
+    r.check('the same code gives the same market', (await page.textContent('#vsStockName')) === hostStock,
+      `${hostStock} vs ${await page.textContent('#vsStockName')}`);
 
     await page.click('#vsQuitBtn');
     await page.fill('#vsJoinPass', 'just-a-word');

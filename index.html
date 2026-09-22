@@ -868,6 +868,7 @@
 
     <!-- ---------- the match itself ---------- -->
     <div class="versus-stage versus-live" id="vsLive" hidden>
+      <p class="versus-net-note" id="vsNetNote" hidden></p>
       <section class="versus-board">
         <div class="versus-side versus-side-me">
           <span class="versus-side-name" id="vsMeName">You</span>
@@ -891,17 +892,50 @@
           <div class="stock-head">
             <div class="stock-title">
               <div class="stock-meta" id="vsMeta"></div>
-              <h2 class="stock-name" id="vsName"></h2>
+              <h2 class="stock-name" id="vsStockName"></h2>
             </div>
             <div class="price-row versus-price-row">
               <span class="price-big" id="vsPrice"></span>
               <span class="change" id="vsChange"></span>
             </div>
           </div>
-          <div class="chart-wrap versus-chart-wrap"><canvas id="vsChart"></canvas></div>
-          <p class="versus-about" id="vsAbout"></p>
-          <h3 class="column-head h-claret">Headlines</h3>
-          <ol class="news-list" id="vsNews"></ol>
+          <div class="seg seg-full versus-chart-seg" id="vsChartSeg" role="group" aria-label="What the chart shows">
+            <button data-chart="price">The price</button>
+            <button data-chart="race">The race</button>
+          </div>
+          <div class="chart-wrap versus-chart-wrap">
+            <canvas id="vsChart"></canvas>
+            <div class="chart-tip" id="vsChartTip" hidden></div>
+          </div>
+
+          <div class="range52">
+            <div class="range52-head">
+              <span class="range52-label" id="vsR52Label">Range this match</span>
+              <span class="range52-note" id="vsR52Note"></span>
+            </div>
+            <div class="range52-bar"><span class="range52-dot" id="vsR52Dot"></span></div>
+            <div class="range52-ends">
+              <span>Low <b id="vsR52Lo"></b></span>
+              <span>High <b id="vsR52Hi"></b></span>
+            </div>
+          </div>
+
+          <dl class="stat-grid" id="vsStatGrid"></dl>
+
+          <div class="detail-lower">
+            <section class="about">
+              <h3 class="column-head h-blue">About the company</h3>
+              <p id="vsAbout"></p>
+              <dl class="calendar">
+                <div id="vsCalEarningsRow"><dt>Next earnings report</dt><dd id="vsCalEarnings"></dd></div>
+                <div id="vsCalDividendRow"><dt>Next dividend</dt><dd id="vsCalDividend"></dd></div>
+              </dl>
+            </section>
+            <section>
+              <h3 class="column-head h-claret">Headlines</h3>
+              <ol class="news-list" id="vsNews"></ol>
+            </section>
+          </div>
         </section>
 
         <aside class="versus-order">
@@ -935,6 +969,7 @@
               <div><span>Shares owned</span><span class="v" id="vsPShares"></span></div>
               <div><span>Average cost</span><span class="v" id="vsPAvg"></span></div>
               <div><span>Shares worth</span><span class="v" id="vsPValue"></span></div>
+              <div id="vsPDivsRow"><span>Dividends received</span><span class="v" id="vsPDivs"></span></div>
               <div class="total"><span>Net worth</span><span class="v" id="vsPWorth"></span></div>
             </div>
           </section>
@@ -965,6 +1000,7 @@
         <button class="btn btn-green" id="vsAgainBtn">Play it again</button>
         <button class="btn" id="vsLobbyBtn">Back to the lobby</button>
       </div>
+      <p class="versus-note versus-again-note" id="vsAgainNote"></p>
     </div>
 
   </main>
