@@ -53,6 +53,17 @@ jobs:
           git diff --exit-code -- desktop/achievements.json desktop/steam-achievements.tsv \
             || { echo "::error::Run 'node tools/steam-achievements.js' and commit the result"; exit 1; }
 
+      - name: The page asks for the files it actually has
+        # Every asset index.html pulls in carries a hash of its own contents,
+        # so a player who already has the game loads the new copy instead of
+        # the one in their cache. Change game.js or style.css without running
+        # the stamper and this catches it, rather than a player getting the
+        # new page around the old code.
+        run: |
+          node tools/stamp-assets.js
+          git diff --exit-code -- index.html \
+            || { echo "::error::Run 'node tools/stamp-assets.js' and commit the result"; exit 1; }
+
       - name: The achievement map is valid JSON
         # It is require()d by the Steam bridge at startup, so a stray comment
         # in it would break the desktop build and nothing else would notice.
