@@ -79,6 +79,21 @@ jobs:
           # identity and fail the job over it.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
+      # The Linux build does not start on a Steam Deck unless Steam launches it
+      # through this script — see desktop/README.md. It is easy to drop out of
+      # the build without anything else noticing, so the build says so here
+      # rather than the Deck saying so later.
+      - name: The Deck launcher shipped
+        if: matrix.name == 'Linux'
+        shell: bash
+        run: |
+          launcher="desktop/${{ matrix.out }}/launch-linux.sh"
+          probe="desktop/${{ matrix.out }}/resources/app.asar.unpacked/sandbox.js"
+          [ -f "$launcher" ] || { echo "::error::$launcher is missing — the Linux build will not start on a Deck"; exit 1; }
+          [ -x "$launcher" ] || { echo "::error::$launcher is not executable"; exit 1; }
+          [ -f "$probe" ]    || { echo "::error::$probe is missing — the launcher cannot probe the sandbox"; exit 1; }
+          echo "launcher and probe are both in the build"
+
       - name: What came out
         shell: bash
         run: |

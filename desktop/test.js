@@ -7,6 +7,7 @@
 'use strict';
 
 const { _electron: electron } = require('playwright');
+const sandbox = require('./sandbox.js');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -20,7 +21,99 @@ const launch = userData => electron.launch({
   env: { ...process.env, SIMSTOCK_SERVER: 'ws://127.0.0.1:8090' },
 });
 
+// ---------------------------------------------------------------
+// The sandbox decision
+// A Steam Deck is described here rather than borrowed: every file the decision
+// reads is injected, so the container that breaks the game is a few lines.
+// ---------------------------------------------------------------
+const nothing = { read: () => null, stat: () => null };
+const present = map => ({
+  read: f => (f in map ? map[f] : null),
+  stat: f => (f in map ? map[f] : null),
+});
+const NS_MAX = '/proc/sys/user/max_user_namespaces';
+const NS_CLONE = '/proc/sys/kernel/unprivileged_userns_clone';
+const HELPER = '/game/chrome-sandbox';
+const setuidRoot = { uid: 0, mode: 0o104755 };
+const stripped = { uid: 0, mode: 0o100755 };     // root's, but the setuid bit is gone
+const ordinary = { uid: 1000, mode: 0o100755 };
+const onLinux = extra => ({ platform: 'linux', argv: [], env: {}, uid: 1000, execPath: '/game/SimStock', ...extra });
+
+function sandboxTests() {
+  const roomy = sandbox.decide(onLinux(present({ [NS_MAX]: '15000\n' })));
+  check('a kernel that hands out user namespaces keeps the sandbox', roomy.sandbox, roomy.reason);
+
+  // The Deck: Steam's container caps namespaces and strips the setuid bit, and
+  // until now that was a game that exited before it drew a window.
+  const deck = sandbox.decide(onLinux(present({ [NS_MAX]: '0\n', [HELPER]: stripped })));
+  check('a Steam Deck container starts the game instead of failing to', !deck.sandbox, deck.reason);
+  check('and the log says which half of the sandbox was missing',
+    /capped at zero/.test(deck.reason) && /not setuid/.test(deck.reason), deck.reason);
+
+  // Same container, a helper that is set up properly: no reason to give up.
+  const helper = sandbox.decide(onLinux(present({ [NS_MAX]: '0\n', [HELPER]: setuidRoot })));
+  check('a working setuid helper is enough on its own', helper.sandbox, helper.reason);
+
+  const rootless = sandbox.decide(onLinux(present({ [NS_MAX]: '0\n', [HELPER]: { uid: 1000, mode: 0o104755 } })));
+  check('a setuid helper root does not own is not trusted', !rootless.sandbox, rootless.reason);
+
+  // Chromium treats a sandbox under root as fatal, so this one is not a
+  // preference — it is the difference between a window and an exit code.
+  const asRoot = sandbox.decide(onLinux({ ...present({ [NS_MAX]: '15000\n' }), uid: 0 }));
+  check('running as root stands the sandbox down rather than dying', !asRoot.sandbox, asRoot.reason);
+
+  const older = sandbox.decide(onLinux(present({ [NS_CLONE]: '1' })));
+  check('an older kernel’s own namespace switch is read too', older.sandbox, older.reason);
+
+  const off = sandbox.decide(onLinux(present({ [NS_CLONE]: '0', [NS_MAX]: '15000\n', [HELPER]: ordinary })));
+  check('namespaces switched off outrank a generous cap', !off.sandbox, off.reason);
+
+  // "Cannot tell" is the dangerous answer, and it is answered in the player's
+  // favour: a sandbox we gave up on beats a game that will not open.
+  const blind = sandbox.decide(onLinux(nothing));
+  check('a machine that tells us nothing still starts the game', !blind.sandbox, blind.reason);
+
+  const win = sandbox.decide({ platform: 'win32', argv: [], env: {}, ...nothing });
+  const mac = sandbox.decide({ platform: 'darwin', argv: [], env: {}, ...nothing });
+  check('Windows and macOS are left sandboxed', win.sandbox && mac.sandbox, `${win.reason} / ${mac.reason}`);
+
+  const asked = sandbox.decide(onLinux({ ...present({ [NS_MAX]: '15000\n' }), argv: ['--no-sandbox'] }));
+  check('a launch option still wins', !asked.sandbox, asked.reason);
+}
+
+// The decision is only worth anything if it reaches a built game, and the way
+// it gets there is easy to break silently: sandbox.js has to stay inside the
+// archive for main.js AND exist as a real file for the launcher to run, which
+// is what asarUnpack is for. extraFiles instead of asarUnpack ships a build
+// that crashes on start, and nothing else here would notice.
+function packagingTests() {
+  const build = require('./package.json').build;
+  const unpack = build.linux.asarUnpack || [];
+  check('the probe is unpacked beside the binary for the launcher', unpack.includes('sandbox.js'), JSON.stringify(unpack));
+  check('and is still bundled for the app itself to require', build.files.includes('sandbox.js'), JSON.stringify(build.files));
+
+  // It has to land at the root of the build, not in a build/ subdirectory, or
+  // the launcher will not find the binary it is meant to be standing beside.
+  const extra = build.linux.extraFiles || [];
+  const shipped = extra.some(e => e && e.to === 'launch-linux.sh');
+  check('the Linux launcher is shipped beside the binary', shipped, JSON.stringify(extra));
+
+  const launcher = path.join(__dirname, 'build', 'launch-linux.sh');
+  check('the launcher exists', fs.existsSync(launcher), launcher);
+  if (fs.existsSync(launcher)) {
+    check('the launcher is executable, because Steam runs it as one',
+      !!(fs.statSync(launcher).mode & 0o111), (fs.statSync(launcher).mode & 0o777).toString(8));
+    const text = fs.readFileSync(launcher, 'utf8');
+    check('the launcher looks for the probe where asarUnpack puts it',
+      text.includes('resources/app.asar.unpacked/sandbox.js'));
+    check('the launcher hands the game its own arguments', text.includes('"$@"'));
+  }
+}
+
 (async () => {
+  sandboxTests();
+  packagingTests();
+
   if (!fs.existsSync(path.join(__dirname, 'app', 'index.html'))) {
     throw new Error('desktop/app is missing — run `npm run sync` first');
   }

@@ -59,7 +59,7 @@ For the desktop version, `cd desktop && npm install && npm start`. See
 - `sim.js` — the 1v1 match simulator: seeded, self-contained and DOM-free, so the browser and the match server generate the identical market. It runs the same model the career game does — a market index, profits, fair value, earnings and dividends — on a one-stock board
 - `fonts/` — the game's fonts, kept locally so it runs with no internet (regenerate with `node tools/fetch-fonts.js`)
 - `server/` — the match server: matchmaking, the clock and the referee for live 1v1 play. It has its own README and its own tests, and the game works without it
-- `desktop/` — the Electron shell that makes it a desktop game, for Steam. Its README covers the build and the Steam side
+- `desktop/` — the Electron shell that makes it a desktop game, for Steam. Its README covers the build, the Steam side, and why the Linux build is started through a launcher script
 - `tests/` — browser tests: the game on its own, and two browsers playing each other through a real match server
 - `tools/` — small generators: the font bundle and the Steam achievement mapping, both read from the game rather than kept by hand
 - `.github/workflows/` — CI on every push, and the three-platform desktop build
@@ -78,7 +78,7 @@ Four suites, all run by CI on every push. Each can be run on its own:
 ```sh
 cd server  && npm ci && npm test   # 23 — the match protocol, against a real server
 cd tests   && npm ci && npm test   # 41 — the game in a browser, and two browsers playing each other
-cd desktop && npm ci && npm test   # 15 — the desktop shell, as a real app
+cd desktop && npm ci && npm test   # 33 — the desktop shell, as a real app
 node tools/steam-achievements.js   # regenerates the Steam mapping; CI fails if it differs
 ```
 

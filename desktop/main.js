@@ -14,6 +14,7 @@ const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require('electron')
 const fs = require('fs');
 const path = require('path');
 const steam = require('./steam.js');
+const sandbox = require('./sandbox.js');
 
 // Where the online lobby points when a player has not set an address. It is
 // baked in at sync time from SIMSTOCK_SERVER — see sync-game.js — because a
@@ -31,6 +32,11 @@ const DEFAULT_SERVER = defaultServer();
 
 const isDev = !app.isPackaged;
 const SAVE_NAME = 'simstock-save.json';
+
+// Say which way the sandbox went. The decision itself belongs to the launcher
+// — by the time this file runs, Chromium has already built its zygote and a
+// switch appended here would do nothing. See sandbox.js.
+sandbox.report(app);
 
 // Steam has to be initialised before the app is ready, and it must never stop
 // the game starting.
@@ -95,7 +101,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: true,   // stood down at startup where the OS cannot honour it — see sandbox.js
       spellcheck: false,
     },
   });
