@@ -56,10 +56,14 @@
     return el.offsetParent !== null || getComputedStyle(el).position === 'fixed';
   }
 
+  function modalOpen() {
+    const modal = document.getElementById('modalRoot');
+    return !!(modal && modal.firstElementChild);
+  }
+
   // A modal keeps the pad to itself, exactly as it already keeps Tab.
   function scope() {
-    const modal = document.getElementById('modalRoot');
-    return modal && modal.firstElementChild ? modal : document.body;
+    return modalOpen() ? document.getElementById('modalRoot') : document.body;
   }
 
   const stops = () => Array.from(scope().querySelectorAll(FOCUSABLE)).filter(reachable);
@@ -148,8 +152,7 @@
   }
 
   function back() {
-    const modal = document.getElementById('modalRoot');
-    if (modal && modal.firstElementChild) { key('Escape'); return true; }
+    if (modalOpen()) { key('Escape'); return true; }
     const home = document.querySelector('.task-switch [data-screen="home"]');
     if (home && reachable(home) && !home.hasAttribute('aria-current')) { home.click(); return true; }
     return false;
@@ -158,6 +161,10 @@
   // The shoulder buttons page through the same tabs the mouse clicks, which is
   // what makes the whole game reachable without a spatial route to every screen.
   function tab(step) {
+    // Not while something is open. A modal that let the shoulders move the
+    // screen behind it would close onto a room the player never asked for,
+    // and the keyboard already refuses to pause from inside one.
+    if (modalOpen()) return false;
     const tabs = Array.from(document.querySelectorAll('.task-switch [data-screen]')).filter(reachable);
     if (tabs.length < 2) return false;
     const at = tabs.findIndex(b => b.hasAttribute('aria-current'));
@@ -229,6 +236,67 @@
         press(code);
       }
     }
+
+    drawHints();
+  }
+
+  // ---------------------------------------------------------------
+  // Saying which button does what
+  //
+  // Deck Verified asks a game to tell the player what the pad does, and a
+  // player who is not told presses B to find out. The bar lists only what
+  // would actually do something from where they are standing, so it is never
+  // offering a button that does nothing.
+  //
+  // The glyphs are drawn in the game's own ink rather than in Xbox's green A
+  // and red B. This is a game about a market, where green and red already mean
+  // a gain and a loss, and a green A sitting above a Buy button reads as an
+  // instruction rather than as a label.
+  // ---------------------------------------------------------------
+  let bar = null;
+  let barHtml = '';
+
+  const glyph = (kind, label) => `<b class="pad-glyph pad-glyph-${kind}">${label}</b>`;
+
+  function hints() {
+    const inModal = modalOpen();
+    const el = document.activeElement;
+    const on = el && el !== document.body && reachable(el);
+    // A number field is the one thing A leaves alone, so it is not offered.
+    const typing = on && el.tagName === 'INPUT' && el.type === 'number';
+    const out = [];
+
+    if (on && !typing) out.push([glyph('face', 'A'), inModal ? 'Press' : 'Select']);
+
+    if (inModal) {
+      out.push([glyph('face', 'B'), 'Close']);
+    } else {
+      if (!document.querySelector('.task-switch [data-screen="home"][aria-current]')) {
+        out.push([glyph('face', 'B'), 'Front page']);
+      }
+      out.push([glyph('bumper', 'LB') + glyph('bumper', 'RB'), 'Screens']);
+      const clock = document.getElementById('clockText');
+      out.push([glyph('menu', '☰'), clock && clock.classList.contains('paused') ? 'Play' : 'Pause']);
+    }
+    return out;
+  }
+
+  // Rebuilt on every frame but written only when it changes, which is rarely.
+  function drawHints() {
+    if (!usingPad) return;
+    const html = hints().map(([g, label]) => `<span class="pad-hint">${g}<span>${label}</span></span>`).join('');
+    if (html === barHtml) return;
+    barHtml = html;
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'pad-hints';
+      bar.id = 'padHints';
+      // A screen reader already reads each button; this is the same thing
+      // again, in a form that only means anything to someone holding a pad.
+      bar.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(bar);
+    }
+    bar.innerHTML = html;
   }
 
   // Focus is invisible until there is a reason to show it. Once a pad is used
@@ -242,6 +310,7 @@
       const first = stops()[0];
       if (first) focus(first);
     }
+    drawHints();
   }
 
   function sleep() {
@@ -273,6 +342,7 @@
   // For the tests, and for anyone who wants to know what it decided.
   window.simstockPad = {
     poll,
+    hints,
     pick,
     stops,
     press,

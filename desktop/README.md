@@ -194,8 +194,20 @@ listens for, so there is one pause and one Escape rather than two of each.
 | LB / RB | previous / next tab |
 | Start | stop and start the market, as the space bar does |
 
+A modal takes the pad entirely: the shoulders stop changing the screen behind
+it, the way the space bar already refuses to pause from inside one.
+
 The focus ring appears the moment a pad is used and goes away when a mouse
-turns up, because with a pad it is the only thing saying where you are.
+turns up, because with a pad it is the only thing saying where you are. A bar
+along the bottom says what each button does, listing only the ones that would
+do something from where the player is standing — inside a modal it drops the
+shoulders, because a modal ignores them, and it never offers A on the quantity
+field, because A leaves that alone.
+
+The glyphs are drawn in the game's own ink rather than in Xbox's green A and
+red B. This is a game about a market, where green and red already mean a gain
+and a loss, and a green A sitting above a Buy button reads as an instruction
+rather than as a label.
 
 The tests drive it with a fake pad in a real page, stepping the module a frame
 at a time: the whole opening tutorial is completed with the pad alone, and a
@@ -210,16 +222,14 @@ this way at all.
   need a keyboard. Steam's on-screen keyboard may cover this on a Deck; it has
   not been tested. Nothing else in the game needs typing — the quantity field
   has −, + and Max beside it, and the pad deliberately leaves it alone.
-- **No button glyphs on screen.** Deck Verified wants the game to say which
-  button does what. Nothing draws an A or a B anywhere.
 - **No Steam Input.** This reads the browser's Gamepad API, not Steam's, so
   there is no official controller layout to ship and no rebinding.
 - **The charts are hover-only.** Reading a price off the chart wants a mouse.
 
 ## What is not done
 
-- **Controller support is partial.** A pad plays the game; text entry, button
-  glyphs and Steam Input are still missing. See above.
+- **Controller support is partial.** A pad plays the game and the screen says
+  what its buttons do; text entry and Steam Input are still missing. See above.
 - **No Steam Cloud conflict handling.** Two machines playing offline and then
   syncing will have Steam pick one save; the loser is gone.
 - **No rich presence, leaderboards or Steam multiplayer.** 1v1 goes through

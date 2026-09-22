@@ -1664,3 +1664,55 @@ body.using-pad button:focus,
 body.using-pad .seg button:focus {
   background: var(--mustard-soft);
 }
+
+/* ---------------------------------------------------------------
+   What the pad's buttons do
+   A bar along the bottom, listing only the buttons that would do something
+   from wherever the player is standing. Above the modal backdrop, because the
+   hints matter most inside a modal. See gamepad.js.
+   --------------------------------------------------------------- */
+.pad-hints { display: none; }
+
+/* Room for the bar, so the last thing on a screen is not sitting under it. */
+body.using-pad { padding-bottom: 38px; }
+
+body.using-pad .pad-hints {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 160;              /* over the modal backdrop, under a toast */
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  padding: 10px 16px 9px;
+  background: linear-gradient(to top, var(--bg) 55%, rgba(13, 12, 10, 0));
+  font-family: var(--sans, inherit);
+  font-size: 12px;
+  color: var(--text-2);
+  pointer-events: none;      /* it is a label, not a control */
+}
+
+.pad-hint { display: inline-flex; align-items: center; gap: 6px; }
+
+.pad-glyph {
+  display: inline-grid;
+  place-items: center;
+  height: 17px;
+  min-width: 17px;
+  padding: 0 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+  font-style: normal;
+  line-height: 1;
+}
+
+/* A and B are round, the way they are on the pad; the shoulders are not. */
+.pad-glyph-face { width: 17px; padding: 0; border-radius: 50%; }
+.pad-glyph-bumper { border-radius: 5px / 4px; }
+.pad-glyph + .pad-glyph { margin-left: 3px; }

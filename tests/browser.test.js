@@ -372,6 +372,64 @@ const { launch, results, openGame, GAME } = require('./helpers.js');
       stranded.total > 0 && stranded.missed.length === 0,
       `${stranded.missed.length} of ${stranded.total} stranded: ${stranded.missed.slice(0, 8).join(' | ')}`);
 
+    // ---- the bar that says what the buttons do ----
+    //
+    // Deck Verified wants the game to say which button does what, and a bar
+    // that offers a button doing nothing is worse than no bar.
+    const hintBar = () => page.evaluate(() => {
+      const el = document.getElementById('padHints');
+      if (!el) return null;
+      return Array.from(el.querySelectorAll('.pad-hint')).map(h => ({
+        glyphs: Array.from(h.querySelectorAll('.pad-glyph')).map(g => g.textContent),
+        label: h.querySelector('span').textContent,
+      }));
+    });
+    const labelled = list => (list || []).map(h => `${h.glyphs.join('/')}:${h.label}`).join(' ');
+
+    await page.evaluate(() => document.querySelector('.task-switch [data-screen="home"]').click());
+    await tap(DOWN);
+    await page.waitForTimeout(150);
+    const onScreen = await hintBar();
+    r.check('the hints say what the buttons do', (onScreen || []).length > 0, labelled(onScreen));
+    r.check('A is offered for pressing things', labelled(onScreen).includes('A:Select'), labelled(onScreen));
+    r.check('and the shoulders are offered for screens',
+      labelled(onScreen).includes('LB/RB:Screens'), labelled(onScreen));
+    r.check('the hints are hidden from a screen reader, which already reads the buttons',
+      await page.evaluate(() => document.getElementById('padHints').getAttribute('aria-hidden') === 'true'));
+
+    // Inside a modal the shoulders do nothing, so they are not offered.
+    await page.evaluate(() => document.getElementById('settingsBtn').click());
+    await page.waitForTimeout(250);
+    await page.evaluate(() => window.simstockPad.poll(performance.now()));
+    const inModal = await hintBar();
+    r.check('in a modal the hints change to match', labelled(inModal).includes('B:Close'), labelled(inModal));
+    r.check('and stop offering the shoulders, which a modal ignores',
+      !labelled(inModal).includes('Screens'), labelled(inModal));
+
+    // The shoulders really are ignored: they used to change the screen behind
+    // an open modal, so it closed onto a room nobody asked for.
+    const behind = await screenNow();
+    await tap(RB);
+    await page.waitForTimeout(150);
+    r.check('and a shoulder press cannot move the screen behind a modal',
+      (await screenNow()) === behind && (await modalOpen()), `${behind} -> ${await screenNow()}`);
+    await tap(B);
+    await page.waitForTimeout(200);
+
+    // Nothing to press means nothing offered.
+    await page.evaluate(() => document.querySelector('.task-switch [data-screen="trade"]').click());
+    await page.waitForTimeout(400);
+    const onTheField = await page.evaluate(() => {
+      const input = document.getElementById('qtyInput');
+      input.focus();
+      window.simstockPad.poll(performance.now());
+      return document.activeElement === input;
+    });
+    const onNumber = await hintBar();
+    r.check('a number field, which A leaves alone, is not offered an A',
+      onTheField && !labelled(onNumber).includes('A:'),
+      onTheField ? labelled(onNumber) : 'the field never took focus, so this proved nothing');
+
     // A mouse is still a mouse.
     await page.mouse.move(400, 400);
     await page.waitForTimeout(100);
