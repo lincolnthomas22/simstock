@@ -1281,7 +1281,14 @@
     return freshState();
   }
 
+  // Set when a save conflict has been settled by taking the other machine's
+  // game. The page is about to reload onto it, and anything this one writes on
+  // the way out — the tick, pagehide, visibilitychange — would land on top of
+  // the save that was just restored and undo the choice.
+  let savingStopped = false;
+
   function saveState() {
+    if (savingStopped) return;
     state.lastSeen = Date.now();
     const json = JSON.stringify(state);
     if (desktop) return void desktop.writeSave(json);
@@ -4905,12 +4912,76 @@
     }, 0);
   }
 
+  // Steam Cloud can hand back a save this machine did not write: two machines
+  // played offline and only one of them can be the save. The desktop shell
+  // keeps both and asks here, in the game's own terms, because "modified 3
+  // days ago" does not tell anyone which run is theirs. Whichever is not
+  // chosen is kept on disk either way — see desktop/save.js.
+  function askAboutSaveConflict() {
+    if (!desktop || !desktop.saveConflict) return;
+    let clash = null;
+    try { clash = desktop.saveConflict(); } catch (e) { return; }
+    if (!clash) return;
+
+    const when = at => (at ? new Date(at).toLocaleString() : 'at some point');
+    const card = (title, s, note) => (s ? `
+      <div class="save-choice">
+        <div class="modal-kicker">${title}</div>
+        <div class="save-choice-worth">${fmt(s.netWorth)}</div>
+        <div class="save-choice-lines">
+          <span>Year ${s.year} · Q${s.quarter} · Day ${s.day}</span>
+          <span>Level ${s.level}</span>
+          <span>Saved ${when(s.savedAt)}</span>
+        </div>
+      </div>` : `<div class="save-choice save-choice-gone"><div class="modal-kicker">${title}</div><p>${note}</p></div>`);
+
+    const vanished = clash.kind === 'vanished';
+    const modal = openModal(`
+      <h3>${vanished ? 'Your save is not where it was' : 'Two saves, one game'}</h3>
+      <p>${vanished
+        ? 'The game could not find its save file, but this machine has a copy of the last one it wrote. Nothing has been thrown away.'
+        : 'The save on this machine is not the one it last wrote — another machine has played since, and Steam has brought that game back. Both are kept; pick the one to carry on.'}</p>
+      <div class="save-choices">
+        ${card('From the cloud', clash.incoming, 'There is no save on this machine right now.')}
+        ${card('Last played here', clash.mine, 'Nothing was kept here.')}
+      </div>
+      <p class="fine-print">Whichever you do not pick stays on disk as a backup file next to your save, so this is not a decision you can lose a game to.</p>
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        ${clash.incoming ? '<button class="btn btn-ghost" data-act="incoming">Use the cloud one</button>' : ''}
+        ${clash.mine ? '<button class="btn btn-ink" data-act="mine">Use this machine\'s</button>' : ''}
+      </div>`);
+
+    const choose = which => {
+      // Stop this game writing anything more before the other one is put back:
+      // reloading fires pagehide, and that would save the game being replaced
+      // straight over its replacement.
+      if (which === 'mine') savingStopped = true;
+      let out = { ok: false, reload: false };
+      try { out = desktop.resolveSaveConflict(which); } catch (e) { /* fall through */ }
+      closeModal();
+      // The game is already running the cloud save, so keeping it needs
+      // nothing; taking the other one means starting again from it.
+      if (out && out.ok && out.reload) return void location.reload();
+      // Nothing was swapped, so this game carries on and must be able to save.
+      savingStopped = false;
+      if (!out || !out.ok) toast('That did not work', 'The save could not be switched. Both copies are still on disk.', 'loss');
+    };
+    const wire = (act, which) => {
+      const btn = modal.querySelector(`[data-act="${act}"]`);
+      if (btn) btn.onclick = () => choose(which);
+    };
+    wire('incoming', 'incoming');
+    wire('mine', 'mine');
+  }
+
   buildWatchlist();
   buildUpgrades();
   buildAchievements();
   scanAchievements(true); // quietly catch up an existing save; no toast spam for old progress
   showScreen('landing');
   booted = true;
+  askAboutSaveConflict();
   updateTip();
   checkOfflineEarnings();
   lastTickAt = Date.now();

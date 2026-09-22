@@ -11,10 +11,10 @@
 'use strict';
 
 const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require('electron');
-const fs = require('fs');
 const path = require('path');
 const steam = require('./steam.js');
 const sandbox = require('./sandbox.js');
+const save = require('./save.js');
 
 // Where the online lobby points when a player has not set an address. It is
 // baked in at sync time from SIMSTOCK_SERVER — see sync-game.js — because a
@@ -31,7 +31,6 @@ function defaultServer() {
 const DEFAULT_SERVER = defaultServer();
 
 const isDev = !app.isPackaged;
-const SAVE_NAME = 'simstock-save.json';
 
 // Say which way the sandbox went. The decision itself belongs to the launcher
 // — by the time this file runs, Chromium has already built its zygote and a
@@ -53,35 +52,12 @@ let win = null;
 // One file, written whole, in the place the operating system keeps this app's
 // data. That is the path to point Steam Cloud at — see the README.
 // ---------------------------------------------------------------
-const savePath = () => path.join(app.getPath('userData'), SAVE_NAME);
+const saveDir = () => app.getPath('userData');
 
-function readSave() {
-  try {
-    return fs.readFileSync(savePath(), 'utf8');
-  } catch (err) {
-    if (err.code !== 'ENOENT') console.error('[save] could not read:', err.message);
-    return null;
-  }
-}
-
-// Written to a neighbouring file and renamed over the real one, so a crash or
-// a power cut halfway through leaves the previous save intact rather than a
-// half-written one. A corrupted save is the one bug a player cannot forgive.
-function writeSave(json) {
-  if (typeof json !== 'string' || !json) return false;
-  const target = savePath();
-  const temp = `${target}.tmp`;
-  try {
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(temp, json, 'utf8');
-    fs.renameSync(temp, target);
-    return true;
-  } catch (err) {
-    console.error('[save] could not write:', err.message);
-    try { fs.unlinkSync(temp); } catch { /* nothing to clean up */ }
-    return false;
-  }
-}
+// Worked out once, before the game has had a chance to save over the evidence,
+// and held until the game asks. See save.js: this is how a run that only
+// exists on the other machine survives a Steam Cloud sync.
+let conflict = null;
 
 // ---------------------------------------------------------------
 // The window
@@ -147,8 +123,15 @@ function installShortcuts() {
 // All synchronous, because the game reads and writes its save the same way it
 // reads and writes localStorage: in a line, with no waiting.
 // ---------------------------------------------------------------
-ipcMain.on('save:read', e => { e.returnValue = readSave(); });
-ipcMain.on('save:write', (e, json) => { e.returnValue = writeSave(json); });
+ipcMain.on('save:read', e => { e.returnValue = save.read(saveDir()); });
+ipcMain.on('save:write', (e, json) => { e.returnValue = save.write(saveDir(), json); });
+// Summaries only. The save data itself stays in this process.
+ipcMain.on('save:conflict', e => { e.returnValue = save.forDisplay(conflict); });
+ipcMain.on('save:resolve', (e, which) => {
+  const out = save.resolve(saveDir(), which, conflict);
+  if (out.ok) conflict = null;      // asked and answered
+  e.returnValue = out;
+});
 ipcMain.on('app:version', e => { e.returnValue = app.getVersion(); });
 ipcMain.on('net:default-server', e => { e.returnValue = DEFAULT_SERVER; });
 ipcMain.on('steam:achievement', (e, id) => { if (typeof id === 'string') steam.unlock(id); });
@@ -161,6 +144,16 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(() => {
+  // Before the window, so nothing has saved yet: the moment the game writes,
+  // the save on disk becomes this machine's again and the evidence is gone.
+  conflict = save.inspect(saveDir());
+  if (conflict) {
+    // Copy the at-risk side to disk now: the game will be saving over the
+    // mirror within seconds of starting, whether or not anyone has answered.
+    const kept = save.preserve(saveDir(), conflict);
+    console.log(`[save] ${conflict.kind}: the save on disk is not the one this machine wrote`
+      + (kept ? `; this machine's copy kept at ${kept}` : ''));
+  }
   installShortcuts();
   createWindow();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });

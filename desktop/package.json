@@ -39,6 +39,7 @@
       "preload.js",
       "steam.js",
       "sandbox.js",
+      "save.js",
       "achievements.json",
       "app/**/*"
     ],
