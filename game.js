@@ -3513,6 +3513,18 @@
   // The settings are baked into the seed: change the risk or the length and it
   // is a different match, even under the same password.
   const passwordSeed = (password, risk, ticks) => VS.hashSeed(`${password}|${risk}|${ticks}`);
+  // Whatever the joiner typed, read back into a password and, if they are
+  // there, the settings: "copper-otter/3/300", "Copper Otter 3 300" and
+  // "copper-otter-3-300" are all the same code, and "copper otter" on its own
+  // is one password, not the first word of one.
+  function readCode(text) {
+    const whole = cleanPassword(text);
+    const m = whole.match(/^(.+?)-(\d)-(\d+)$/);
+    if (m && VS.RISKS[Number(m[2])] && VS.DURATIONS.some(d => d.ticks === Number(m[3]))) {
+      return { password: m[1], risk: Number(m[2]), ticks: Number(m[3]) };
+    }
+    return { password: whole, risk: null, ticks: null };
+  }
   const matchLength = ticks => VS.DURATIONS.find(d => d.ticks === ticks) || { label: 'Custom', ticks, note: `${ticks} ticks` };
 
   // ---------- transports ----------
@@ -4068,7 +4080,7 @@
     keepTicket(null);
     // Walking out of an online match forfeits it, so the server hears about it
     // before the screen changes.
-    if ((vs.match && vs.match.net) || vs.hosted) netSend({ t: 'leave' });
+    if ((vs.match && vs.match.net) || (vs.hosted && !vs.hosted.offline)) netSend({ t: 'leave' });
     vs.match = null;
     vs.hosted = null;
     if (toLobby) setVsStage('lobby');
@@ -4181,7 +4193,17 @@
     // Connected, the server holds the room and the settings and waits for an
     // opponent. Not connected, the password itself is the market.
     if (netOn()) return netSend({ t: 'host', password, risk: vs.risk, ticks: vs.ticks, name: myName() });
-    startMatch({ seed: passwordSeed(password, vs.risk, vs.ticks), risk: vs.risk, ticks: vs.ticks, password, mode: 'password' });
+    // Offline the settings travel with the password, so the host is shown the
+    // whole code to hand over before the clock starts, not after the bell.
+    vs.hosted = { offline: true, password, risk: vs.risk, ticks: vs.ticks, code: `${password}/${vs.risk}/${vs.ticks}` };
+    setVsStage('waiting');
+  }
+
+  function startHostedMatch() {
+    const h = vs.hosted;
+    if (!h || !h.offline) return;
+    vs.hosted = null;
+    startMatch({ seed: passwordSeed(h.password, h.risk, h.ticks), risk: h.risk, ticks: h.ticks, password: h.password, mode: 'password' });
   }
 
   function joinMatch() {
@@ -4192,21 +4214,21 @@
     // A bare password is refused rather than filled in from whatever this
     // screen happens to be set to — that would quietly put the two of you in
     // different markets, which is worse than not starting at all.
-    const bits = code.split(/[\s/|]+/).filter(Boolean);
+    const { password, risk, ticks } = readCode(code);
+    if (!password) return toast('That code is empty', 'Type the one your opponent gave you.', 'neg');
     // Online there is nothing to agree on: the host's room already knows the
-    // risk and the length, so a bare password is all it takes.
+    // risk and the length, so a bare password is all it takes, and a whole
+    // code pasted in works just as well.
     if (netOn()) {
       $('vsJoinNote').textContent = '';
-      return netSend({ t: 'join', password: cleanPassword(bits[0]), name: myName() });
+      return netSend({ t: 'join', password, name: myName() });
     }
-    const risk = Number(bits[1]);
-    const ticks = Number(bits[2]);
-    if (bits.length !== 3 || !VS.RISKS[risk] || !VS.DURATIONS.some(d => d.ticks === ticks)) {
-      $('vsJoinNote').textContent = 'That is not a whole match code. Ask your opponent for all three parts, like copper-otter/3/300.';
+    if (risk == null) {
+      $('vsJoinNote').textContent = 'That is not a whole match code. Ask your opponent for all three parts, like copper-otter/3/300 \u2014 or, if they opened a room on a match server, connect to the same server above and the password alone will do.';
       return;
     }
     $('vsJoinNote').textContent = '';
-    startMatch({ seed: passwordSeed(bits[0], risk, ticks), risk, ticks, password: bits[0], mode: 'password' });
+    startMatch({ seed: passwordSeed(password, risk, ticks), risk, ticks, password, mode: 'password' });
   }
 
   function practiceMatch() {
@@ -4227,7 +4249,13 @@
   function renderVsWaiting() {
     const h = vs.hosted;
     if (!h) return setVsStage('lobby');
-    $('vsWaitCode').textContent = h.password;
+    $('vsWaitCode').textContent = h.offline ? h.code : h.password;
+    $('vsWaitNote').textContent = h.offline
+      ? 'Give your opponent this whole code \u2014 password, risk and length. With no match server you each play the same market apart, so start whenever you are ready and compare closing numbers.'
+      : 'Give them this password. The risk and the length are held by the server, so it is all they need.';
+    $('vsWaitDots').hidden = !!h.offline;
+    $('vsWaitHead').textContent = h.offline ? 'Hand over the code' : 'Waiting for an opponent';
+    $('vsStartBtn').hidden = !h.offline;
     $('vsWaitSettings').textContent = `Risk ${h.risk}, ${VS.RISKS[h.risk].name} · ${matchLength(h.ticks).note}`;
   }
 
@@ -4862,6 +4890,7 @@
     toast('You walked out', online ? 'That hands the match to your opponent.' : 'The match is over and nothing was recorded.');
   };
   $('vsCancelBtn').onclick = () => leaveMatch();
+  $('vsStartBtn').onclick = startHostedMatch;
   $('vsConnectBtn').onclick = netConnect;
   $('vsServerUrl').addEventListener('keydown', e => { if (e.key === 'Enter') netConnect(); });
   $('vsName').addEventListener('change', () => {
@@ -4870,8 +4899,8 @@
   $('vsCopyBtn').onclick = async () => {
     if (!vs.hosted) return;
     try {
-      await navigator.clipboard.writeText(vs.hosted.password);
-      toast('Copied', 'The password is on your clipboard.');
+      await navigator.clipboard.writeText(vs.hosted.offline ? vs.hosted.code : vs.hosted.password);
+      toast('Copied', vs.hosted.offline ? 'The whole code is on your clipboard.' : 'The password is on your clipboard.');
     } catch {
       toast('Could not copy', 'Read it out instead.', 'neg');
     }

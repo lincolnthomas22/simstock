@@ -106,6 +106,11 @@ const { launch, results, openGame, GAME } = require('./helpers.js');
     r.check('the host is told the whole code to hand over',
       (await page.textContent('#vsFootnote')).includes('copper-otter/2/120'), await page.textContent('#vsFootnote'));
     await page.click('#vsHostBtn');
+    await page.waitForTimeout(200);
+    r.check('the host is shown the whole code before the clock starts',
+      (await page.textContent('#vsWaitCode')) === 'copper-otter/2/120', await page.textContent('#vsWaitCode'));
+    r.check('and nothing is traded until they say go', await page.isHidden('#vsLive'));
+    await page.click('#vsStartBtn');
     await page.waitForTimeout(600);
     const hostStock = await page.textContent('#vsStockName');
     // Named, not blank: the heading and the lobby's name box once shared an
@@ -118,6 +123,15 @@ const { launch, results, openGame, GAME } = require('./helpers.js');
     await page.click('#vsJoinBtn');
     await page.waitForTimeout(600);
     r.check('the same code gives the same market', (await page.textContent('#vsStockName')) === hostStock,
+      `${hostStock} vs ${await page.textContent('#vsStockName')}`);
+
+    await page.click('#vsQuitBtn');
+    await page.waitForTimeout(300);
+    await page.fill('#vsJoinPass', 'Copper Otter 2 120');
+    r.check('the join box has room for a whole code', (await page.inputValue('#vsJoinPass')) === 'Copper Otter 2 120');
+    await page.click('#vsJoinBtn');
+    await page.waitForTimeout(600);
+    r.check('a code typed with spaces and capitals is the same market', (await page.textContent('#vsStockName')) === hostStock,
       `${hostStock} vs ${await page.textContent('#vsStockName')}`);
 
     await page.click('#vsQuitBtn');

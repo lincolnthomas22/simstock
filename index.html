@@ -839,7 +839,7 @@
 
           <label class="field-label" for="vsJoinPass">Match password</label>
           <div class="versus-pass-field">
-            <input id="vsJoinPass" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="their password">
+            <input id="vsJoinPass" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="their password">
           </div>
           <button class="btn btn-mustard btn-block" id="vsJoinBtn">Join the match</button>
           <p class="versus-note" id="vsJoinNote"></p>
@@ -857,12 +857,13 @@
 
     <!-- ---------- hosted, waiting for somebody to join ---------- -->
     <div class="versus-stage versus-waiting" id="vsWaiting" hidden>
-      <h2 class="versus-waiting-head">Waiting for an opponent</h2>
-      <p class="section-note">Give them this password. The risk and the length are held by the server, so it is all they need.</p>
+      <h2 class="versus-waiting-head" id="vsWaitHead">Waiting for an opponent</h2>
+      <p class="section-note" id="vsWaitNote">Give them this password. The risk and the length are held by the server, so it is all they need.</p>
       <div class="versus-code" id="vsWaitCode"></div>
       <button class="btn btn-sm" id="vsCopyBtn">Copy it</button>
       <p class="versus-waiting-settings" id="vsWaitSettings"></p>
-      <div class="versus-waiting-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="versus-waiting-dots" id="vsWaitDots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <button class="btn btn-green" id="vsStartBtn" hidden>Start trading</button>
       <button class="text-btn versus-quit" id="vsCancelBtn">Cancel the match</button>
     </div>
 
