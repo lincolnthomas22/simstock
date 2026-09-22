@@ -70,7 +70,7 @@ For the desktop version, `cd desktop && npm install && npm start`. See
 
 Game balance numbers (starting cash, commission, tier costs, staff pay, news frequency, XP) are at the top of `game.js`. Match risk levels and lengths are at the top of `sim.js`.
 
-Progress is kept in the browser's localStorage. Settings can write the whole game out to a JSON file and read one back, which is how a game moves between browsers. The desktop build keeps it in a real file instead, which is the only form Steam Cloud can sync.
+Progress is kept in the browser's localStorage. Settings can write the whole game out to a JSON file and read one back, which is how a game moves between browsers. The desktop build keeps it in a real file instead, which is the only form Steam Cloud can sync — and because a cloud sync can hand back a game played on another machine, it keeps a second copy Steam never sees and asks which one to carry on with rather than letting Steam pick and delete the other.
 
 ## Tests
 
@@ -79,7 +79,7 @@ Four suites, all run by CI on every push. Each can be run on its own:
 ```sh
 cd server  && npm ci && npm test   # 50 — the match protocol, against a real server
 cd tests   && npm ci && npm test   # 101 — the game in a browser, and two browsers playing each other
-cd desktop && npm ci && npm test   # 33 — the desktop shell, as a real app
+cd desktop && npm ci && npm test   # 61 — the desktop shell, as a real app
 node tools/steam-achievements.js   # regenerates the Steam mapping; CI fails if it differs
 ```
 

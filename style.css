@@ -1716,3 +1716,40 @@ body.using-pad .pad-hints {
 .pad-glyph-face { width: 17px; padding: 0; border-radius: 50%; }
 .pad-glyph-bumper { border-radius: 5px / 4px; }
 .pad-glyph + .pad-glyph { margin-left: 3px; }
+
+/* ---------------------------------------------------------------
+   Choosing between two saves
+   Shown when Steam Cloud hands back a game this machine did not write. Both
+   are described in the game's own terms, because a timestamp does not tell
+   anyone which run is theirs. See desktop/save.js.
+   --------------------------------------------------------------- */
+.save-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0 4px;
+}
+
+.save-choice {
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--bg-2);
+}
+
+.save-choice-worth {
+  margin: 2px 0 8px;
+  font-family: var(--serif);
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--mustard);
+}
+
+.save-choice-lines { display: grid; gap: 3px; font-size: 12.5px; color: var(--text-2); }
+
+.save-choice-gone { color: var(--text-3); }
+.save-choice-gone p { margin: 6px 0 0; font-size: 12.5px; }
+
+@media (max-width: 560px) {
+  .save-choices { grid-template-columns: 1fr; }
+}

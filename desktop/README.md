@@ -28,7 +28,7 @@ npm start           # copies the game in, then opens it
 ```
 
 ```sh
-npm test            # 33 tests against the real app; on a headless box: xvfb-run -a npm test
+npm test            # 61 tests against the real app; on a headless box: xvfb-run -a npm test
 ```
 
 `npm start` runs `sync-game.js` first, which copies `index.html`, `style.css`,
@@ -89,6 +89,30 @@ rather than a half-written one.
 | macOS | `~/Library/Application Support/SimStock/simstock-save.json` |
 | Linux | `~/.config/SimStock/simstock-save.json` |
 
+**Two saves, one game.** Steam Cloud syncs one file, so a desktop and a Deck
+played offline both move on from the same ancestor and only one can win.
+Steam's own dialog asks the player to choose between two timestamps, outside
+the game, and deletes the other.
+
+So the shell keeps a second copy Steam never sees. Every save writes the same
+bytes to `simstock-local.mirror` alongside, with their hash; on the next start
+the save either hashes to what this machine last wrote or it does not. If it
+does not, both versions still exist, and the game asks — in years, money and
+level rather than in timestamps. Whichever is not chosen is written to a
+`simstock-conflict-*.bak` file, so no answer given in a hurry loses a run.
+
+The save format itself is untouched: no marker, no extra field. An old save,
+or one exported from the browser, is still just the game's state, and the
+browser build knows nothing about any of this.
+
+> **Auto-Cloud must sync `simstock-save.json` and nothing else.** Syncing the
+> mirror or the backups would sync the very copies that are meant to survive a
+> sync, and the game would have nothing to offer. They are deliberately not
+> named `.json` so that even a careless `*.json` pattern leaves them alone.
+
+All of that lives in `save.js`, which is plain file handling with no Electron
+in it, so the tests drive a second machine as a second temporary directory.
+
 **Steam achievements**, when Steam is there. See below.
 
 **The match server address**, so nobody has to type one to play online.
@@ -144,9 +168,10 @@ None of this is code, and it is most of the work.
 5. **Achievements**: enter each row of `steam-achievements.tsv` in the
    Steamworks UI, plus an icon for each — 64×64 locked and unlocked. 39
    achievements is 78 icons.
-6. **Steam Cloud**: Auto-Cloud, pointed at the save directory above. Steam's
-   root variables change now and then, so check the current names in the
-   Steamworks docs rather than trusting this table.
+6. **Steam Cloud**: Auto-Cloud, pointed at the save directory above, with the
+   pattern set to `simstock-save.json` — not `*` and not `*.json`. See the
+   save section for why. Steam's root variables change now and then, so check
+   the current names in the Steamworks docs rather than trusting this table.
 7. **Review and release.** Valve checks the build runs and the store page is
    honest. There is a mandatory two-week wait between setting a release date
    and releasing.
@@ -230,8 +255,6 @@ this way at all.
 
 - **Controller support is partial.** A pad plays the game and the screen says
   what its buttons do; text entry and Steam Input are still missing. See above.
-- **No Steam Cloud conflict handling.** Two machines playing offline and then
-  syncing will have Steam pick one save; the loser is gone.
 - **No rich presence, leaderboards or Steam multiplayer.** 1v1 goes through
   the match server in `server/`, not through Steam's networking. Steam's
   lobbies would remove the need to run a server at all, and are worth

@@ -16,6 +16,12 @@ contextBridge.exposeInMainWorld('simstock', {
   readSave: () => ipcRenderer.sendSync('save:read'),
   writeSave: json => ipcRenderer.sendSync('save:write', json),
 
+  // Steam Cloud can hand back a save this machine did not write — two
+  // machines played offline, and only one of them can be the save. Null when
+  // there is nothing to ask about, which is almost always. See save.js.
+  saveConflict: () => ipcRenderer.sendSync('save:conflict'),
+  resolveSaveConflict: which => ipcRenderer.sendSync('save:resolve', which),
+
   // Fire and forget: an achievement that fails to reach Steam must never
   // interrupt the game.
   unlockAchievement: id => ipcRenderer.send('steam:achievement', id),
