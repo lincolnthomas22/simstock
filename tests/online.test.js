@@ -14,9 +14,10 @@ const ADDRESS = `ws://127.0.0.1:${PORT}`;
 function startServer() {
   const proc = spawn(process.execPath, ['server.js'], {
     cwd: SERVER_DIR,
-    // A short window for the dropped-socket test; the default is 45 seconds
-    // and a test should not sit through three quarters of a minute of it.
-    env: { ...process.env, PORT: String(PORT), GRACE_SECONDS: '20' },
+    // The dropped player's window: long enough that the test can look at an
+    // outage and still get back in well inside it, short enough not to sit
+    // through the real 45 seconds.
+    env: { ...process.env, PORT: String(PORT), GRACE_SECONDS: '30' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   proc.stderr.on('data', d => process.stderr.write(`[server] ${d}`));
@@ -44,23 +45,33 @@ async function player(browser, name, watch) {
   return page;
 }
 
-// The same player, on a context that keeps a handle on every socket the page
-// opens. Pulling one out from under the game is the only honest way to test a
-// dropped connection: setOffline leaves an open socket open.
+// The same player, on a context where the test owns the page's sockets: it can
+// pull the live one out from under the game, and it can keep the next one from
+// connecting for as long as it wants to look at what the game does about it.
+//
+// Both halves have to be under the test's control. setOffline is no use for
+// either: it leaves an open socket open, and it does not reliably stop a new
+// one reaching a server on loopback — so an outage built out of it can be over
+// before the assertion runs, which is exactly how this test first failed on
+// CI and not here. Pointing a blocked socket at a dead port is a refused
+// connection on any machine.
+const DEAD_PORT = 'ws://127.0.0.1:1';
+
 async function flakyPlayer(browser, name, watch) {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
-  await ctx.addInitScript(() => {
+  await ctx.addInitScript(dead => {
     const Real = window.WebSocket;
     window.__sockets = [];
-    const Wrapped = function (...args) {
-      const ws = new Real(...args);
+    window.__blockSockets = false;
+    const Wrapped = function (url, ...rest) {
+      const ws = new Real(window.__blockSockets ? dead : url, ...rest);
       window.__sockets.push(ws);
       return ws;
     };
     Wrapped.prototype = Real.prototype;
     ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'].forEach(k => { Wrapped[k] = Real[k]; });
     window.WebSocket = Wrapped;
-  });
+  }, DEAD_PORT);
   const page = await ctx.newPage();
   page.on('pageerror', e => watch(`PAGEERROR(${name}): ${e.message}`));
   await page.goto('file://' + path.join(__dirname, '..', 'index.html'));
@@ -194,10 +205,10 @@ async function flakyPlayer(browser, name, watch) {
       await flaky.click('#vsOrderBtn');
       await flaky.waitForTimeout(1200);
 
-      // The socket goes, rather than the player. Offline first, so the retry
-      // cannot get back in before the test has looked: closing a socket is
-      // what the game reacts to, and setOffline is what keeps it down.
-      await flaky.context().setOffline(true);
+      // The socket goes, rather than the player. The line is held down first,
+      // so the game's own retry cannot get back in before the test has looked
+      // at what a player sees while they are out.
+      await flaky.evaluate(() => { window.__blockSockets = true; });
       await flaky.evaluate(() => window.__sockets[window.__sockets.length - 1].close());
       await flaky.waitForSelector('#vsNetNote:not([hidden])', { timeout: 15000 });
       r.check('a dropped socket leaves the match on screen', await flaky.isVisible('#vsLive'));
@@ -212,7 +223,7 @@ async function flakyPlayer(browser, name, watch) {
 
       // and when the line comes back the retry gets in on its own, with no
       // help from the player
-      await flaky.context().setOffline(false);
+      await flaky.evaluate(() => { window.__blockSockets = false; });
       await flaky.waitForSelector('#vsNetNote', { state: 'hidden', timeout: 25000 });
       r.check('the match is resumed, not restarted', await flaky.isVisible('#vsLive'));
       r.check('the position survived the drop',
