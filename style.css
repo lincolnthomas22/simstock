@@ -1649,3 +1649,18 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
   .versus-dot-connecting,
   .versus-waiting-dots span { animation: none; }
 }
+
+/* ---------------------------------------------------------------
+   Playing with a controller
+   Focus is normally only drawn for the keyboard. With a pad it is the only
+   thing saying where you are, so once one is used the ring stays on until a
+   mouse turns up. See gamepad.js.
+   --------------------------------------------------------------- */
+body.using-pad :focus {
+  outline: 2px solid var(--mustard);
+  outline-offset: 2px;
+}
+body.using-pad button:focus,
+body.using-pad .seg button:focus {
+  background: var(--mustard-soft);
+}

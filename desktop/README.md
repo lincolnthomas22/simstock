@@ -32,8 +32,9 @@ npm test            # 33 tests against the real app; on a headless box: xvfb-run
 ```
 
 `npm start` runs `sync-game.js` first, which copies `index.html`, `style.css`,
-`game.js`, `sim.js`, `favicon.svg` and `fonts/` into `desktop/app/`. That
-directory is generated — never edit it, edit the web root and re-sync.
+`game.js`, `sim.js`, `gamepad.js`, `favicon.svg` and `fonts/` into
+`desktop/app/`. That directory is generated — never edit it, edit the web root
+and re-sync.
 
 | Variable | What it does |
 | --- | --- |
@@ -177,14 +178,48 @@ and the same build through the launcher starts. Still worth confirming on
 actual Deck hardware before release — the container is reproduced here by
 argument, not by being a Deck.
 
-The remaining Deck item is controller support: everything in the game is a
-mouse click. Deck Verified needs full controller support, which this does not
-have yet. It will pass as "Playable" with a touch/trackpad control layout, not
-"Verified".
+### Playing with a controller
+
+`gamepad.js` in the web root, loaded by both builds. The game is already built
+out of real `<button>` elements, so nothing had to be made focusable — what was
+missing was a way to move the focus with a thumb. It moves focus in the
+direction pushed, and turns the rest of the pad into the keys the game already
+listens for, so there is one pause and one Escape rather than two of each.
+
+| | |
+| --- | --- |
+| D-pad / left stick | move the focus, repeating while held |
+| A | press whatever is focused |
+| B | close a modal, or go back to the front page |
+| LB / RB | previous / next tab |
+| Start | stop and start the market, as the space bar does |
+
+The focus ring appears the moment a pad is used and goes away when a mouse
+turns up, because with a pad it is the only thing saying where you are.
+
+The tests drive it with a fake pad in a real page, stepping the module a frame
+at a time: the whole opening tutorial is completed with the pad alone, and a
+flood fill checks that all 46 stops on the trading floor can actually be
+pushed to, which is the question that decides whether the game is playable
+this way at all.
+
+**What a pad still cannot do.** These are what stand between "Playable" and
+"Verified":
+
+- **Text entry.** The Versus lobby's match-server address and password fields
+  need a keyboard. Steam's on-screen keyboard may cover this on a Deck; it has
+  not been tested. Nothing else in the game needs typing — the quantity field
+  has −, + and Max beside it, and the pad deliberately leaves it alone.
+- **No button glyphs on screen.** Deck Verified wants the game to say which
+  button does what. Nothing draws an A or a B anywhere.
+- **No Steam Input.** This reads the browser's Gamepad API, not Steam's, so
+  there is no official controller layout to ship and no rebinding.
+- **The charts are hover-only.** Reading a price off the chart wants a mouse.
 
 ## What is not done
 
-- **No controller support.** See above.
+- **Controller support is partial.** A pad plays the game; text entry, button
+  glyphs and Steam Input are still missing. See above.
 - **No Steam Cloud conflict handling.** Two machines playing offline and then
   syncing will have Steam pick one save; the loser is gone.
 - **No rich presence, leaderboards or Steam multiplayer.** 1v1 goes through
