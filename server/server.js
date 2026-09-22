@@ -6,8 +6,9 @@
 // the moment a match starts, but prices are handed over one tick at a time, so
 // neither player can read the end of the match out of their own memory.
 //
-// Rooms are keyed by the match password. Two players to a room; the second one
-// through the door starts the match.
+// Rooms are keyed by the match password. Two players to a room. The second one
+// through the door lands in the room's lobby next to the host, and the match
+// starts when the host says so, after a short countdown both of them can see.
 'use strict';
 
 const crypto = require('crypto');
@@ -25,6 +26,9 @@ const REMATCH_MS = 2 * 60 * 1000;      // how long a finished room stays up for 
 // Configurable because it is a judgement call about somebody else's wifi, and
 // because the tests would rather not wait three quarters of a minute.
 const GRACE_MS = Number(process.env.GRACE_SECONDS || 45) * 1000;
+// The count the host's "start" sets off, so both players are looking at the
+// market when the bell goes rather than one of them finding it already moving.
+const COUNTDOWN_MS = Number(process.env.COUNTDOWN_SECONDS ?? 3) * 1000;
 const MAX_ROOMS = 500;
 const MAX_ORDERS_PER_TICK = 4;         // enough to change your mind, not enough to flood
 const MAX_FRAME = 4096;
@@ -116,13 +120,43 @@ function joinRoom(ws, msg) {
   if (!password) return fail(ws, 'bad_password', 'Type the password your opponent gave you.');
   const room = rooms.get(password);
   if (!room) return fail(ws, 'no_room', 'Nobody is waiting on that password.');
-  if (room.stage !== 'waiting' || room.players.length >= 2) return fail(ws, 'full', 'That match has already started.');
+  if (room.stage !== 'waiting' || room.players.length >= 2) return fail(ws, 'full', room.stage === 'waiting' ? 'That room already has two players.' : 'That match has already started.');
 
   const player = makePlayer(ws, msg.name);
   player.room = room;
   ws.player = player;
   room.players.push(player);
-  startMatch(room);
+  sendLobby(room);
+}
+
+// Who is in the room, sent to everyone in it whenever that changes. Nothing
+// is moving yet: the host starts the match from here.
+function sendLobby(room) {
+  room.players.forEach((p, i) => send(p.ws, {
+    t: 'lobby',
+    password: room.password,
+    risk: room.risk,
+    ticks: room.ticks,
+    host: i === 0,
+    players: room.players.map(publicPlayer),
+  }));
+}
+
+// The host's say-so. Only the host can give it, and only with somebody to play.
+function beginMatch(ws) {
+  const p = ws.player;
+  if (!p || !p.room) return fail(ws, 'no_room', 'You are not in a room.');
+  const room = p.room;
+  if (room.players[0] !== p) return fail(ws, 'not_host', 'Only the host can start the match.');
+  if (room.stage !== 'waiting') return fail(ws, 'not_waiting', 'That match is already under way.');
+  if (room.players.length < 2) return fail(ws, 'alone', 'Wait for your opponent to join first.');
+  room.stage = 'countdown';
+  const seconds = Math.round(COUNTDOWN_MS / 1000);
+  room.players.forEach(x => send(x.ws, { t: 'countdown', seconds }));
+  room.countdownTimer = setTimeout(() => {
+    room.countdownTimer = null;
+    if (room.stage === 'countdown' && room.players.length === 2) startMatch(room);
+  }, COUNTDOWN_MS);
 }
 
 function startMatch(room) {
@@ -432,13 +466,29 @@ function dropPlayer(ws, deliberate) {
     if (!room.players.length) return closeRoom(room);
     return closeRoom(room, 'opponent_left');
   }
-  // Still waiting: the room goes with them.
+  // Still in the lobby, or counting down. Anything counting stops: it takes two.
+  clearTimeout(room.countdownTimer);
+  room.countdownTimer = null;
+  room.stage = 'waiting';
+  const wasHost = room.players[0] === p;
   room.players = room.players.filter(x => x !== p);
+  p.room = null;
+  // The host leaving closes the room: it was theirs, on their settings.
+  if (wasHost) {
+    room.players.forEach(x => {
+      fail(x.ws, 'host_left', 'The host closed the room.');
+      x.room = null;
+      if (x.ws) x.ws.player = null;
+    });
+    room.players = [];
+  }
   if (!room.players.length) {
     clearInterval(room.timer);
     rooms.delete(room.password);
+    return;
   }
-  p.room = null;
+  // The opponent leaving puts the host back to waiting for somebody.
+  sendLobby(room);
 }
 
 // A ticket is only good for the match it was issued for.
@@ -488,6 +538,7 @@ wss.on('connection', ws => {
       switch (msg.t) {
         case 'host': return ws.player ? fail(ws, 'busy', 'You are already in a match.') : hostRoom(ws, msg);
         case 'join': return ws.player ? fail(ws, 'busy', 'You are already in a match.') : joinRoom(ws, msg);
+        case 'begin': return beginMatch(ws);
         case 'order': return placeOrder(ws, msg);
         case 'rematch': return askRematch(ws);
         case 'resume': return resumeMatch(ws, msg);
@@ -518,7 +569,8 @@ setInterval(() => {
   for (const room of [...rooms.values()]) {
     if (room.stage === 'over' && now - (room.finishedAt || 0) > REMATCH_MS) closeRoom(room, 'rematch_timeout');
     if (room.stage === 'waiting' && now - room.createdAt > ROOM_IDLE_MS) {
-      room.players.forEach(p => { fail(p.ws, 'expired', 'Nobody joined, so the room was closed.'); p.room = null; p.ws.player = null; });
+      const why = room.players.length > 1 ? 'The match never started, so the room was closed.' : 'Nobody joined, so the room was closed.';
+      room.players.forEach(p => { fail(p.ws, 'expired', why); p.room = null; p.ws.player = null; });
       rooms.delete(room.password);
     }
   }
@@ -526,7 +578,11 @@ setInterval(() => {
 
 const shutdown = () => {
   console.log('shutting down');
-  for (const room of [...rooms.values()]) endMatch(room, 'server_stopping');
+  for (const room of [...rooms.values()]) {
+    // A room still in its lobby has no match to end, only people to tell.
+    if (room.match) endMatch(room, 'server_stopping');
+    else room.players.forEach(p => fail(p.ws, 'server_stopping', 'The match server is restarting.'));
+  }
   wss.close();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 3000).unref();

@@ -30,6 +30,7 @@ its own. Desktop builds take theirs from `SIMSTOCK_SERVER` at build time; see
 | --- | --- | --- |
 | `PORT` | `8080` | Port to listen on. `0` picks a free one, which is how the tests run. |
 | `GRACE_SECONDS` | `45` | How long a player whose socket drops has to reconnect before the match is forfeited. |
+| `COUNTDOWN_SECONDS` | `3` | The count between the host pressing start in the lobby and the bell. |
 | `ALLOWED_ORIGINS` | *(unset)* | Comma-separated list of origins allowed to connect. Unset accepts anyone, which is what you want while testing. Set it to your own site before you point real players at it. |
 
 `GET /health` returns room and match counts, which is what the deploy health
@@ -83,6 +84,10 @@ cannot open a plain `ws://` socket.
   |         risk, ticks} -->|  room opens, waiting         |
   |<-- hosted ------------- |                              |
   |                         |<---------- join {password} --|
+  |<-- lobby {players} ---- | ---------- lobby {players} ->|   both in the room,
+  |                         |                              |   nothing moving yet
+  |--- begin -------------->|  host only, with two in      |
+  |<-- countdown {secs} --- | -------- countdown {secs} -->|
   |                         |  generates the whole path    |
   |                         |  from a fresh seed           |
   |<-- start {stock, ------ | ------- start {stock, ... }->|   only the opening price,

@@ -15,6 +15,7 @@ VS.DURATIONS.push({ id: 'test-long', label: 'Test', ticks: 30, note: '30 seconds
 
 process.env.PORT = '0';
 process.env.GRACE_SECONDS = '2';   // a dropped player's window, short enough to watch close
+process.env.COUNTDOWN_SECONDS = '1';   // the host's "start" to the bell, kept short
 const { server, rooms } = require('./server.js');
 
 const PASS = [];
@@ -133,7 +134,39 @@ function client() {
   ok('refuses a join for a room that is not there', () => assert.strictEqual(missing.code, 'no_room'));
   c.close();
 
+  const earlyAt = a.mark();
+  a.send({ t: 'begin' });
+  const early = await a.want('error', earlyAt);
+  ok('the host cannot start a match with nobody to play', () => assert.strictEqual(early.code, 'alone'));
+
   b.send({ t: 'join', password: 'copper-otter', name: 'Grace' });
+  const lobbyA = await a.want('lobby');
+  const lobbyB = await b.want('lobby');
+  ok('joining puts both players in the lobby, not in a running match', () => {
+    assert.deepStrictEqual(lobbyA.players.map(p => p.name), ['Ada', 'Grace']);
+    assert.deepStrictEqual(lobbyB.players.map(p => p.name), ['Ada', 'Grace']);
+    assert.strictEqual(lobbyA.host, true);
+    assert.strictEqual(lobbyB.host, false);
+    assert.strictEqual(lobbyB.risk, 3);
+  });
+  await new Promise(r => setTimeout(r, 1500));
+  ok('and nothing starts until the host says so', () => {
+    assert.ok(!a.seen.some(m => m.t === 'start' || m.t === 'tick'));
+    assert.ok(!b.seen.some(m => m.t === 'start' || m.t === 'tick'));
+  });
+
+  const bBeginAt = b.mark();
+  b.send({ t: 'begin' });
+  const notHost = await b.want('error', bBeginAt);
+  ok('only the host can start the match', () => assert.strictEqual(notHost.code, 'not_host'));
+
+  a.send({ t: 'begin' });
+  const countA = await a.want('countdown');
+  const countB = await b.want('countdown');
+  ok('the host starting it counts both players down together', () => {
+    assert.strictEqual(countA.seconds, 1);
+    assert.strictEqual(countB.seconds, 1);
+  });
   const startA = await a.want('start');
   const startB = await b.want('start');
   ok('both players are started on the same stock', () => {
@@ -257,12 +290,41 @@ function client() {
   ok('and the finished room is gone with them', () => assert.strictEqual(rooms.size, 0));
   a.close(); b.close();
 
+  // ---- leaving the lobby before the match starts ----
+  {
+    const host = client(); const guest = client();
+    await Promise.all([host.open(), guest.open()]);
+    host.send({ t: 'host', password: 'lobby-test', risk: 2, ticks: 5, name: 'Host' });
+    await host.want('hosted');
+    guest.send({ t: 'join', password: 'lobby-test', name: 'Guest' });
+    await host.want('lobby');
+    const leftAt = host.mark();
+    guest.send({ t: 'leave' });
+    const alone = await host.want('lobby', leftAt);
+    ok('an opponent leaving the lobby puts the host back to waiting', () => {
+      assert.deepStrictEqual(alone.players.map(p => p.name), ['Host']);
+      assert.strictEqual(rooms.get('lobby-test').stage, 'waiting');
+    });
+    const guestAt = guest.mark();
+    guest.send({ t: 'join', password: 'lobby-test', name: 'Guest' });
+    await guest.want('lobby', guestAt);
+    host.send({ t: 'leave' });
+    const closed = await guest.want('error', guestAt);
+    ok('the host leaving the lobby closes the room', () => {
+      assert.strictEqual(closed.code, 'host_left');
+      assert.ok(!rooms.has('lobby-test'));
+    });
+    host.close(); guest.close();
+  }
+
   // ---- walking out, which is a decision and not an accident ----
   const d = client(); const e = client();
   await Promise.all([d.open(), e.open()]);
   d.send({ t: 'host', password: 'walkout', risk: 2, ticks: 5, name: 'Quitter' });
   await d.want('hosted');
   e.send({ t: 'join', password: 'walkout', name: 'Stayer' });
+  await d.want('lobby');
+  d.send({ t: 'begin' });
   await e.want('start');
   await new Promise(r => setTimeout(r, 300));
   d.send({ t: 'leave' });
@@ -280,6 +342,8 @@ function client() {
   g.send({ t: 'host', password: 'dropout', risk: 2, ticks: 30, name: 'Flaky' });
   await g.want('hosted');
   h.send({ t: 'join', password: 'dropout', name: 'Patient' });
+  await g.want('lobby');
+  g.send({ t: 'begin' });
   const startG = await g.want('start');
   await h.want('start');
   ok('a match hands each player a ticket back into it', () => {

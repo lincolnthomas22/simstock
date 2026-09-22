@@ -49,8 +49,8 @@ const { launch, results, openGame, GAME } = require('./helpers.js');
     r.check('versus opens without an account', await page.isVisible('#vsLobby'));
     r.check('the room is titled', (await page.textContent('#pageTitle')) === 'Versus');
     r.check('a password is rolled to start with', /\w+-\w+/.test(await page.inputValue('#vsHostPass')));
-    r.check('offline, the join card asks for the whole code',
-      (await page.textContent('#vsJoinCardNote')).includes('whole code'));
+    r.check('offline, the join card asks for the match code',
+      (await page.textContent('#vsJoinCardNote')).includes('match code'));
 
     // ---- a practice match ----
     await page.click('#vsRiskSeg button[data-risk="3"]');
@@ -103,9 +103,14 @@ const { launch, results, openGame, GAME } = require('./helpers.js');
     await page.fill('#vsHostPass', 'copper-otter');
     await page.click('#vsRiskSeg button[data-risk="2"]');
     await page.click('#vsLenSeg button[data-ticks="120"]');
-    r.check('the host is told the whole code to hand over',
-      (await page.textContent('#vsFootnote')).includes('copper-otter/2/120'), await page.textContent('#vsFootnote'));
+    r.check('the host is told the code to hand over, in words',
+      (await page.textContent('#vsFootnote')).includes('copper-otter-ordinary-quick'), await page.textContent('#vsFootnote'));
     await page.click('#vsHostBtn');
+    await page.waitForTimeout(200);
+    r.check('the host is shown the code before the clock starts',
+      (await page.textContent('#vsWaitCode')) === 'copper-otter-ordinary-quick', await page.textContent('#vsWaitCode'));
+    r.check('and nothing is traded until they say go', await page.isHidden('#vsLive'));
+    await page.click('#vsStartBtn');
     await page.waitForTimeout(600);
     const hostStock = await page.textContent('#vsStockName');
     // Named, not blank: the heading and the lobby's name box once shared an
@@ -114,19 +119,59 @@ const { launch, results, openGame, GAME } = require('./helpers.js');
 
     await page.click('#vsQuitBtn');
     await page.waitForTimeout(300);
-    await page.fill('#vsJoinPass', 'copper-otter/2/120');
+    await page.fill('#vsJoinPass', 'copper-otter-ordinary-quick');
     await page.click('#vsJoinBtn');
     await page.waitForTimeout(600);
     r.check('the same code gives the same market', (await page.textContent('#vsStockName')) === hostStock,
       `${hostStock} vs ${await page.textContent('#vsStockName')}`);
 
     await page.click('#vsQuitBtn');
-    await page.fill('#vsJoinPass', 'just-a-word');
+    await page.waitForTimeout(300);
+    await page.fill('#vsJoinPass', 'Copper Otter Ordinary Quick');
     await page.click('#vsJoinBtn');
+    await page.waitForTimeout(600);
+    r.check('a code typed with spaces and capitals is the same market', (await page.textContent('#vsStockName')) === hostStock,
+      `${hostStock} vs ${await page.textContent('#vsStockName')}`);
+
+    await page.click('#vsQuitBtn');
+    await page.waitForTimeout(300);
+    await page.fill('#vsJoinPass', 'copper-otter/2/120');
+    await page.click('#vsJoinBtn');
+    await page.waitForTimeout(600);
+    r.check('an old numbered code still works', (await page.textContent('#vsStockName')) === hostStock,
+      `${hostStock} vs ${await page.textContent('#vsStockName')}`);
+    await page.click('#vsQuitBtn');
+    await page.waitForTimeout(300);
+
+    // On the usual settings the password is the whole code.
+    await page.fill('#vsHostPass', 'quiet-walnut');
+    await page.click('#vsRiskSeg button[data-risk="3"]');
+    await page.click('#vsLenSeg button[data-ticks="300"]');
+    await page.click('#vsHostBtn');
     await page.waitForTimeout(200);
-    r.check('a bare password is refused rather than guessed at',
-      (await page.textContent('#vsJoinNote')).includes('whole match code'), await page.textContent('#vsJoinNote'));
-    r.check('and no match was started', await page.isHidden('#vsLive'));
+    r.check('on the usual settings the code is just the password',
+      (await page.textContent('#vsWaitCode')) === 'quiet-walnut', await page.textContent('#vsWaitCode'));
+    await page.click('#vsStartBtn');
+    await page.waitForTimeout(600);
+    const plainStock = await page.textContent('#vsStockName');
+    await page.click('#vsQuitBtn');
+    await page.waitForTimeout(300);
+    await page.fill('#vsJoinPass', 'quiet walnut');
+    await page.click('#vsJoinBtn');
+    await page.waitForTimeout(600);
+    r.check('and the password alone joins the same market', (await page.textContent('#vsStockName')) === plainStock,
+      `${plainStock} vs ${await page.textContent('#vsStockName')}`);
+    await page.click('#vsQuitBtn');
+    await page.waitForTimeout(300);
+
+    // A password that ends in a setting's word is spelled out in full, so it
+    // cannot be misread as a shorter password on other settings.
+    await page.fill('#vsHostPass', 'so-long');
+    await page.click('#vsHostBtn');
+    await page.waitForTimeout(200);
+    r.check('a password ending in a setting word gets both words spelled out',
+      (await page.textContent('#vsWaitCode')) === 'so-long-lively-standard', await page.textContent('#vsWaitCode'));
+    await page.click('#vsCancelBtn');
     await page.close();
   }
 
