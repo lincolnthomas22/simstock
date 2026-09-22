@@ -3488,6 +3488,7 @@
     ticks: 300,
     chart: 'price',  // the trading floor's view of the stock, or the race
     hover: null,
+    noteTimer: null,
     stage: 'lobby',
     match: null,     // the match under way, or null
     hosted: null,    // a room open on the server, waiting for somebody to join
@@ -3575,7 +3576,38 @@
 
   const SERVER_KEY = 'simstock.versus.server';
   const NAME_KEY = 'simstock.versus.name';
-  const net = { ws: null, status: 'off', note: '', tried: false };
+  const net = { ws: null, status: 'off', note: '', tried: false, ticket: null, resume: null };
+
+  // A dropped socket used to be the end of a match. It is not any more: the
+  // server holds the player's money, shares and place in the room for a short
+  // while, and the ticket it handed out at the bell is what claims them back.
+  // The ticket is kept where a reloaded page can still find it, so a browser
+  // that crashes mid-match is the same problem as a wifi blip.
+  const TICKET_KEY = 'simstock.versus.ticket';
+
+  function keepTicket(token, graceSec) {
+    net.ticket = token || null;
+    try {
+      if (!token) return sessionStorage.removeItem(TICKET_KEY);
+      // Written with a use-by date, so a reload long after a match cannot send
+      // the player back to a room that closed while the tab sat there.
+      sessionStorage.setItem(TICKET_KEY, `${Date.now() + ((graceSec || 45) + 15) * 1000}|${token}`);
+    } catch { /* storage switched off only costs the reload case */ }
+  }
+
+  function storedTicket() {
+    if (net.ticket) return net.ticket;
+    try {
+      const kept = sessionStorage.getItem(TICKET_KEY);
+      if (!kept) return null;
+      const cut = kept.indexOf('|');
+      if (cut < 0 || Number(kept.slice(0, cut)) < Date.now()) {
+        sessionStorage.removeItem(TICKET_KEY);
+        return null;
+      }
+      return kept.slice(cut + 1);
+    } catch { return null; }
+  }
 
   // Accepts whatever somebody pastes in: a bare host, an http:// address, or a
   // proper ws:// one. Anything not plainly local gets the encrypted scheme,
@@ -3622,7 +3654,14 @@
     try { ws = new WebSocket(url); } catch (e) { return setNetStatus('error', `That address will not open: ${e.message}`); }
     net.ws = ws;
 
-    ws.onopen = () => setNetStatus('on', 'Connected. Host a match and give your opponent the password, or join theirs.');
+    ws.onopen = () => {
+      setNetStatus('on', 'Connected. Host a match and give your opponent the password, or join theirs.');
+      // A ticket in hand means there is a match waiting to be claimed, either
+      // because the socket dropped a moment ago or because the page reloaded
+      // under it. Asking costs one message and is refused politely.
+      const token = storedTicket();
+      if (token) netSend({ t: 'resume', token });
+    };
     ws.onmessage = e => {
       let msg;
       try { msg = JSON.parse(e.data); } catch { return; }
@@ -3632,11 +3671,11 @@
     ws.onclose = () => {
       const wasConnected = net.status === 'on';
       net.ws = null;
-      // A drop mid-match is a forfeit at the server's end, so say so plainly
-      // rather than leaving a dead match on screen.
-      if (vs.match && vs.match.net && !vs.match.over) {
-        leaveMatch();
-        toast('The connection dropped', 'The match ended when the socket closed.', 'neg');
+      // A drop mid-match is no longer the end of it. The match stays on screen
+      // and this keeps trying the door until the server's window shuts.
+      if (vs.match && vs.match.net && !vs.match.over && storedTicket()) {
+        setNetStatus('off', 'The connection dropped. Getting back into the match…');
+        return startResuming();
       }
       setNetStatus('off', wasConnected
         ? 'Disconnected from the match server.'
@@ -3644,9 +3683,70 @@
     };
   }
 
+  // ---------- getting back in ----------
+  // Tries the socket again, backing off a little each time, for as long as the
+  // server said it would hold the player's place. Nothing about the match is
+  // thrown away in the meantime: what comes back from the server replaces it
+  // wholesale, and until then the screen shows the last thing that was true.
+  function startResuming() {
+    const m = vs.match;
+    if (!m || net.resume) return;
+    const until = Date.now() + Math.max(5, (m.graceSec || 45)) * 1000;
+    net.resume = { until, attempt: 0, timer: null };
+    m.dropped = true;
+    renderNetNote();
+    tryResume();
+  }
+
+  function tryResume() {
+    const r = net.resume;
+    if (!r) return;
+    if (!vs.match || vs.match.over) return stopResuming();
+    if (Date.now() > r.until) return lostMatch();
+    r.attempt += 1;
+    closeSocketQuietly();   // a half-open attempt from last time is no use to anybody
+    netConnect();
+    // Each go gets a little longer, but never so long that the window closes
+    // between two of them.
+    const wait = Math.min(6000, 1200 * r.attempt);
+    r.timer = setTimeout(() => {
+      if (!net.resume) return;
+      if (net.ws && net.ws.readyState === 1 && vs.match && !vs.match.dropped) return;   // back in already
+      tryResume();
+    }, wait);
+  }
+
+  // Puts a socket down without any of the meaning netDisconnect carries: a
+  // retry that found the last attempt still hanging must not be read as the
+  // player walking out of the match.
+  function closeSocketQuietly() {
+    const ws = net.ws;
+    net.ws = null;
+    if (!ws) return;
+    ws.onclose = null;
+    ws.onmessage = null;
+    ws.onopen = null;
+    try { ws.close(); } catch { /* already gone */ }
+  }
+
+  function stopResuming() {
+    if (net.resume) clearTimeout(net.resume.timer);
+    net.resume = null;
+  }
+
+  // The window has shut: the server has given the match to the other player.
+  function lostMatch() {
+    stopResuming();
+    keepTicket(null);
+    leaveMatch();
+    toast('The connection did not come back', 'The match went to your opponent when the time ran out.', 'neg');
+  }
+
   function netDisconnect() {
     const ws = net.ws;
     net.ws = null;
+    stopResuming();
+    keepTicket(null);
     if (ws) { ws.onclose = null; try { ws.close(); } catch { /* already gone */ } }
     if (vs.match && vs.match.net) leaveMatch();
     setNetStatus('off', 'Disconnected.');
@@ -3669,11 +3769,21 @@
         return netFilled(msg);
       case 'over':
         return netOver(msg);
+      case 'resumed':
+        return resumeNetMatch(msg);
+      case 'opponent_gone':
+        return opponentGone(msg);
+      case 'opponent_back':
+        return opponentBack(msg);
       case 'rematch_offer':
         return rematchOffered(msg);
       case 'rematch_off':
         return rematchOff(msg);
       case 'error':
+        // A refused ticket is the one error that settles something: the match
+        // it was for is over, or somebody else is already holding that seat.
+        if (msg.code === 'no_match' && vs.match && vs.match.net && vs.match.dropped) return lostMatch();
+        if (msg.code === 'still_here') return;
         // An error while waiting sends you back; one mid-match is just a
         // refused order, and the match carries on.
         if (vs.stage === 'waiting') { vs.hosted = null; setVsStage('lobby'); }
@@ -3685,6 +3795,8 @@
 
   function beginNetMatch(msg) {
     vs.hosted = null;
+    keepTicket(msg.token, msg.graceSec);
+    stopResuming();
     vs.match = {
       net: true,
       mode: 'online',
@@ -3699,6 +3811,9 @@
       them: { name: msg.them.name, note: 'your opponent', worth: [msg.startingCash] },
       seenNews: 0,
       over: false,
+      graceSec: msg.graceSec || 45,
+      dropped: false,
+      theirDrop: null,
     };
     vs.side = 'buy';
     $('vsQty').value = '1';
@@ -3708,6 +3823,112 @@
     sizeVsChart();
     toast('The bell goes', `${msg.stock.name} at ${fmtPrice(msg.price)}, against ${msg.them.name}.`, 'accent');
     playSound('level');
+  }
+
+  // Back in. Everything that was missed comes in one piece, and the server's
+  // version of the match replaces whatever was left on screen.
+  function resumeNetMatch(msg) {
+    stopResuming();
+    keepTicket(msg.token, msg.graceSec);
+    const startingCash = msg.startingCash;
+    vs.hosted = null;
+    vs.match = {
+      net: true,
+      mode: 'online',
+      password: msg.password,
+      risk: msg.risk,
+      ticks: msg.ticks,
+      seed: null,
+      data: {
+        stock: msg.stock,
+        startingCash,
+        ticks: msg.ticks,
+        prices: msg.prices,
+        eps: msg.eps || [],
+        news: msg.news || [],
+        dividends: [],
+      },
+      tick: msg.tick,
+      me: {
+        cash: msg.you.cash,
+        shares: msg.you.shares,
+        spent: msg.you.spent || 0,
+        bought: msg.you.bought || 0,
+        trades: msg.you.trades,
+        fees: msg.you.fees,
+        divs: msg.you.dividends || 0,
+        serverWorth: msg.you.worth,
+        worth: [],
+      },
+      them: { name: msg.them.name, note: 'your opponent', worth: [] },
+      // Read as seen: catching up on five minutes of headlines as toasts would
+      // bury the screen. They are all in the list to scroll back through.
+      seenNews: (msg.news || []).length,
+      over: false,
+      graceSec: msg.graceSec || 45,
+      dropped: false,
+      theirDrop: msg.them.gone ? Date.now() : null,
+    };
+    // There is no record of what either net worth did while away, so both
+    // lines start again from the figures that are true now.
+    const m = vs.match;
+    for (let i = 0; i <= m.tick; i++) {
+      m.me.worth.push(msg.you.worth);
+      m.them.worth.push(msg.them.worth);
+    }
+    vs.side = 'buy';
+    $('vsQty').value = '1';
+    clearInterval(vs.timer);
+    vs.timer = null;
+    setVsStage('live');
+    sizeVsChart();
+    renderNetNote();
+    toast('Back in the match', `${msg.stock.name} at ${fmtPrice(msg.prices[msg.tick])}, with ${vsClockText(msg.ticks - msg.tick)} left.`, 'pos');
+    playSound('level');
+  }
+
+  function opponentGone(msg) {
+    const m = vs.match;
+    if (!m || !m.net || m.over) return;
+    m.theirDrop = Date.now();
+    m.graceSec = msg.seconds || m.graceSec;
+    renderNetNote();
+    toast('Your opponent dropped out', `${msg.name} has ${msg.seconds} seconds to get back in, or the match is yours.`, 'accent');
+  }
+
+  function opponentBack(msg) {
+    const m = vs.match;
+    if (!m || !m.net || m.over) return;
+    m.theirDrop = null;
+    renderNetNote();
+    toast('Your opponent is back', `${msg.name} made it back in.`, 'accent');
+  }
+
+  // One line across the top of the match saying who is missing and for how
+  // much longer, because a frozen opponent with no explanation looks broken.
+  function renderNetNote() {
+    const m = vs.match;
+    const note = $('vsNetNote');
+    if (!note) return;
+    if (!m || !m.net || m.over || (!m.dropped && !m.theirDrop)) {
+      note.hidden = true;
+      clearInterval(vs.noteTimer);
+      vs.noteTimer = null;
+      return;
+    }
+    note.hidden = false;
+    // Nothing else is arriving while somebody is away, so the seconds have to
+    // come off the clock under their own steam.
+    if (!vs.noteTimer) vs.noteTimer = setInterval(renderNetNote, 1000);
+    if (m.dropped) {
+      const left = net.resume ? Math.max(0, Math.ceil((net.resume.until - Date.now()) / 1000)) : m.graceSec;
+      note.className = 'versus-net-note neg';
+      note.textContent = `The connection dropped. Getting back in — ${left}s before the match goes to your opponent.`;
+      return;
+    }
+    const left = Math.max(0, m.graceSec - Math.floor((Date.now() - m.theirDrop) / 1000));
+    note.className = 'versus-net-note';
+    note.textContent = `${m.them.name} has dropped out. ${left}s before the match is yours. Their position is frozen where they left it.`;
   }
 
   function netTick(msg) {
@@ -3765,6 +3986,11 @@
     const m = vs.match;
     if (!m || !m.net || m.over) return;
     m.over = true;
+    m.dropped = false;
+    m.theirDrop = null;
+    stopResuming();
+    keepTicket(null);
+    renderNetNote();
     m.seed = msg.seed;
     m.data.prices = msg.prices;          // the whole path, now it can do no harm
     m.tick = msg.tick;
@@ -3829,6 +4055,10 @@
   function leaveMatch(toLobby = true) {
     clearInterval(vs.timer);
     vs.timer = null;
+    clearInterval(vs.noteTimer);
+    vs.noteTimer = null;
+    stopResuming();
+    keepTicket(null);
     // Walking out of an online match forfeits it, so the server hears about it
     // before the screen changes.
     if ((vs.match && vs.match.net) || vs.hosted) netSend({ t: 'leave' });
@@ -4084,9 +4314,10 @@
     const btn = $('vsOrderBtn');
     btn.textContent = buying ? `Buy ${qty || 0}` : `Sell ${qty || 0}`;
     btn.className = `btn btn-block ${buying ? 'btn-buy' : 'btn-sell'}`;
-    const blocked = !qty || (buying ? qty > vsMaxBuy(price) : qty > m.me.shares);
+    const blocked = !!m.dropped || !qty || (buying ? qty > vsMaxBuy(price) : qty > m.me.shares);
     btn.disabled = blocked;
-    $('vsOrderHint').textContent = !qty ? 'Enter a number of shares.'
+    $('vsOrderHint').textContent = m.dropped ? 'The connection is down. Your position is held where it is until you are back.'
+      : !qty ? 'Enter a number of shares.'
       : buying && qty > vsMaxBuy(price) ? `You can afford ${vsMaxBuy(price)} at this price.`
       : !buying && qty > m.me.shares ? `You hold ${m.me.shares}.`
       : buying ? `${vsMaxBuy(price)} is the most you can buy right now.`
@@ -4101,6 +4332,7 @@
     $('vsPDivs').textContent = fmt(m.me.divs || 0);
     $('vsPWorth').textContent = fmt(mine);
 
+    renderNetNote();
     drawVsChart();
   }
 
@@ -4285,7 +4517,7 @@
     if (n < 2) return;
 
     const avg = m.me.bought ? m.me.spent / m.me.bought : 0;
-    const values = m.me.shares ? data.concat(avg) : data;
+    const values = m.me.shares && avg > 0 ? data.concat(avg) : data;
     let min = Math.min(...values);
     let max = Math.max(...values);
     const pad = (max - min) * 0.08 || max * 0.02;
@@ -4351,7 +4583,7 @@
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    if (m.me.shares && avg) {
+    if (m.me.shares && avg > 0) {
       const yy = y(avg);
       ctx.setLineDash([4, 4]);
       ctx.strokeStyle = CHART.accent;
@@ -4662,6 +4894,16 @@
   $('vsLobbyBtn').onclick = () => leaveMatch();
   $('vsHostPass').value = rollPassword();
   renderVsLobby();
+  // A page that reloaded out from under a live match: the ticket is still good
+  // for a few seconds, so go straight to the room and claim it back rather
+  // than leaving somebody watching the front page while their clock runs.
+  if (storedTicket() && $('vsServerUrl').value.trim()) {
+    setTimeout(() => {
+      if (!storedTicket()) return;
+      showScreen('versus');
+      autoConnect();
+    }, 0);
+  }
 
   buildWatchlist();
   buildUpgrades();

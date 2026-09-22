@@ -9,8 +9,12 @@ const WebSocket = require('ws');
 // run, so a five-tick length is added before the server reads the list.
 const VS = require('../sim.js');
 VS.DURATIONS.push({ id: 'test', label: 'Test', ticks: 5, note: '5 seconds' });
+// And a slightly longer one, for the tests that need a match still running
+// after somebody has dropped out of it and climbed back in.
+VS.DURATIONS.push({ id: 'test-long', label: 'Test', ticks: 30, note: '30 seconds' });
 
 process.env.PORT = '0';
+process.env.GRACE_SECONDS = '2';   // a dropped player's window, short enough to watch close
 const { server, rooms } = require('./server.js');
 
 const PASS = [];
@@ -253,7 +257,7 @@ function client() {
   ok('and the finished room is gone with them', () => assert.strictEqual(rooms.size, 0));
   a.close(); b.close();
 
-  // ---- walking out ----
+  // ---- walking out, which is a decision and not an accident ----
   const d = client(); const e = client();
   await Promise.all([d.open(), e.open()]);
   d.send({ t: 'host', password: 'walkout', risk: 2, ticks: 5, name: 'Quitter' });
@@ -261,14 +265,100 @@ function client() {
   e.send({ t: 'join', password: 'walkout', name: 'Stayer' });
   await e.want('start');
   await new Promise(r => setTimeout(r, 300));
-  d.close();
+  d.send({ t: 'leave' });
   const forfeit = await e.want('over');
   ok('walking out hands the match to the other player', () => {
     assert.strictEqual(forfeit.reason, 'forfeit');
     assert.strictEqual(forfeit.outcome, 'win');
   });
   ok('a forfeited room is cleaned up too', () => assert.strictEqual(rooms.size, 0));
-  e.close();
+  d.close(); e.close();
+
+  // ---- a dropped socket, which is not a decision ----
+  const g = client(); const h = client();
+  await Promise.all([g.open(), h.open()]);
+  g.send({ t: 'host', password: 'dropout', risk: 2, ticks: 30, name: 'Flaky' });
+  await g.want('hosted');
+  h.send({ t: 'join', password: 'dropout', name: 'Patient' });
+  const startG = await g.want('start');
+  await h.want('start');
+  ok('a match hands each player a ticket back into it', () => {
+    assert.strictEqual(typeof startG.token, 'string');
+    assert.ok(startG.token.length >= 16, startG.token);
+    assert.strictEqual(startG.graceSec, 2);
+  });
+
+  // buy something, so there is a position to come back to
+  await new Promise(r => setTimeout(r, 1100));
+  g.send({ t: 'order', side: 'buy', qty: 3 });
+  const bought = await g.want('filled');
+  const droppedAt = h.mark();
+  g.ws.terminate();
+
+  const gone = await h.want('opponent_gone', droppedAt);
+  ok('a dropped socket does not end the match', () => {
+    assert.strictEqual(gone.name, 'Flaky');
+    assert.strictEqual(gone.seconds, 2);
+    assert.ok(!h.seen.slice(droppedAt).some(m => m.t === 'over'), 'the match was ended by a dropped socket');
+    assert.strictEqual(rooms.size, 1);
+  });
+
+  // back in, on the ticket, before the window closes
+  const g2 = client();
+  await g2.open();
+  await g2.want('hello');
+  const backAt = h.mark();
+  g2.send({ t: 'resume', token: startG.token });
+  const resumed = await g2.want('resumed');
+  ok('the ticket gets them back into the same match', () => {
+    assert.strictEqual(resumed.stock.id, startG.stock.id);
+    assert.strictEqual(resumed.ticks, 30);
+    assert.strictEqual(resumed.them.name, 'Patient');
+  });
+  ok('they come back to their own money and shares', () => {
+    assert.strictEqual(resumed.you.shares, 3);
+    assert.strictEqual(resumed.you.cash, bought.cash);
+  });
+  ok('and to everything they missed, but no more', () => {
+    assert.strictEqual(resumed.prices.length, resumed.tick + 1);
+    assert.strictEqual(resumed.eps.length, resumed.tick + 1);
+    assert.ok(resumed.news.every(n => n.tick <= resumed.tick), 'news from the future');
+    assert.ok(resumed.tick < 30, `the clock stopped at ${resumed.tick}`);
+  });
+  const back = await h.want('opponent_back', backAt);
+  ok('the one who stayed is told they are back', () => assert.strictEqual(back.name, 'Flaky'));
+
+  // the clock kept running while they were away
+  const nextTick = await g2.want('tick');
+  ok('the match carries on from where it got to', () => assert.ok(nextTick.tick >= resumed.tick));
+  const spare = client();
+  await spare.open(); await spare.want('hello');
+  const spareAt = spare.mark();
+  spare.send({ t: 'resume', token: startG.token });
+  const refused = await spare.want('error', spareAt);
+  ok('a ticket cannot be used while its match already has a connection',
+    () => assert.strictEqual(refused.code, 'still_here'));
+  spare.close();
+
+  // ---- and when nobody comes back, it is a forfeit after all ----
+  const lostAt = h.mark();
+  g2.ws.terminate();
+  await h.want('opponent_gone', lostAt);
+  const lost = await h.want('over', lostAt);
+  ok('a player who never comes back forfeits when the window closes', () => {
+    assert.strictEqual(lost.reason, 'forfeit');
+    assert.strictEqual(lost.outcome, 'win');
+  });
+  ok('and the room goes with them', () => assert.strictEqual(rooms.size, 0));
+
+  const late = client();
+  await late.open(); await late.want('hello');
+  const lateAt = late.mark();
+  late.send({ t: 'resume', token: startG.token });
+  const tooLate = await late.want('error', lateAt);
+  ok('a ticket for a finished match is no ticket at all',
+    () => assert.strictEqual(tooLate.code, 'no_match'));
+  late.close(); h.close();
 
   // ---- bad input ----
   const f = client();

@@ -1527,6 +1527,17 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .versus-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 26px; margin-top: 22px; }
 .versus-detail { min-width: 0; }
 .versus-price-row { margin: 0 0 4px auto; }
+/* Somebody's connection is missing, and for how much longer. */
+.versus-net-note {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--mustard);
+  background: var(--mustard-soft);
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--text-2);
+}
+.versus-net-note.neg { border-left-color: var(--loss); background: var(--loss-soft); }
 .versus-again-note { margin-top: 12px; text-align: center; }
 .versus-chart-wrap { position: relative; height: 300px; margin-top: 14px; }
 .versus-chart-wrap canvas { width: 100%; height: 100%; }

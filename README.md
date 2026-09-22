@@ -12,7 +12,7 @@ The Versus room is a 1v1 match: one stock, $1,000 each, a risk level and a lengt
 
 The stock you race on is a company in the same sense the trading floor's are, and its screen is the same screen: profits behind the price, a P/E ratio and a market cap, quarterly earnings on the calendar, dividends paid into your cash three weeks after each report, a market index it moves with, and a price chart you can read a tick off. The chart switches to a view of the race — both net worths against the stock itself — when you want to see who is winning rather than what the stock is doing.
 
-Point the room at a match server and two people play live, in the same market, against each other's net worth, and either can ask for a rematch from the result screen without going back to the lobby. With no server there is still a practice opponent on the desk, and a password match that puts both of you in an identical market to play apart and compare afterwards.
+Point the room at a match server and two people play live, in the same market, against each other's net worth, and either can ask for a rematch from the result screen without going back to the lobby. A connection that drops no longer ends the match: the server holds your money, your shares and your place for three quarters of a minute while the game quietly lets itself back in, and that covers a reloaded page as well as a wifi blip. With no server there is still a practice opponent on the desk, and a password match that puts both of you in an identical market to play apart and compare afterwards.
 
 All companies and prices are fictional and simulated. No real money is involved.
 

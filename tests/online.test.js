@@ -14,7 +14,9 @@ const ADDRESS = `ws://127.0.0.1:${PORT}`;
 function startServer() {
   const proc = spawn(process.execPath, ['server.js'], {
     cwd: SERVER_DIR,
-    env: { ...process.env, PORT: String(PORT) },
+    // A short window for the dropped-socket test; the default is 45 seconds
+    // and a test should not sit through three quarters of a minute of it.
+    env: { ...process.env, PORT: String(PORT), GRACE_SECONDS: '20' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   proc.stderr.on('data', d => process.stderr.write(`[server] ${d}`));
@@ -31,6 +33,35 @@ function startServer() {
 // Opens the game, connects to the server, and waits until the lobby says so.
 async function player(browser, name, watch) {
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+  page.on('pageerror', e => watch(`PAGEERROR(${name}): ${e.message}`));
+  await page.goto('file://' + path.join(__dirname, '..', 'index.html'));
+  await page.waitForTimeout(400);
+  await page.click('.landing-buttons [data-screen="versus"]');
+  await page.fill('#vsServerUrl', ADDRESS);
+  await page.fill('#vsName', name);
+  await page.click('#vsConnectBtn');
+  await page.waitForFunction(() => document.querySelector('#vsStatus').textContent === 'Live', null, { timeout: 10000 });
+  return page;
+}
+
+// The same player, on a context that keeps a handle on every socket the page
+// opens. Pulling one out from under the game is the only honest way to test a
+// dropped connection: setOffline leaves an open socket open.
+async function flakyPlayer(browser, name, watch) {
+  const ctx = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
+  await ctx.addInitScript(() => {
+    const Real = window.WebSocket;
+    window.__sockets = [];
+    const Wrapped = function (...args) {
+      const ws = new Real(...args);
+      window.__sockets.push(ws);
+      return ws;
+    };
+    Wrapped.prototype = Real.prototype;
+    ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'].forEach(k => { Wrapped[k] = Real[k]; });
+    window.WebSocket = Wrapped;
+  });
+  const page = await ctx.newPage();
   page.on('pageerror', e => watch(`PAGEERROR(${name}): ${e.message}`));
   await page.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await page.waitForTimeout(400);
@@ -144,6 +175,77 @@ async function player(browser, name, watch) {
     await ada.waitForTimeout(200);
     r.check('an unaffordable order is stopped before it reaches the server',
       await ada.isDisabled('#vsOrderBtn'));
+
+    // ---- a dropped socket is not a walkout ----
+    {
+      const flaky = await flakyPlayer(browser, 'Flaky', r.fail);
+      const patient = await player(browser, 'Patient', r.fail);
+      await flaky.fill('#vsHostPass', 'dropout');
+      await flaky.click('#vsHostBtn');
+      await flaky.waitForSelector('#vsWaiting:not([hidden])', { timeout: 8000 });
+      await patient.fill('#vsJoinPass', 'dropout');
+      await patient.click('#vsJoinBtn');
+      await flaky.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
+      await patient.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
+
+      await flaky.waitForTimeout(1500);
+      await flaky.click('#vsQtyMax');
+      const held = Number(await flaky.inputValue('#vsQty'));
+      await flaky.click('#vsOrderBtn');
+      await flaky.waitForTimeout(1200);
+
+      // The socket goes, rather than the player. Offline first, so the retry
+      // cannot get back in before the test has looked: closing a socket is
+      // what the game reacts to, and setOffline is what keeps it down.
+      await flaky.context().setOffline(true);
+      await flaky.evaluate(() => window.__sockets[window.__sockets.length - 1].close());
+      await flaky.waitForSelector('#vsNetNote:not([hidden])', { timeout: 15000 });
+      r.check('a dropped socket leaves the match on screen', await flaky.isVisible('#vsLive'));
+      r.check('and says it is getting back in',
+        (await flaky.textContent('#vsNetNote')).includes('Getting back in'), await flaky.textContent('#vsNetNote'));
+      r.check('with no orders going anywhere in the meantime', await flaky.isDisabled('#vsOrderBtn'));
+
+      await patient.waitForSelector('#vsNetNote:not([hidden])', { timeout: 15000 });
+      r.check('the other player is told who is missing',
+        (await patient.textContent('#vsNetNote')).includes('Flaky'), await patient.textContent('#vsNetNote'));
+      r.check('and that the match is still theirs to lose', await patient.isVisible('#vsLive'));
+
+      // and when the line comes back the retry gets in on its own, with no
+      // help from the player
+      await flaky.context().setOffline(false);
+      await flaky.waitForSelector('#vsNetNote', { state: 'hidden', timeout: 25000 });
+      r.check('the match is resumed, not restarted', await flaky.isVisible('#vsLive'));
+      r.check('the position survived the drop',
+        Number((await flaky.textContent('#vsPShares')).replace(/,/g, '')) === held,
+        `held ${held}, back with ${await flaky.textContent('#vsPShares')}`);
+      r.check('the lobby says it is live again', (await flaky.textContent('#vsStatus')) === 'Live',
+        await flaky.textContent('#vsStatus'));
+      await patient.waitForSelector('#vsNetNote', { state: 'hidden', timeout: 15000 });
+      r.check('and the other player is told they are back', await patient.isVisible('#vsLive'));
+
+      await flaky.waitForTimeout(1500);
+      r.check('prices are in step again across both clients',
+        (await flaky.textContent('#vsPrice')) === (await patient.textContent('#vsPrice')),
+        `${await flaky.textContent('#vsPrice')} vs ${await patient.textContent('#vsPrice')}`);
+      r.check('and trading is open again', !(await flaky.isDisabled('#vsQtyMax')));
+
+      // ---- and the other half of a lost connection: a lost page ----
+      const heldNow = await flaky.textContent('#vsPShares');
+      await flaky.reload();
+      await flaky.waitForSelector('#vsLive:not([hidden])', { timeout: 20000 });
+      r.check('a reload mid-match goes back to the match, not the front page',
+        (await flaky.textContent('#vsStockName')).trim() === (await patient.textContent('#vsStockName')).trim(),
+        `${await flaky.textContent('#vsStockName')} vs ${await patient.textContent('#vsStockName')}`);
+      r.check('with the position still on the book',
+        (await flaky.textContent('#vsPShares')) === heldNow,
+        `held ${heldNow}, back with ${await flaky.textContent('#vsPShares')}`);
+      r.check('and the average cost it was bought at',
+        (await flaky.textContent('#vsPAvg')) !== '—', await flaky.textContent('#vsPAvg'));
+
+      await flaky.click('#vsQuitBtn');
+      await flaky.close();
+      await patient.close();
+    }
 
     // ---- walking out ----
     await grace.click('#vsQuitBtn');

@@ -10,6 +10,7 @@
 // through the door starts the match.
 'use strict';
 
+const crypto = require('crypto');
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const VS = require('../sim.js');
@@ -20,6 +21,10 @@ const TICK_MS = 1000;              // one trading day a second, as everywhere el
 const SWEEP_MS = 15000;
 const ROOM_IDLE_MS = 10 * 60 * 1000;   // a room nobody joins is eventually swept
 const REMATCH_MS = 2 * 60 * 1000;      // how long a finished room stays up for a rematch
+// How long a dropped player has to get back in before it becomes a forfeit.
+// Configurable because it is a judgement call about somebody else's wifi, and
+// because the tests would rather not wait three quarters of a minute.
+const GRACE_MS = Number(process.env.GRACE_SECONDS || 45) * 1000;
 const MAX_ROOMS = 500;
 const MAX_ORDERS_PER_TICK = 4;         // enough to change your mind, not enough to flood
 const MAX_FRAME = 4096;
@@ -30,6 +35,11 @@ const NAME_MAX = 18;
 const ALLOWED = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
 const rooms = new Map();   // password -> room
+// A resume ticket is what makes a dropped socket survivable: the player is a
+// row in a room, not a connection, and this is how a new connection proves it
+// is that row. It is handed to one player over their own socket and to nobody
+// else, so possession of it is the proof.
+const tickets = new Map();   // token -> player
 const startedAt = Date.now();
 let matchesPlayed = 0;
 
@@ -63,6 +73,9 @@ function makePlayer(ws, name) {
     ws, name: cleanName(name),
     cash: VS.STARTING_CASH, shares: 0,
     spent: 0, bought: 0, trades: 0, fees: 0, dividends: 0,
+    token: crypto.randomBytes(16).toString('hex'),
+    gone: false,            // the socket dropped, and the clock is running on getting back
+    graceTimer: null,
     sentTick: -1,          // the last tick whose prices this player has been given
     ordersThisTick: 0,
     room: null,
@@ -151,7 +164,11 @@ function startMatch(room) {
       price: prices[0],        // only the opening price; the rest arrives as it happens
       you: publicPlayer(p),
       them: publicPlayer(them),
+      // Their own ticket back into this match, if the socket drops under them.
+      token: p.token,
+      graceSec: Math.round(GRACE_MS / 1000),
     });
+    tickets.set(p.token, p);
     p.sentTick = 0;
   });
 
@@ -193,7 +210,7 @@ function broadcastTick(room) {
   const price = prices[room.tick];
   room.players.forEach((p, i) => {
     const them = room.players[1 - i];
-    if (p.sentTick >= room.tick) return;
+    if (!p.ws || p.sentTick >= room.tick) return;   // away: they are caught up when they get back
     // Everything the player has not been shown yet, so a stalled connection
     // catches up in one message instead of falling behind for good.
     const from = p.sentTick + 1;
@@ -255,6 +272,8 @@ function endMatch(room, reason, quitter) {
   clearInterval(room.timer);
   room.timer = null;
   rooms.delete(room.password);
+  // Whatever happens next, this match is done, so nobody is resuming into it.
+  room.players.forEach(forgetTicket);
 
   const price = room.match.prices[Math.min(room.tick, room.ticks)];
   const finals = room.players.map(p => worthOf(p, price));
@@ -308,6 +327,7 @@ function closeRoom(room, why) {
   room.rematchTimer = null;
   room.players.forEach(p => {
     if (why) send(p.ws, { t: 'rematch_off', reason: why });
+    forgetTicket(p);
     p.room = null;
     p.wantsRematch = false;
   });
@@ -331,11 +351,78 @@ function askRematch(ws) {
   startMatch(room);
 }
 
-function dropPlayer(ws) {
+// A socket that drops mid-match no longer ends it. The player keeps their
+// money, their shares and their place in the room, the clock keeps running,
+// and they have GRACE_MS to come back with their ticket. Walking out on
+// purpose is a different thing and still forfeits on the spot.
+function suspendPlayer(room, p) {
+  if (p.gone) return;
+  p.gone = true;
+  p.ws = null;
+  p.goneAt = Date.now();
+  clearTimeout(p.graceTimer);
+  p.graceTimer = setTimeout(() => {
+    // Time up: it is a walkout after all.
+    if (room.stage === 'running' && p.gone) endMatch(room, 'forfeit', p);
+  }, GRACE_MS);
+  if (p.graceTimer.unref) p.graceTimer.unref();
+  const them = room.players.find(x => x !== p);
+  if (them) send(them.ws, { t: 'opponent_gone', name: p.name, seconds: Math.round(GRACE_MS / 1000) });
+}
+
+// The other half: a fresh socket proving, with the ticket, that it is the
+// player who dropped. Everything they missed goes back in one message, and the
+// server's figures are the ones they come back to.
+function resumeMatch(ws, msg) {
+  if (ws.player) return fail(ws, 'busy', 'You are already in a match.');
+  const p = tickets.get(String(msg.token || ''));
+  if (!p || !p.room) return fail(ws, 'no_match', 'That match is over.');
+  const room = p.room;
+  if (room.stage !== 'running') return fail(ws, 'no_match', 'That match is over.');
+  if (!p.gone) return fail(ws, 'still_here', 'That match already has a connection.');
+
+  clearTimeout(p.graceTimer);
+  p.graceTimer = null;
+  p.gone = false;
+  p.ws = ws;
+  ws.player = p;
+
+  const them = room.players.find(x => x !== p);
+  const price = room.match.prices[room.tick];
+  send(ws, {
+    t: 'resumed',
+    password: room.password,
+    risk: room.risk,
+    ticks: room.ticks,
+    tick: room.tick,
+    startingCash: VS.STARTING_CASH,
+    stock: room.match.stock,
+    token: p.token,
+    graceSec: Math.round(GRACE_MS / 1000),
+    // Everything up to now, and not one tick more.
+    prices: room.match.prices.slice(0, room.tick + 1),
+    eps: room.match.eps.slice(0, room.tick + 1),
+    news: room.match.news.filter(n => n.tick <= room.tick),
+    you: {
+      cash: round2(p.cash), shares: p.shares, trades: p.trades,
+      fees: round2(p.fees), dividends: round2(p.dividends || 0), worth: round2(worthOf(p, price)),
+      // What they paid for what they are holding, so the average cost comes
+      // back with everything else rather than reading as zero.
+      spent: round2(p.spent), bought: p.bought,
+    },
+    them: { name: them ? them.name : 'Opponent', worth: them ? round2(worthOf(them, price)) : VS.STARTING_CASH, gone: !!(them && them.gone) },
+  });
+  p.sentTick = room.tick;
+  if (them) send(them.ws, { t: 'opponent_back', name: p.name });
+}
+
+function dropPlayer(ws, deliberate) {
   const p = ws.player;
   if (!p || !p.room) return;
   const room = p.room;
-  if (room.stage === 'running') return endMatch(room, 'forfeit', p);
+  if (room.stage === 'running') {
+    return deliberate ? endMatch(room, 'forfeit', p) : suspendPlayer(room, p);
+  }
   // Out of a finished room: whoever is left is told the rematch is off rather
   // than waiting on an answer that is not coming.
   if (room.stage === 'over') {
@@ -352,6 +439,14 @@ function dropPlayer(ws) {
     rooms.delete(room.password);
   }
   p.room = null;
+}
+
+// A ticket is only good for the match it was issued for.
+function forgetTicket(p) {
+  clearTimeout(p.graceTimer);
+  p.graceTimer = null;
+  p.gone = false;
+  tickets.delete(p.token);
 }
 
 const round2 = n => Math.round(n * 100) / 100;
@@ -395,7 +490,8 @@ wss.on('connection', ws => {
         case 'join': return ws.player ? fail(ws, 'busy', 'You are already in a match.') : joinRoom(ws, msg);
         case 'order': return placeOrder(ws, msg);
         case 'rematch': return askRematch(ws);
-        case 'leave': { dropPlayer(ws); ws.player = null; return send(ws, { t: 'left' }); }
+        case 'resume': return resumeMatch(ws, msg);
+        case 'leave': { dropPlayer(ws, true); ws.player = null; return send(ws, { t: 'left' }); }
         case 'ping': return send(ws, { t: 'pong', now: Date.now() });
         default: return fail(ws, 'unknown', `No idea what "${String(msg.t).slice(0, 20)}" means.`);
       }
