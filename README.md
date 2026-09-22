@@ -76,8 +76,8 @@ Progress is kept in the browser's localStorage. Settings can write the whole gam
 Four suites, all run by CI on every push. Each can be run on its own:
 
 ```sh
-cd server  && npm ci && npm test   # 23 — the match protocol, against a real server
-cd tests   && npm ci && npm test   # 41 — the game in a browser, and two browsers playing each other
+cd server  && npm ci && npm test   # 50 — the match protocol, against a real server
+cd tests   && npm ci && npm test   # 70 — the game in a browser, and two browsers playing each other
 cd desktop && npm ci && npm test   # 33 — the desktop shell, as a real app
 node tools/steam-achievements.js   # regenerates the Steam mapping; CI fails if it differs
 ```
