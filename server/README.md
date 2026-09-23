@@ -86,8 +86,15 @@ cannot open a plain `ws://` socket.
   |                         |<---------- join {password} --|
   |<-- lobby {players} ---- | ---------- lobby {players} ->|   both in the room,
   |                         |                              |   nothing moving yet
-  |--- begin -------------->|  host only, with two in      |
+  |--- settings {risk, ---->|  host only; asks B again     |
+  |              ticks}     |                              |
+  |<-- lobby {...} -------- | ---------- lobby {...} ----->|
+  |                         |<----------- ready {ready} ---|   B says they are set
+  |<-- lobby {...} -------- | ---------- lobby {...} ----->|
+  |--- begin -------------->|  host only, with B ready     |
   |<-- countdown {secs} --- | -------- countdown {secs} -->|
+  |                         |<-------------------- hold ---|   either can stop the
+  |<-- lobby {...} -------- | ---------- lobby {...} ----->|   count before the bell
   |                         |  generates the whole path    |
   |                         |  from a fresh seed           |
   |<-- start {stock, ------ | ------- start {stock, ... }->|   only the opening price,
@@ -111,6 +118,13 @@ cannot open a plain `ws://` socket.
   |                         |<------------------- rematch -|
   |<-- start {...} -------- | ------------- start {...} -->|   a new seed, same terms
 ```
+
+The lobby is where the two agree on what they are playing. The host can
+change the risk and the length with a `settings` message until the countdown
+starts, and every change takes the opponent's `ready` back off them, because
+they agreed to a different market. The host's Start only goes through once the
+opponent is ready. Either of them can send `hold` during the countdown to stop
+it, and the opponent taking their ready back does the same.
 
 The important line is the `tick` one. Prices are revealed one
 tick at a time, so neither player has the end of the match sitting in their

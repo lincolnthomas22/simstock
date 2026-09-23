@@ -12,7 +12,7 @@ The Versus room is a 1v1 match: one stock, $1,000 each, a risk level and a lengt
 
 The stock you race on is a company in the same sense the trading floor's are, and its screen is the same screen: profits behind the price, a P/E ratio and a market cap, quarterly earnings on the calendar, dividends paid into your cash three weeks after each report, a market index it moves with, and a price chart you can read a tick off. The chart switches to a view of the race — both net worths against the stock itself — when you want to see who is winning rather than what the stock is doing.
 
-Point the room at a match server and two people play live, in the same market, against each other's net worth, and either can ask for a rematch from the result screen without going back to the lobby. A connection that drops no longer ends the match: the server holds your money, your shares and your place for three quarters of a minute while the game quietly lets itself back in, and that covers a reloaded page as well as a wifi blip. With no server there is still a practice opponent on the desk, and a password match that puts both of you in an identical market to play apart and compare afterwards.
+Point the room at a match server and two people play live, in the same market, against each other's net worth. Both meet in the room's lobby first: the host can still change the risk and the length there, the opponent says when they are ready, and the host's Start counts both screens down together, with a Hold on button for whoever is not set. Either can ask for a rematch from the result screen without going back to the lobby. A connection that drops no longer ends the match: the server holds your money, your shares and your place for three quarters of a minute while the game quietly lets itself back in, and that covers a reloaded page as well as a wifi blip. With no server there is still a practice opponent on the desk, and a password match that puts both of you in an identical market to play apart and compare afterwards.
 
 All companies and prices are fictional and simulated. No real money is involved.
 
@@ -77,8 +77,8 @@ Progress is kept in the browser's localStorage. Settings can write the whole gam
 Four suites, all run by CI on every push. Each can be run on its own:
 
 ```sh
-cd server  && npm ci && npm test   # 57 — the match protocol, against a real server
-cd tests   && npm ci && npm test   # 112 — the game in a browser, and two browsers playing each other
+cd server  && npm ci && npm test   # 69 — the match protocol, against a real server
+cd tests   && npm ci && npm test   # 121 — the game in a browser, and two browsers playing each other
 cd desktop && npm ci && npm test   # 61 — the desktop shell, as a real app
 node tools/steam-achievements.js   # regenerates the Steam mapping; CI fails if it differs
 ```

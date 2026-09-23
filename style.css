@@ -1484,8 +1484,10 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
   color: var(--text-2);
 }
 .versus-risk-blurb b { color: var(--mustard); }
-#vsLenSeg button { display: flex; flex-direction: column; gap: 1px; line-height: 1.2; }
-#vsLenSeg small { font-family: var(--mono); font-size: 11px; font-weight: 400; opacity: 0.75; }
+#vsLenSeg button,
+#vsWaitLenSeg button { display: flex; flex-direction: column; gap: 1px; line-height: 1.2; }
+#vsLenSeg small,
+#vsWaitLenSeg small { font-family: var(--mono); font-size: 11px; font-weight: 400; opacity: 0.75; }
 
 .versus-rule { margin: 22px 0 18px; border: 0; border-top: 1px solid var(--line); }
 .versus-note { min-height: 1.2em; margin: 8px 0 0; font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--mustard); }
@@ -1648,8 +1650,15 @@ body:has(#landingScreen:not([hidden])) .crumbs { display: none; }
 .versus-lobby-players li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border, rgba(127,127,127,0.3)); border-radius: 10px; text-align: left; }
 .versus-lobby-players li.empty { color: var(--text-3); border-style: dashed; }
 .versus-lobby-players .tag { font-family: var(--mono); font-size: 12px; color: var(--text-3); }
-.versus-waiting #vsStartBtn { margin: 0 auto 18px; display: block; }
-.versus-waiting #vsStartBtn[hidden] { display: none; }
+.versus-waiting #vsStartBtn,
+.versus-waiting #vsReadyBtn,
+.versus-waiting #vsHoldBtn { margin: 0 auto 18px; display: block; }
+.versus-waiting #vsStartBtn[hidden],
+.versus-waiting #vsReadyBtn[hidden],
+.versus-waiting #vsHoldBtn[hidden] { display: none; }
+.versus-wait-setup { margin: 18px auto 0; max-width: 420px; text-align: left; }
+.versus-wait-setup[hidden] { display: none; }
+.versus-lobby-players .tag.ready { color: var(--gain); }
 
 @media (prefers-reduced-motion: reduce) {
   .versus-dot-connecting,

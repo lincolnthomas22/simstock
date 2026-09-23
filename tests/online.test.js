@@ -151,11 +151,44 @@ async function flakyPlayer(browser, name, watch) {
     r.check('joining lands in the lobby, not a running match', await grace.isHidden('#vsLive') && await ada.isHidden('#vsLive'));
     r.check('both players see who is in the room',
       (await ada.textContent('#vsWaitPlayers')).includes('Grace') && (await grace.textContent('#vsWaitPlayers')).includes('Ada'));
-    r.check('the joiner is told the host starts it', (await grace.textContent('#vsWaitNote')).includes('Ada to start'),
+    r.check('the joiner is asked to say they are ready', (await grace.textContent('#vsWaitNote')).includes('say you are ready'),
       await grace.textContent('#vsWaitNote'));
     r.check('only the host gets a start button', await ada.isVisible('#vsStartBtn') && await grace.isHidden('#vsStartBtn'));
+    r.check('only the joiner gets a ready button', await grace.isVisible('#vsReadyBtn') && await ada.isHidden('#vsReadyBtn'));
+    r.check('and the host cannot start before they are ready', await ada.isDisabled('#vsStartBtn'));
+
+    // ---- the host changing the market from the lobby ----
+    r.check('only the host can change the market in the lobby', await ada.isVisible('#vsWaitSetup') && await grace.isHidden('#vsWaitSetup'));
+    await grace.click('#vsReadyBtn');
+    await ada.waitForSelector('#vsStartBtn:not([disabled])', { timeout: 8000 });
+    await ada.click('#vsWaitRiskSeg button[data-risk="2"]');
+    const graceSawChange = await grace.waitForFunction(() => document.querySelector('#vsWaitSettings').textContent.includes('Risk 2'), null, { timeout: 8000 })
+      .then(() => true, () => false);
+    r.check('a change the host makes in the lobby reaches the joiner', graceSawChange, await grace.textContent('#vsWaitSettings'));
+    const adaWaits = await ada.waitForSelector('#vsStartBtn[disabled]', { timeout: 8000 }).then(() => true, () => false);
+    r.check('and asks them to be ready again', (await grace.textContent('#vsReadyBtn')) === "I'm ready" && adaWaits,
+      await grace.textContent('#vsReadyBtn'));
+    await ada.click('#vsWaitRiskSeg button[data-risk="4"]');
+    await grace.waitForFunction(() => document.querySelector('#vsWaitSettings').textContent.includes('Risk 4'), null, { timeout: 8000 });
+
+    await grace.click('#vsReadyBtn');
+    await ada.waitForSelector('#vsStartBtn:not([disabled])', { timeout: 8000 });
+    r.check('the host sees the joiner is ready', !(await ada.textContent('#vsWaitPlayers')).includes('not ready'), await ada.textContent('#vsWaitPlayers'));
+    r.check('the joiner is told the host starts it', (await grace.textContent('#vsWaitNote')).includes('Ada to start'),
+      await grace.textContent('#vsWaitNote'));
     await ada.waitForTimeout(1500);
     r.check('and the market waits for them', await grace.isHidden('#vsLive'));
+
+    // ---- a countdown either of them can hold ----
+    await ada.click('#vsStartBtn');
+    await grace.waitForSelector('#vsHoldBtn:not([hidden])', { timeout: 8000 });
+    await grace.click('#vsHoldBtn');
+    await ada.waitForFunction(() => !/Starting in/.test(document.querySelector('#vsWaitHead').textContent), null, { timeout: 8000 });
+    await ada.waitForTimeout(2500);
+    r.check('holding the countdown keeps the market shut', await ada.isHidden('#vsLive') && await grace.isHidden('#vsLive'));
+    r.check('and the one who held it is no longer ready', await ada.isDisabled('#vsStartBtn'));
+    await grace.click('#vsReadyBtn');
+    await ada.waitForSelector('#vsStartBtn:not([disabled])', { timeout: 8000 });
     await ada.click('#vsStartBtn');
     await grace.waitForFunction(() => /Starting in/.test(document.querySelector('#vsWaitHead').textContent), null, { timeout: 8000 });
     const adaCounts = await ada.waitForFunction(() => /Starting in/.test(document.querySelector('#vsWaitHead').textContent), null, { timeout: 8000 })
@@ -220,6 +253,8 @@ async function flakyPlayer(browser, name, watch) {
       await flaky.waitForSelector('#vsWaiting:not([hidden])', { timeout: 8000 });
       await patient.fill('#vsJoinPass', 'dropout');
       await patient.click('#vsJoinBtn');
+      await patient.waitForSelector('#vsReadyBtn:not([hidden])', { timeout: 8000 });
+      await patient.click('#vsReadyBtn');
       await flaky.waitForSelector('#vsStartBtn:not([disabled])', { timeout: 8000 });
       await flaky.click('#vsStartBtn');
       await flaky.waitForSelector('#vsLive:not([hidden])', { timeout: 8000 });
