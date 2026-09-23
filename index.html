@@ -21,6 +21,38 @@
 <meta name="twitter:title" content="SimStock · Stock Market Simulator Game">
 <meta name="twitter:description" content="Learn how investing works by building a trading desk in a free, beginner-friendly stock market game.">
 <meta name="twitter:image" content="https://lincolnthomas22.github.io/simstock/og-image.png">
+<!-- Tells search engines the site is called SimStock and that it is a free
+     game, so a search for the name can show it as such. The URLs here have to
+     move with the canonical link above if the game gets its own domain. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://lincolnthomas22.github.io/simstock/#website",
+      "name": "SimStock",
+      "alternateName": "SimStock Stock Market Simulator",
+      "url": "https://lincolnthomas22.github.io/simstock/"
+    },
+    {
+      "@type": "VideoGame",
+      "name": "SimStock",
+      "url": "https://lincolnthomas22.github.io/simstock/",
+      "image": "https://lincolnthomas22.github.io/simstock/og-image.png",
+      "description": "A free stock market simulator game. Learn how investing works by trading parody companies, crypto and memecoins, earning dividends, hiring staff and growing your account. No real money involved.",
+      "genre": ["Simulation", "Educational"],
+      "gamePlatform": "Web browser",
+      "applicationCategory": "Game",
+      "operatingSystem": "Any",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "isPartOf": { "@id": "https://lincolnthomas22.github.io/simstock/#website" }
+    }
+  ]
+}
+</script>
 <!-- The fonts are served from here rather than a CDN, so the game works with
      no internet at all, which the desktop build needs. See tools/fetch-fonts.js. -->
 <link rel="stylesheet" href="fonts/fonts.css?v=09fb6ff3">
