@@ -31,6 +31,16 @@ function startServer() {
   });
 }
 
+// Two pages are read one after the other, so a tick can land between the
+// reads. A few tries in step is the honest version of "the same".
+async function inStep(a, selA, b, selB) {
+  for (let i = 0; i < 4; i++) {
+    if ((await a.textContent(selA)) === (await b.textContent(selB))) return true;
+    await a.waitForTimeout(250);
+  }
+  return false;
+}
+
 // Opens the game, connects to the server, and waits until the lobby says so.
 async function player(browser, name, watch) {
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
@@ -174,8 +184,11 @@ async function flakyPlayer(browser, name, watch) {
     await grace.click('#vsReadyBtn');
     await ada.waitForSelector('#vsStartBtn:not([disabled])', { timeout: 8000 });
     r.check('the host sees the joiner is ready', !(await ada.textContent('#vsWaitPlayers')).includes('not ready'), await ada.textContent('#vsWaitPlayers'));
-    r.check('the joiner is told the host starts it', (await grace.textContent('#vsWaitNote')).includes('Ada to start'),
-      await grace.textContent('#vsWaitNote'));
+    // Each page hears about the ready on its own socket, so the joiner's can
+    // be a moment behind the host's.
+    const graceTold = await grace.waitForFunction(() => document.querySelector('#vsWaitNote').textContent.includes('Ada to start'), null, { timeout: 8000 })
+      .then(() => true, () => false);
+    r.check('the joiner is told the host starts it', graceTold, await grace.textContent('#vsWaitNote'));
     await ada.waitForTimeout(1500);
     r.check('and the market waits for them', await grace.isHidden('#vsLive'));
 
@@ -213,7 +226,7 @@ async function flakyPlayer(browser, name, watch) {
 
     await ada.waitForTimeout(3000);
     r.check('prices stay in step across both clients',
-      (await ada.textContent('#vsPrice')) === (await grace.textContent('#vsPrice')),
+      await inStep(ada, '#vsPrice', grace, '#vsPrice'),
       `${await ada.textContent('#vsPrice')} vs ${await grace.textContent('#vsPrice')}`);
     r.check('the clock is running', (await ada.textContent('#vsClock')) !== '2:00', await ada.textContent('#vsClock'));
 
@@ -228,15 +241,8 @@ async function flakyPlayer(browser, name, watch) {
       !(await ada.textContent('#vsPCash')).includes('-'), await ada.textContent('#vsPCash'));
 
     await ada.waitForTimeout(2000);
-    // The two pages are read one after the other, so a tick can land between
-    // the reads. A few tries in step is the honest version of "the same".
-    let worthsMatch = false;
-    for (let i = 0; i < 4 && !worthsMatch; i++) {
-      worthsMatch = (await grace.textContent('#vsThemWorth')) === (await ada.textContent('#vsMeWorth'));
-      if (!worthsMatch) await ada.waitForTimeout(250);
-    }
     r.check('the opponent panel matches the real net worth, to the penny',
-      worthsMatch,
+      await inStep(grace, '#vsThemWorth', ada, '#vsMeWorth'),
       `${await grace.textContent('#vsThemWorth')} vs ${await ada.textContent('#vsMeWorth')}`);
 
     await ada.fill('#vsQty', '999999');
@@ -297,7 +303,7 @@ async function flakyPlayer(browser, name, watch) {
 
       await flaky.waitForTimeout(1500);
       r.check('prices are in step again across both clients',
-        (await flaky.textContent('#vsPrice')) === (await patient.textContent('#vsPrice')),
+        await inStep(flaky, '#vsPrice', patient, '#vsPrice'),
         `${await flaky.textContent('#vsPrice')} vs ${await patient.textContent('#vsPrice')}`);
       r.check('and trading is open again', !(await flaky.isDisabled('#vsQtyMax')));
 
