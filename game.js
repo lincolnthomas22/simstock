@@ -3812,13 +3812,21 @@
         vs.hosted = { ...msg, host: true, players: [msg.you] };
         setVsStage('waiting');
         return;
-      case 'lobby':
-        // Somebody came in or went out. Nothing is moving until the host
-        // starts it, so whoever joined second is not behind.
+      case 'lobby': {
+        // Somebody came in or went out, said they were ready, or the host
+        // changed the market. Nothing is moving until the host starts it, so
+        // whoever joined second is not behind.
+        const was = vs.hosted;
         stopCountdown();
-        vs.hosted = { ...msg };
+        // The server's own "counting" is true or false; this screen counts
+        // from the countdown message instead, so a lobby is never counting.
+        vs.hosted = { ...msg, counting: null };
         setVsStage('waiting');
+        if (!msg.host && was && !was.offline && (was.risk !== msg.risk || was.ticks !== msg.ticks)) {
+          toast('The host changed the match', `Now Risk ${msg.risk}, ${VS.RISKS[msg.risk].name} · ${matchLength(msg.ticks).note}. Say you are ready again when you have looked.`, 'accent');
+        }
         return;
+      }
       case 'countdown':
         return startCountdown(msg.seconds);
       case 'start':
@@ -3850,9 +3858,10 @@
           setVsStage('lobby');
           return toast('The room closed', 'The host left before the match started.', 'neg');
         }
-        // An error while waiting sends you back; one mid-match is just a
-        // refused order, and the match carries on.
-        if (vs.stage === 'waiting') { stopCountdown(); vs.hosted = null; setVsStage('lobby'); }
+        // A room that is gone sends you back. Anything else in the room is a
+        // refused button (not ready yet, not yours to press) and the room
+        // carries on, as a match does after a refused order.
+        if (vs.stage === 'waiting' && msg.code === 'no_room') { stopCountdown(); vs.hosted = null; setVsStage('lobby'); }
         return toast('The server said no', msg.message || msg.code, 'neg');
       default:
         return;
@@ -4275,11 +4284,38 @@
     if (!h) return;
     // Online the server starts it, for both players at once.
     if (!h.offline) {
-      if (h.host && h.players && h.players.length > 1 && h.counting == null) netSend({ t: 'begin' });
+      if (h.host && opponentReady(h) && h.counting == null) netSend({ t: 'begin' });
       return;
     }
     vs.hosted = null;
     startMatch({ seed: passwordSeed(h.password, h.risk, h.ticks), risk: h.risk, ticks: h.ticks, password: h.password, mode: 'password' });
+  }
+
+  // The opponent in the room has said they are set.
+  const opponentReady = h => !!(h && h.players && h.players.length > 1 && h.players[1].ready);
+
+  // The lobby's buttons: the opponent's ready, the host's say on the market,
+  // and a hold that either of them can put on the countdown.
+  function toggleReady() {
+    const h = vs.hosted;
+    if (!h || h.offline || h.host) return;
+    const mine = h.players && h.players[1];
+    netSend({ t: 'ready', ready: !(mine && mine.ready) });
+  }
+
+  function changeHostedSettings(change) {
+    const h = vs.hosted;
+    if (!h || h.offline || !h.host || h.counting != null) return;
+    // The next room this player opens starts from what they settled on here.
+    if (change.risk != null) vs.risk = change.risk;
+    if (change.ticks != null) vs.ticks = change.ticks;
+    netSend({ t: 'settings', risk: vs.risk, ticks: vs.ticks });
+  }
+
+  function holdCountdown() {
+    const h = vs.hosted;
+    if (!h || h.offline || h.counting == null) return;
+    netSend({ t: 'hold' });
   }
 
   function joinMatch() {
@@ -4320,6 +4356,9 @@
       $('vsWaitNote').textContent = 'Give your opponent this code, exactly as it is. With no match server you each play the same market apart, so start whenever you are ready and compare closing numbers.';
       $('vsWaitCode').textContent = h.code;
       $('vsWaitPlayers').hidden = true;
+      $('vsWaitSetup').hidden = true;
+      $('vsReadyBtn').hidden = true;
+      $('vsHoldBtn').hidden = true;
       $('vsWaitDots').hidden = true;
       $('vsStartBtn').hidden = false;
       $('vsStartBtn').disabled = false;
@@ -4328,29 +4367,62 @@
       return;
     }
 
-    // Online this is the room's lobby: who is in it, and for the host, the
-    // button that starts the match for both of them at once.
+    // Online this is the room's lobby: who is in it and whether they are set,
+    // the host's say on the market, and the button that starts it for both.
     const players = h.players || [];
     const both = players.length > 1;
+    const ready = opponentReady(h);
     const counting = h.counting != null;
     const hostName = players[0] ? players[0].name : 'the host';
+    const themName = both ? players[1].name : 'your opponent';
     $('vsWaitHead').textContent = counting
       ? (h.counting > 0 ? `Starting in ${h.counting}` : 'The bell goes')
-      : h.host ? (both ? 'Your opponent is here' : 'Waiting for an opponent') : 'In the lobby';
-    $('vsWaitNote').textContent = counting
-      ? 'Eyes on the market. It opens for both of you at the same moment.'
       : h.host
-        ? (both ? 'Start the match when you are both ready. The clock does not run until you do.' : 'Give them this password. The risk and the length are held by the server, so it is all they need.')
-        : `Waiting for ${hostName} to start the match. Nothing moves until they do, so you are not missing anything.`;
+        ? (!both ? 'Waiting for an opponent' : ready ? `${themName} is ready` : 'Your opponent is here')
+        : (ready ? 'You are ready' : 'In the lobby');
+    $('vsWaitNote').textContent = counting
+      ? 'Eyes on the market. It opens for both of you at the same moment. Hold on if either of you is not set.'
+      : h.host
+        ? (!both
+          ? 'Give them this password. The risk and the length are held by the server, so it is all they need. You can still change them until the match starts.'
+          : ready
+            ? 'Start the match when you are set. The clock does not run until you do.'
+            : `Waiting for ${themName} to say they are ready. Changing the market asks them again.`)
+        : ready
+          ? `Waiting for ${hostName} to start the match. Nothing moves until they do, so you are not missing anything.`
+          : `Look over the market ${hostName} picked, then say you are ready. The match cannot start until you do.`;
     $('vsWaitCode').textContent = h.password;
     $('vsWaitPlayers').hidden = false;
-    const rows = players.map((p, i) => `<li><span>${esc(p.name)}</span><span class="tag">${i === 0 ? 'host' : 'opponent'}${(i === 0) === !!h.host ? ' · you' : ''}</span></li>`);
+    const rows = players.map((p, i) => {
+      const you = (i === 0) === !!h.host ? ' · you' : '';
+      const role = i === 0 ? 'host' : 'opponent';
+      const set = i === 0 ? '' : p.ready ? ' · ready' : ' · not ready';
+      return `<li><span>${esc(p.name)}</span><span class="tag${i > 0 && p.ready ? ' ready' : ''}">${role}${you}${set}</span></li>`;
+    });
     if (!both) rows.push('<li class="empty"><span>Waiting for an opponent\u2026</span></li>');
     $('vsWaitPlayers').innerHTML = rows.join('');
-    $('vsWaitDots').hidden = counting || (h.host && both);
-    $('vsStartBtn').hidden = !h.host;
-    $('vsStartBtn').disabled = !both || counting;
-    $('vsStartBtn').textContent = both ? 'Start the match' : 'Waiting for an opponent';
+
+    // Only the host picks the market, and only before the count starts.
+    $('vsWaitSetup').hidden = !h.host || counting;
+    document.querySelectorAll('#vsWaitRiskSeg button').forEach(b => {
+      const on = Number(b.dataset.risk) === h.risk;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    document.querySelectorAll('#vsWaitLenSeg button').forEach(b => {
+      const on = Number(b.dataset.ticks) === h.ticks;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+
+    $('vsWaitDots').hidden = counting || (h.host && ready) || (!h.host && !ready);
+    $('vsStartBtn').hidden = !h.host || counting;
+    $('vsStartBtn').disabled = !ready;
+    $('vsStartBtn').textContent = !both ? 'Waiting for an opponent' : ready ? 'Start the match' : 'Waiting for them to be ready';
+    $('vsReadyBtn').hidden = !!h.host || counting;
+    $('vsReadyBtn').textContent = ready ? 'Not ready after all' : "I'm ready";
+    $('vsReadyBtn').classList.toggle('btn-mustard', !ready);
+    $('vsHoldBtn').hidden = !counting;
     $('vsCancelBtn').textContent = h.host ? 'Close the room' : 'Leave the room';
   }
 
@@ -4945,6 +5017,13 @@
   document.querySelectorAll('#vsLenSeg button').forEach(b => {
     b.onclick = () => { vs.ticks = Number(b.dataset.ticks); renderVsLobby(); };
   });
+  $('vsWaitLenSeg').innerHTML = $('vsLenSeg').innerHTML;
+  document.querySelectorAll('#vsWaitRiskSeg button').forEach(b => {
+    b.onclick = () => changeHostedSettings({ risk: Number(b.dataset.risk) });
+  });
+  document.querySelectorAll('#vsWaitLenSeg button').forEach(b => {
+    b.onclick = () => changeHostedSettings({ ticks: Number(b.dataset.ticks) });
+  });
   document.querySelectorAll('#vsSideSeg button').forEach(b => {
     b.onclick = () => { vs.side = b.dataset.side; renderVersus(); };
   });
@@ -4986,6 +5065,8 @@
   };
   $('vsCancelBtn').onclick = () => leaveMatch();
   $('vsStartBtn').onclick = startHostedMatch;
+  $('vsReadyBtn').onclick = toggleReady;
+  $('vsHoldBtn').onclick = holdCountdown;
   $('vsConnectBtn').onclick = netConnect;
   $('vsServerUrl').addEventListener('keydown', e => { if (e.key === 'Enter') netConnect(); });
   $('vsName').addEventListener('change', () => {

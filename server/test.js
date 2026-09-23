@@ -160,9 +160,80 @@ function client() {
   const notHost = await b.want('error', bBeginAt);
   ok('only the host can start the match', () => assert.strictEqual(notHost.code, 'not_host'));
 
+  const unreadyAt = a.mark();
   a.send({ t: 'begin' });
-  const countA = await a.want('countdown');
-  const countB = await b.want('countdown');
+  const unready = await a.want('error', unreadyAt);
+  ok('the host cannot start until the opponent is ready', () => assert.strictEqual(unready.code, 'not_ready'));
+  ok('and the lobby says who is ready', () => assert.deepStrictEqual(lobbyA.players.map(p => p.ready), [true, false]));
+
+  const hostReadyAt = a.mark();
+  a.send({ t: 'ready', ready: true });
+  const hostReady = await a.want('error', hostReadyAt);
+  ok('the host has no ready of their own to give', () => assert.strictEqual(hostReady.code, 'is_host'));
+
+  // The host changes the market; the opponent is asked again.
+  let lat = b.mark();
+  b.send({ t: 'ready', ready: true });
+  const readied = await b.want('lobby', lat);
+  ok('the opponent saying ready is shown to both', () => assert.strictEqual(readied.players[1].ready, true));
+  lat = b.mark();
+  a.send({ t: 'settings', risk: 4, ticks: 5 });
+  const changed = await b.want('lobby', lat);
+  ok('the host can change the risk in the lobby, and both see it', () => assert.strictEqual(changed.risk, 4));
+  ok('and changing it takes the opponent\'s ready back', () => assert.strictEqual(changed.players[1].ready, false));
+  lat = b.mark();
+  b.send({ t: 'settings', risk: 1 });
+  const guestSettings = await b.want('error', lat);
+  ok('only the host can change the match', () => assert.strictEqual(guestSettings.code, 'not_host'));
+  lat = a.mark();
+  a.send({ t: 'settings', risk: 9 });
+  const badChange = await a.want('error', lat);
+  ok('a lobby change is checked like a new room is', () => assert.strictEqual(badChange.code, 'bad_risk'));
+  lat = b.mark();
+  a.send({ t: 'settings', risk: 3 });
+  await b.want('lobby', lat);
+
+  // A countdown either of them can stop.
+  lat = b.mark();
+  b.send({ t: 'ready', ready: true });
+  await b.want('lobby', lat);
+  lat = b.mark();
+  a.send({ t: 'begin' });
+  await b.want('countdown', lat);
+  lat = b.mark();
+  b.send({ t: 'hold' });
+  const held = await b.want('lobby', lat);
+  ok('the opponent can hold the countdown, and is no longer ready', () => {
+    assert.strictEqual(held.counting, false);
+    assert.strictEqual(held.players[1].ready, false);
+    assert.strictEqual(rooms.get('copper-otter').stage, 'waiting');
+  });
+  lat = b.mark();
+  b.send({ t: 'ready', ready: true });
+  await b.want('lobby', lat);
+  lat = a.mark();
+  a.send({ t: 'begin' });
+  await a.want('countdown', lat);
+  a.send({ t: 'settings', risk: 2 });
+  const counting = await a.want('error', lat);
+  ok('the match cannot be changed mid-countdown', () => assert.strictEqual(counting.code, 'counting'));
+  lat = a.mark();
+  a.send({ t: 'hold' });
+  const hostHeld = await a.want('lobby', lat);
+  ok('the host can hold the countdown too, and the opponent stays ready', () => {
+    assert.strictEqual(hostHeld.counting, false);
+    assert.strictEqual(hostHeld.players[1].ready, true);
+  });
+  await new Promise(r => setTimeout(r, 1300));
+  ok('and a held countdown never starts the match', () => {
+    assert.ok(!a.seen.some(m => m.t === 'start'));
+    assert.ok(!b.seen.some(m => m.t === 'start'));
+  });
+
+  const goA = a.mark(); const goB = b.mark();
+  a.send({ t: 'begin' });
+  const countA = await a.want('countdown', goA);
+  const countB = await b.want('countdown', goB);
   ok('the host starting it counts both players down together', () => {
     assert.strictEqual(countA.seconds, 1);
     assert.strictEqual(countB.seconds, 1);
@@ -324,6 +395,8 @@ function client() {
   await d.want('hosted');
   e.send({ t: 'join', password: 'walkout', name: 'Stayer' });
   await d.want('lobby');
+  e.send({ t: 'ready', ready: true });
+  await d.want('lobby', 1 + d.seen.findIndex(m => m.t === 'lobby'));
   d.send({ t: 'begin' });
   await e.want('start');
   await new Promise(r => setTimeout(r, 300));
@@ -343,6 +416,8 @@ function client() {
   await g.want('hosted');
   h.send({ t: 'join', password: 'dropout', name: 'Patient' });
   await g.want('lobby');
+  h.send({ t: 'ready', ready: true });
+  await g.want('lobby', 1 + g.seen.findIndex(m => m.t === 'lobby'));
   g.send({ t: 'begin' });
   const startG = await g.want('start');
   await h.want('start');

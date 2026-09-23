@@ -82,6 +82,7 @@ function makePlayer(ws, name) {
     graceTimer: null,
     sentTick: -1,          // the last tick whose prices this player has been given
     ordersThisTick: 0,
+    ready: false,          // the opponent's "I'm set" in the lobby; the host's is pressing Start
     room: null,
   };
 }
@@ -138,8 +139,67 @@ function sendLobby(room) {
     risk: room.risk,
     ticks: room.ticks,
     host: i === 0,
-    players: room.players.map(publicPlayer),
+    counting: room.stage === 'countdown',
+    players: room.players.map((x, j) => ({ ...publicPlayer(x), ready: j === 0 || x.ready })),
   }));
+}
+
+// The lobby's own business, none of which can happen once the bell has gone.
+const inLobby = (ws, p) => {
+  if (!p || !p.room) { fail(ws, 'no_room', 'You are not in a room.'); return null; }
+  if (p.room.stage !== 'waiting' && p.room.stage !== 'countdown') { fail(ws, 'not_waiting', 'That match is already under way.'); return null; }
+  return p.room;
+};
+
+// Stops a countdown and puts the room back in its lobby. Anybody can pull
+// this: a match both players did not agree to start is not a fair one.
+function holdCountdown(room) {
+  if (room.stage !== 'countdown') return false;
+  clearTimeout(room.countdownTimer);
+  room.countdownTimer = null;
+  room.stage = 'waiting';
+  return true;
+}
+
+// The opponent saying they are set, or taking it back. Taking it back while
+// the room is counting down stops the count: they were not set after all.
+function setReady(ws, msg) {
+  const p = ws.player;
+  const room = inLobby(ws, p);
+  if (!room) return;
+  if (room.players[0] === p) return fail(ws, 'is_host', 'The host is ready by starting the match.');
+  p.ready = !!msg.ready;
+  if (!p.ready) holdCountdown(room);
+  sendLobby(room);
+}
+
+// The host changing the market before anybody has traded on it. The opponent
+// agreed to the old one, so they are asked again.
+function changeSettings(ws, msg) {
+  const p = ws.player;
+  const room = inLobby(ws, p);
+  if (!room) return;
+  if (room.players[0] !== p) return fail(ws, 'not_host', 'Only the host can change the match.');
+  if (room.stage !== 'waiting') return fail(ws, 'counting', 'Hold the countdown before changing the match.');
+  const risk = msg.risk == null ? room.risk : Math.round(Number(msg.risk));
+  const ticks = msg.ticks == null ? room.ticks : Math.round(Number(msg.ticks));
+  if (!VS.RISKS[risk]) return fail(ws, 'bad_risk', 'That is not a risk level.');
+  if (!VS.DURATIONS.some(d => d.ticks === ticks)) return fail(ws, 'bad_length', 'That is not a match length.');
+  if (risk === room.risk && ticks === room.ticks) return sendLobby(room);
+  room.risk = risk;
+  room.ticks = ticks;
+  room.players.slice(1).forEach(x => { x.ready = false; });
+  sendLobby(room);
+}
+
+// Either player stopping the countdown before the bell.
+function holdMatch(ws) {
+  const p = ws.player;
+  const room = inLobby(ws, p);
+  if (!room) return;
+  if (!holdCountdown(room)) return sendLobby(room);
+  if (room.players[0] !== p) p.ready = false;
+  sendLobby(room);
 }
 
 // The host's say-so. Only the host can give it, and only with somebody to play.
@@ -150,6 +210,7 @@ function beginMatch(ws) {
   if (room.players[0] !== p) return fail(ws, 'not_host', 'Only the host can start the match.');
   if (room.stage !== 'waiting') return fail(ws, 'not_waiting', 'That match is already under way.');
   if (room.players.length < 2) return fail(ws, 'alone', 'Wait for your opponent to join first.');
+  if (!room.players[1].ready) return fail(ws, 'not_ready', 'Your opponent has not said they are ready yet.');
   room.stage = 'countdown';
   const seconds = Math.round(COUNTDOWN_MS / 1000);
   room.players.forEach(x => send(x.ws, { t: 'countdown', seconds }));
@@ -539,6 +600,9 @@ wss.on('connection', ws => {
         case 'host': return ws.player ? fail(ws, 'busy', 'You are already in a match.') : hostRoom(ws, msg);
         case 'join': return ws.player ? fail(ws, 'busy', 'You are already in a match.') : joinRoom(ws, msg);
         case 'begin': return beginMatch(ws);
+        case 'ready': return setReady(ws, msg);
+        case 'settings': return changeSettings(ws, msg);
+        case 'hold': return holdMatch(ws);
         case 'order': return placeOrder(ws, msg);
         case 'rematch': return askRematch(ws);
         case 'resume': return resumeMatch(ws, msg);

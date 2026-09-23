@@ -24,7 +24,7 @@
 <!-- The fonts are served from here rather than a CDN, so the game works with
      no internet at all, which the desktop build needs. See tools/fetch-fonts.js. -->
 <link rel="stylesheet" href="fonts/fonts.css?v=09fb6ff3">
-<link rel="stylesheet" href="style.css?v=122efc38">
+<link rel="stylesheet" href="style.css?v=7d929065">
 </head>
 <body>
 
@@ -862,9 +862,23 @@
       <div class="versus-code" id="vsWaitCode"></div>
       <button class="btn btn-sm" id="vsCopyBtn">Copy it</button>
       <p class="versus-waiting-settings" id="vsWaitSettings"></p>
+      <div class="versus-wait-setup" id="vsWaitSetup" hidden>
+        <span class="field-label">How risky is the stock?</span>
+        <div class="seg seg-full" id="vsWaitRiskSeg" role="group" aria-label="Risk level">
+          <button data-risk="1">1</button>
+          <button data-risk="2">2</button>
+          <button data-risk="3">3</button>
+          <button data-risk="4">4</button>
+          <button data-risk="5">5</button>
+        </div>
+        <span class="field-label">How long does it last?</span>
+        <div class="seg seg-full" id="vsWaitLenSeg" role="group" aria-label="Match length"></div>
+      </div>
       <ul class="versus-lobby-players" id="vsWaitPlayers" hidden></ul>
       <div class="versus-waiting-dots" id="vsWaitDots" aria-hidden="true"><span></span><span></span><span></span></div>
       <button class="btn btn-green" id="vsStartBtn" hidden>Start trading</button>
+      <button class="btn btn-mustard" id="vsReadyBtn" hidden>I'm ready</button>
+      <button class="btn" id="vsHoldBtn" hidden>Hold on</button>
       <button class="text-btn versus-quit" id="vsCancelBtn">Cancel the match</button>
     </div>
 
@@ -1042,7 +1056,7 @@
 <div id="modalRoot"></div>
 
 <script src="sim.js?v=4054b33a"></script>
-<script src="game.js?v=e4f5b785"></script>
+<script src="game.js?v=58789cfd"></script>
 <script src="gamepad.js?v=59148e71"></script>
 </body>
 </html>
